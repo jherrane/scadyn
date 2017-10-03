@@ -410,7 +410,7 @@ integer :: Nmax, firstlineno,lastlineno, i, n1, n2
 character(len=140) :: linedat, dummy
 real(dp) :: x(3), v(3), w(3), J(3), F(3), N(3), t, R(9)
 
-firstlineno = 23
+firstlineno = 5023
 lastlineno = get_last_line_no(matrices%out)
 
 open(fh, file=trim(matrices%out))

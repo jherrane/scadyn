@@ -11,8 +11,8 @@ call splash()
 ! Default arguments
 mesh%meshname = 'shapes/sphere.h5'
 matrices%tname = 'T.h5'
-matrices%out = 'out/log'
-matrices%mueller = 'out/mueller'
+matrices%out = 'log'
+matrices%mueller = 'mueller'
 matrices%mueller_mode = 'none'
 mesh%projector = 'pfft'
 matrices%paramsfile = 'params.in'

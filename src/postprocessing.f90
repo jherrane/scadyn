@@ -187,7 +187,7 @@ type(data) :: matrices
 type(mesh_struct) :: mesh
 integer :: i
 complex(dp), dimension(:) , allocatable :: p, q, p90, q90
-integer :: Nmax, ii, las, nm, N_points, halton_init, N_avgs, N_theta, N_phi
+integer :: Nmax, ii, las, nm, N_points, halton_init, N_avgs, N_theta, N_phi, everyn
 real(dp) :: E, vec(3), phi, R0(3,3), Qt(3,3), omega(3), aproj(3), RR(3,3), theta
 real(dp), dimension(:,:), allocatable :: SS, SSS
 CHARACTER(LEN=80) :: mueller_out
@@ -197,6 +197,7 @@ N_points = 500 ! Number of points to calculate the perfect orientations
 N_theta = 180  ! Theta range in Mueller matrices
 N_avgs = 1     ! Used in randomly oriented (RO) averages
 N_phi = 90     ! Number of phi-angles between 0 and 2pi for non-RO cases
+everyn = 1
 
 mueller_out = trim(matrices%mueller)//'-'//trim(matrices%mueller_mode)
 if(file_exists(mueller_out)) then
@@ -215,6 +216,7 @@ select case (trim(matrices%mueller_mode))
 		N_phi = 1    ! Averaging occurs, so phi-dependency is lost
 	case('ori')
 		call read_log(matrices,mesh)
+		everyn = 1
 end select
 
 allocate(SSS(N_theta*N_phi,18))
@@ -244,7 +246,7 @@ select case (trim(matrices%mueller_mode))
 	case('ori'); N_points = size(matrices%RRR,3)
 end select
 
-do i2 = 1, N_points
+do i2 = 1, N_points, everyn
 	do i1 = 1, N_avgs
 		if(trim(matrices%mueller_mode)=='ave') then
 			vec(1) = 1d0
@@ -281,7 +283,7 @@ do i2 = 1, N_points
 	call print_bar(i2,N_points)
 end do
 
-SSS = SSS/N_points/N_avgs
+SSS = everyn*SSS/N_points/N_avgs
 call write_mueller(SSS,mueller_out)
 
 end subroutine compute_mueller

@@ -65,7 +65,7 @@ real(dp), dimension(1,1000) :: t_buf
 real(dp), dimension(4) :: q, qn
 real(dp), dimension(3,3) :: R, Rn, Rkt, P, I, I_inv, R_init, R90_init, Rexp, R_al
 real(dp), dimension(3) :: khat, w, x_CM, v_CM, N, wn, xn, vn, J, F, Ip, CM,&
-dw, k_orig, E0_orig, E90_orig, Q_t, Q_f
+dw, k_orig, E0_orig, E90_orig, Q_t, Q_f, B
 real(dp) ::  khi_0, rot_max, lambda1, lambda2, temp, dt0, dt, tt, &
 E, refr, refi, tol_m, M1, M3
 

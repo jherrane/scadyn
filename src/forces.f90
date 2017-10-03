@@ -305,4 +305,27 @@ end do
 
 end function T_z
 
+!******************************************************************************
+! Calculates the z-component of torque analytically
+function barnett_torque(matrices, mesh) result(N)
+type(data) :: matrices
+type(mesh_struct) :: mesh
+real(dp) :: a
+real(dp), dimension(3, 3) :: RT, R_k, R_k90
+complex(dp), dimension(3) :: F, N 
+real(dp), dimension(3)    :: tmp, w, mu_Bar, B
+integer :: i
+
+! The approximate Barnett proportional constant X(0)*hbar/(g*mu_B)
+a = 10d0**(-15)
+w = matrices%w
+mu_Bar = a*mesh%V*w
+B = [1d0,0d0,0d0]*10**(-9)
+
+tmp = crossRR(mu_Bar,B)
+
+N = dcmplx(tmp,0d0)
+
+end function barnett_torque
+
 end module forces
