@@ -11,7 +11,7 @@ function get_forces(matrices, mesh) result(FN)
 type(data) :: matrices
 type(mesh_struct) :: mesh
 real(dp), dimension(3, 3) :: RT, R_k, R_k90
-complex(dp), dimension(3) :: F, N
+complex(dp), dimension(3) :: F, N, N_DG, N_B
 complex(dp), dimension(6) :: FN
 integer :: i
 
@@ -40,6 +40,13 @@ else
 	call forcetorque(matrices%whichbar, matrices, mesh)
  F = F + matrices%force
  N = N + matrices%torque
+end if
+
+if(calc_extra_torques == 1) then
+	N_DG = DG_torque(matrices,mesh)
+	N_B = barnett_torque(matrices,mesh)
+	
+	N = N + N_B + N_DG
 end if
 
 FN(1:3) = matmul(matrices%R, real(F)) ! {x}_sca -> {x}_lab
@@ -317,15 +324,55 @@ real(dp), dimension(3)    :: tmp, w, mu_Bar, B
 integer :: i
 
 ! The approximate Barnett proportional constant X(0)*hbar/(g*mu_B)
-a = 10d0**(-15)
+a = 10d0**(-14)
 w = matrices%w
 mu_Bar = a*mesh%V*w
-B = [1d0,0d0,0d0]*10**(-9)
+B = matrices%B
 
 tmp = crossRR(mu_Bar,B)
 
 N = dcmplx(tmp,0d0)
 
 end function barnett_torque
+
+!******************************************************************************
+! Calculates the z-component of torque analytically
+function DG_torque(matrices, mesh) result(N)
+type(data) :: matrices
+type(mesh_struct) :: mesh
+real(dp) :: a,psi,xi,phi,Kw, V, tau
+real(dp), dimension(3, 3) :: RT, R_k, R_k90
+complex(dp), dimension(3) :: F, N 
+real(dp), dimension(3)    :: a3, tmp, w, mu_Bar, B, B_perp, proj_Bperp_a3, psi_vec
+integer :: i
+
+Kw = 10d0**(-13)
+
+a3 = matrices%P(:,3)
+V = mesh%V
+w = matrices%w
+tau = matrices%Ip(3)/(Kw*V*vlen(matrices%B)**2)
+B = matrices%B/vlen(matrices%B)
+B_perp = crossRR([0d0,1d0,0d0],B)
+proj_Bperp_a3 = a3-dot_product(a3,B_perp)*a3
+proj_Bperp_a3 = proj_Bperp_a3/vlen(proj_Bperp_a3)
+
+psi = dacos(dot_product(B,matrices%khat))
+xi = dacos(dot_product(B,a3))
+phi = dacos(dot_product(B_perp,proj_Bperp_a3))
+
+if(psi>pi/2) then
+	psi = psi - pi/2
+end if
+if(proj_Bperp_a3(2)<0) phi = phi + pi
+
+psi_vec = [  dcos(phi)*dcos(xi)*dcos(phi)-dsin(psi)*dsin(xi), &
+dcos(xi)*dsin(phi), -dsin(psi)*dcos(xi)*dcos(phi) - dcos(psi)*dsin(xi) ]
+
+tmp = -(dsin(xi)*dcos(xi)*psi_vec + dsin(xi)*dsin(xi)*a3)*matrices%Ip(3)*vlen(w)/tau
+
+N = dcmplx(tmp,0d0)
+
+end function DG_torque
 
 end module forces

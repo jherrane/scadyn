@@ -26,7 +26,7 @@ call init_geometry(matrices,mesh)
 
 call allocate_Ti(matrices)
 
-if (matrices%Tmat == 1 .AND. file_exists(matrices%tname)) then
+if (matrices%Tmat == 1 .AND. file_exists(trim(matrices%tname))) then
 	call read_T( matrices, mesh )
 	call fix_band( matrices, mesh )
 else

@@ -199,6 +199,8 @@ if(matrices%singleT == 1 .AND. matrices%whichbar == 0)then
 	matrices%whichbar = 1
 end if
 
+matrices%B = [1d0,0d0,0d0]*1d-9
+
 end subroutine read_arguments
 
 !******************************************************************************

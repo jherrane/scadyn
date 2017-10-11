@@ -11,12 +11,13 @@ type(mesh_struct) :: mesh
 integer :: i, j, ii, range(2)
 real(dp), dimension(:,:), allocatable :: Q_fcoll, Q_tcoll
 real(dp), dimension(3) :: k0, E0, E90
-complex(dp), dimension(3) :: F, N, FF, NN
+complex(dp), dimension(3) :: F, N, FF, NN, N_B, N_DG
 real(dp) :: Qmag
 
 ! Now, to comply with the properties of DDSCAT, the scattering happens
 ! with respect to the particle principal axes
 matrices%khat = matrices%P(:,3)
+matrices%B = vlen(matrices%B)*(0.5d0*matrices%P(:,1) + matrices%P(:,3))
 matrices%Rexp = find_Rexp( matrices )
 matrices%Rexp = transpose( matrices%Rexp )
 
@@ -55,6 +56,14 @@ do j = 1,2
 
 	NN =  matmul(matrices%R, N)
 	FF =  matmul(matrices%R, F)
+	
+	if(j == 2) then
+		N_DG = DG_torque(matrices,mesh)
+		N_B = barnett_torque(matrices,mesh)
+
+		write(*,'(A,3ES11.3,A)') ' N_DG = (', real(N_DG), ' ) Nm'
+		write(*,'(A,3ES11.3,A)') ' N_B = (', real(N_B), ' ) Nm'
+	end if 
 
 	print*, ''
 	select case (j)
