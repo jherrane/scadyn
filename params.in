@@ -1,9 +1,9 @@
 ##### Physical setup  #####################################
 v0 0 0 0							# Initial velocity
-w0 0 0 0							# Initial angular velocity
+w0 1d5 0 0							# Initial angular velocity
 R0 i									# r = random matrix, i = identity matrix
 
-a 2.d-7								# Equivalent radius
+a 1.d-7								# Equivalent radius
 rho 3000.							# Density
 
 T 5800								# Black body temperature (K)
@@ -11,7 +11,7 @@ khat 0 0 1						# Wave vector direction
 
 refr 0.0							# Refractive index (set to zero to ignore)
 refi 0.0
-E 1d0									# Amplitude of E at its maximum
+E 1d-1									# Amplitude of E at its maximum
 
 ##### Run parameters  #####################################
 waves bnd 						# (lin, inv, log, bnd)
