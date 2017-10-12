@@ -173,6 +173,9 @@ do i = 1,command_argument_count(),2
  case('-mie')
 	call get_command_argument(i+1,arg)
 	read(arg,*) use_mie
+ case('-B')
+	call get_command_argument(i+1,arg)
+	read(arg,*) calc_extra_torques
    
  case('-help')
   print*, 'Command line parameters' 
@@ -186,6 +189,7 @@ do i = 1,command_argument_count(),2
   print*, '-wb 0                  "Choose wavelength from the T-matrix"'
   print*, '-singleT 0             "Calculate only one T-matrix, of wb"'
   print*, '-mie 1                 "Use the Mie sphere"'
+  print*, '-B 1                   "Use external magnetic field"'
 
   stop
  case default 
@@ -350,6 +354,9 @@ do while (ios == 0)
    read(buffer, *, iostat=ios) matrices%N_mean
   case('tol_m')
    read(buffer, *, iostat=ios) matrices%tol_m
+  case('B')
+		read(buffer,*,iostat=ios) matrices%B
+		if(vlen(matrices%B)>1d-14) calc_extra_torques = 1
   case default
    !print *, 'Skipping invalid label at line', line
 
@@ -604,19 +611,19 @@ open(unit=1, file=fname, ACTION="write", STATUS="replace")
 
 write(1,'(A, A)')        'meshname =   ', mesh%meshname
 write(1,'(A, 3f7.3)')    'k_hat    = ', matrices%khat
-write(1,'(A, 3f7.3)')    'dt       = ', matrices%dt
+write(1,'(A, 3ES11.3)')    'dt       = ', matrices%dt
 write(1,'(A,I20)')       'Nmax     = ', matrices%it_max
-write(1,'(A, 3f7.3)')    'w0       = ', matmul(matmul(matrices%P,matrices%R),&
+write(1,'(A, 3ES11.3)')    'w0       = ', matmul(matmul(matrices%P,matrices%R),&
 matrices%w)
 write(1,'(A, 9f7.3)')    'R0       = ', matrices%R
-write(1,'(A, 3f7.0)')    'rho      = ', mesh%rho
+write(1,'(A, 3ES11.3)')    'rho      = ', mesh%rho
 write(1,'(A, 3ES11.3)')  'CM       = ', matrices%CM
 write(1,'(A, 3ES11.3)')  'a        = ', mesh%a
 write(1,'(A, 80ES11.3)') 'ki       = ', mesh%ki
 write(1,'(A, 2f8.2)')    'range nm = ', matrices%lambda1*1d9,matrices%lambda2*1d9
 write(1,'(A, 3ES11.3)')  'mass     = ', mesh%mass
 write(1,'(A, 3ES11.3)')  'V        = ', mesh%V
-write(1,'(A, 3f7.3)')    'rot_max  = ', matrices%rot_max
+write(1,'(A, 3ES11.3)')    'rot_max  = ', matrices%rot_max
 write(1,'(A)')           'Ip       = '
 write(1,'(9ES11.3)') matrices%Ip(:)
 write(1,'(A)')           'Q        = '

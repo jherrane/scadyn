@@ -56,14 +56,6 @@ do j = 1,2
 
 	NN =  matmul(matrices%R, N)
 	FF =  matmul(matrices%R, F)
-	
-	if(j == 2) then
-		N_DG = DG_torque(matrices,mesh)
-		N_B = barnett_torque(matrices,mesh)
-
-		write(*,'(A,3ES11.3,A)') ' N_DG = (', real(N_DG), ' ) Nm'
-		write(*,'(A,3ES11.3,A)') ' N_B = (', real(N_B), ' ) Nm'
-	end if 
 
 	print*, ''
 	select case (j)
@@ -72,7 +64,15 @@ do j = 1,2
 	end select
 	write(*,'(A,3ES11.3,A)') ' F = (', real(FF), ' ) N'
 	write(*,'(A,3ES11.3,A)') ' N = (', real(NN), ' ) Nm'
+	
+	if(j == 2) then
+		N_DG = DG_torque(matrices,mesh)
+		N_B = barnett_torque(matrices,mesh)
 
+		write(*,'(A,3ES11.3,A)') ' N_DG = (', real(N_DG), ' ) Nm'
+		write(*,'(A,3ES11.3,A)') ' N_B = (', real(N_B), ' ) Nm'
+	end if 
+	
 	print*, ''
 	print*, 'Efficiencies for each wavelength separately'
 	write(*,'(A, 80F7.1)') 'WL(nm):', 2d9*pi/mesh%ki

@@ -23,7 +23,7 @@ integer, parameter     ::  nthreads  =  24
 
 integer                ::  seedling  =  0
 integer								 ::  use_mie   =  0
-integer                ::  calc_extra_torques = 1
+integer                ::  calc_extra_torques = 0
 
 ! TYPES ***********************************************************************
 !******************************************************************************
