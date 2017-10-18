@@ -31,6 +31,8 @@
 *.out
 *.app
 
-*/ext*
-*/data*
+*/ext/**
+/ext/
+*/data/**
+/data/
 *.sh
