@@ -23,6 +23,7 @@ integer, parameter     ::  nthreads  =  24
 
 integer                ::  seedling  =  0
 integer								 ::  use_mie   =  0
+integer								 ::  run_test   =  0
 integer                ::  calc_extra_torques = 0
 
 ! TYPES ***********************************************************************
@@ -73,7 +74,7 @@ E, refr, refi, tol_m, M1, M3
 integer, dimension(:,:,:), allocatable :: listindS, indDs, indD90s, indXs, indYs
 integer, dimension(:,:), allocatable :: indS, T_ind, indS_loc, sp_ind
 integer, dimension(:), allocatable :: S_tet_loc, Nmaxs
-integer :: Nmax, polarization, bars, Tmat, it_max, which_int, run_tests, &
+integer :: Nmax, polarization, bars, Tmat, it_max, which_int, &
 is_aggr, whichbar, buffer, it_log, N_mean, is_aligned, alignment_found, it_stop, &
 singleT
 

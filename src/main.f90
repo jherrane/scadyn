@@ -1,4 +1,6 @@
 program main
+use common
+use io
 use integrator
 use postprocessing
 
@@ -35,10 +37,10 @@ else
 	call write_T( matrices, mesh )
 end if
 
-if(matrices%run_tests == 0) then
+if(run_test == 0) then
 	call integrate(matrices,mesh) 
 else
-	call run_tests(matrices,mesh)
+	call tests(matrices,mesh)
 end if
 
 if(trim(matrices%mueller_mode) /= 'none') call compute_mueller(matrices,mesh)
@@ -47,7 +49,7 @@ contains
 
 !******************************************************************************
 
-subroutine run_tests(matrices,mesh)
+subroutine tests(matrices,mesh)
 type(data) :: matrices
 type(mesh_struct) :: mesh
 
@@ -68,12 +70,12 @@ matrices%x_CM = mesh%CM
 call diagnonalize_inertia(matrices, mesh)
 call init_values(matrices, mesh)
 
-select case(matrices%run_tests)
+select case(run_test)
 	case(1); call test_methods( matrices, mesh )
 	case(2); call torque_efficiency(matrices, mesh)
 	case(3); call stability_analysis(matrices, mesh)
 end select
 
-end subroutine run_tests
+end subroutine tests
 
 end program main

@@ -335,8 +335,7 @@ do while (ios == 0)
    read(buffer, *, iostat=ios) whichbar
    if(matrices%whichbar == 0) matrices%whichbar = whichbar
   case('test_forces')
-   read(buffer, *, iostat=ios) test_forces
-   matrices%run_tests = test_forces
+   read(buffer, *, iostat=ios) run_test
   case('is_aggr')
    read(buffer, *, iostat=ios) is_aggr
    matrices%is_aggr = is_aggr
