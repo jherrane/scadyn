@@ -31,8 +31,8 @@ INCS = -I/usr/include -I/usr/local/include/ -J${BINDIR}
 OBJECTS = ${BINDIR}/common.o \
 ${BINDIR}/sfunctions.o \
 ${BINDIR}/io.o \
-${BINDIR}/mie.o \
 ${BINDIR}/translations.o \
+${BINDIR}/mie.o \
 ${BINDIR}/possu.o \
 ${BINDIR}/sparse.o \
 ${BINDIR}/singularity_subtraction.o \
@@ -51,7 +51,6 @@ ${BINDIR}/solver.o \
 ${BINDIR}/transformation_matrices.o \
 ${BINDIR}/clustermie.o \
 ${BINDIR}/octtree.o \
-${BINDIR}/miecoat.o \
 ${BINDIR}/setup.o \
 ${BINDIR}/T_matrix.o \
 ${BINDIR}/forces.o \

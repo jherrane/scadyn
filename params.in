@@ -3,7 +3,7 @@ v0 0 0 0							# Initial velocity
 w0 1d3 0 0							# Initial angular velocity
 R0 i									# r = random matrix, i = identity matrix
 
-a 1.d-7								# Equivalent radius
+a 2.d-7								# Equivalent radius
 rho 3000.							# Density
 
 T 5800								# Black body temperature (K)
