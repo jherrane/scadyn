@@ -356,6 +356,8 @@ do while (ios == 0)
   case('B')
 		read(buffer,*,iostat=ios) matrices%B
 		if(vlen(matrices%B)>1d-14) calc_extra_torques = 1
+  case('beam_shape')
+    read(buffer, *, iostat=ios) beam_shape
   case default
    !print *, 'Skipping invalid label at line', line
 
@@ -1295,7 +1297,6 @@ subroutine singleT_write2file(matrices,mesh)
 type (data) :: matrices
 type (mesh_struct) :: mesh 
 
-CHARACTER(LEN=80) :: fname
 CHARACTER(LEN=80) :: filename
 
 CHARACTER(LEN=6), PARAMETER :: dsetname1 = "Taai_r"
@@ -1325,9 +1326,7 @@ real(dp), dimension(:,:,:), allocatable :: Ti_r, Ti_i
 INTEGER     ::    rank = 3
 INTEGER     ::   error ! Error flag
 
-fname = matrices%tname
-
-filename = fname
+filename = matrices%tname
 dims = int8((/size(matrices%Taai,1),size(matrices%Taai,2),size(matrices%Taai,3)/))
 
 call h5open_f(error)
@@ -1414,5 +1413,79 @@ CALL h5fclose_f(file_id, error)
 CALL h5close_f(error)
 
 end subroutine singleT_write2file
-end module 
 
+!*******************************************************************************
+
+subroutine write2file(A,fname)
+double complex, intent(in) :: A(:,:)
+CHARACTER(LEN=80):: fname
+CHARACTER(LEN=80) :: filename
+!CHARACTER(LEN=7), PARAMETER :: filename = "A.h5" ! File name
+CHARACTER(LEN=3), PARAMETER :: dsetname1 = "A_r" ! Dataset name
+CHARACTER(LEN=3), PARAMETER :: dsetname2 = "A_i" ! Dataset name
+
+INTEGER(HID_T) :: file_id       ! File identifier
+INTEGER(HID_T) :: dset_id1       ! Dataset identifier
+INTEGER(HID_T) :: dset_id2       ! Dataset identifier
+INTEGER(HID_T) :: dspace_id     ! Dataspace identifier
+
+
+INTEGER(HSIZE_T), DIMENSION(2) :: dims  ! Dataset dimensions
+INTEGER     ::    rank = 2                       ! Dataset rank
+
+INTEGER     ::   error ! Error flag
+!INTEGER     :: i, j
+
+filename = fname
+dims = (/size(A,1),size(A,2)/)
+     
+CALL h5open_f(error)
+
+!
+! Create a new file using default properties.
+!
+CALL h5fcreate_f(filename, H5F_ACC_TRUNC_F, file_id, error)
+
+!
+! Create the dataspace.
+!
+CALL h5screate_simple_f(rank, dims, dspace_id, error)
+
+!
+! Create and write dataset using default properties.
+!
+CALL h5dcreate_f(file_id, dsetname1, H5T_NATIVE_DOUBLE, dspace_id, &
+                       dset_id1, error, H5P_DEFAULT_F, H5P_DEFAULT_F, &
+                       H5P_DEFAULT_F)
+
+CALL h5dwrite_f(dset_id1, H5T_NATIVE_DOUBLE, real(A), dims, error)
+
+CALL h5dcreate_f(file_id, dsetname2, H5T_NATIVE_DOUBLE, dspace_id, &
+                       dset_id2, error, H5P_DEFAULT_F, H5P_DEFAULT_F, &
+                       H5P_DEFAULT_F)
+
+CALL h5dwrite_f(dset_id2, H5T_NATIVE_DOUBLE, imag(A), dims, error)
+
+!
+! End access to the dataset and release resources used by it.
+!
+CALL h5dclose_f(dset_id1, error)
+CALL h5dclose_f(dset_id2, error)
+!
+! Terminate access to the data space.
+!
+CALL h5sclose_f(dspace_id, error)
+
+!
+! Close the file.
+!
+CALL h5fclose_f(file_id, error)
+
+!
+! Close FORTRAN interface.
+!
+CALL h5close_f(error)
+
+end subroutine write2file
+
+end module 

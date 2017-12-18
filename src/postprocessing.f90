@@ -1,5 +1,6 @@
 module postprocessing
 use integrator
+use shapebeam
 
 contains
 
@@ -485,5 +486,23 @@ end do
 close(1)
 
 end subroutine stability_analysis
+
+!*******************************************************************************
+
+subroutine write_inc_field(matrices,mesh)
+type (mesh_struct) :: mesh
+type (data) :: matrices
+real(dp) :: width
+integer :: i
+character(LEN=80) :: gridname, fieldname
+i = 1
+gridname = 'grid_xyz.h5'
+fieldname = 'E_field.h5'
+
+call fields_out(matrices,mesh,i)
+call write2file(dcmplx(matrices%field_points),gridname)
+call write2file(matrices%E_field,fieldname)
+
+end subroutine write_inc_field
 
 end module postprocessing
