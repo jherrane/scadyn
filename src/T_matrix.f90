@@ -243,5 +243,60 @@ Tbb = T_mat(nm+1:2*nm,nm+1:2*nm) *sc
 
 end subroutine compute_T_matrix
 
+!*******************************************************************************
+
+subroutine scattered_fields(matrices,E,p,q,p90,q90,ii)
+type(data) :: matrices
+real(dp) :: E
+complex(dp), dimension(:) , allocatable :: a_in, b_in, a90, b90, &
+a, b, p, q, p90, q90, ptemp, qtemp, p90temp, q90temp
+complex(dp), dimension(:, :), allocatable :: Taa, Tab, Tba, Tbb
+complex(8), dimension(:), allocatable :: rotD, rotD90, rbak
+integer, dimension(:, :), allocatable :: indD, indD90, ibak
+integer :: nm, las, ii, Nmax
+
+Nmax = matrices%Nmaxs(ii)
+las = (Nmax  + 1)*(2*Nmax + 1)*(2*Nmax + 3)/3 - 1
+nm = (Nmax + 1)**2 - 1
+
+if(.not. allocated(p)) allocate(p(nm),q(nm),p90(nm),q90(nm))
+
+allocate(rbak(las), ibak(las,2))
+allocate(a(nm),b(nm),a90(nm),b90(nm),ptemp(nm),qtemp(nm),p90temp(nm),q90temp(nm))
+allocate(rotD(las), indD(las,2), rotD90(las), indD90(las,2))
+allocate(Taa(nm,nm),Tab(nm,nm),Tba(nm,nm),Tbb(nm,nm))
+
+rotD = matrices%rotDs(1:las, ii)
+indD = matrices%indDs(1:las, :, ii)
+rotD90 = matrices%rotD90s(1:las, ii)
+indD90 = matrices%indD90s(1:las, :, ii)
+
+Taa = matrices%Taai(1:nm, 1:nm, ii)
+Tab = matrices%Tabi(1:nm, 1:nm, ii)
+Tba = matrices%Tbai(1:nm, 1:nm, ii)
+Tbb = matrices%Tbbi(1:nm, 1:nm, ii)
+
+a_in = E*matrices%as(1:nm, ii)
+b_in = E*matrices%bs(1:nm, ii)
+
+a = sparse_matmul(rotD, indD, a_in, nm)
+b = sparse_matmul(rotD, indD, b_in, nm)
+a90 = sparse_matmul(rotD90, indD90, a_in, nm)
+b90 = sparse_matmul(rotD90, indD90, b_in, nm)
+
+ptemp = matmul(Taa, a) + matmul(Tab, b)
+qtemp = matmul(Tbb, b) + matmul(Tba, a)
+p90temp = matmul(Taa, a90) + matmul(Tab, b90)
+q90temp = matmul(Tbb, b90) + matmul(Tba, a90)
+
+call sph_rotation_sparse_gen2(matrices%Rkt, Nmax, rbak, ibak)
+
+p = sparse_matmul(rbak, ibak, ptemp, nm)
+q = sparse_matmul(rbak, ibak, qtemp, nm)
+p90 = sparse_matmul(rbak, ibak, p90temp, nm)
+q90 = sparse_matmul(rbak, ibak, q90temp, nm)
+
+end subroutine scattered_fields
+
 
 end module T_matrix

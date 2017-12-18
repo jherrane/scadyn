@@ -55,7 +55,6 @@ type(mesh_struct) :: mesh
 
 call polarization(matrices)
 call allocate_inc_wave(matrices, mesh)
-if(beam_shape == 1) call gaussian_beams(matrices,mesh)
 
 if (use_mie==1)then
 	call mie_params(matrices,mesh)
@@ -71,12 +70,14 @@ matrices%x_CM = mesh%CM
 call diagnonalize_inertia(matrices, mesh)
 call init_values(matrices, mesh)
 
+if(beam_shape == 1) call gaussian_beams(matrices,mesh)
+
 select case(run_test)
 	case(1); call test_methods( matrices, mesh )
 	case(2); call torque_efficiency(matrices, mesh)
 	case(3); call stability_analysis(matrices, mesh)
 end select
-call write_inc_field(matrices,mesh)
+call write_fields(matrices,mesh)
 
 end subroutine tests
 
