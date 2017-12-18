@@ -12,7 +12,7 @@ type (data) :: matrices
 real(dp) :: width
 integer :: i 
 
-width = 1d0/(5.1d0*maxval(mesh%ki))
+width = 5d0/(minval(mesh%ki))
 
 do i = 1,matrices%bars
     call gaussian_beam_shape(matrices,mesh,i,matrices%Nmaxs(i),width)
@@ -29,9 +29,9 @@ real(dp) :: C, gn, kw0, width, maxgn
 integer :: n, m, ind, i, Nmax
 
 kw0 = mesh%ki(i)*width
-if(kw0>5d0) then
-    print*, "Problem: width of Gaussian beam at focal point too large for the wavelength!"
-    print*, "Wavelength is ", 2d0*pi/mesh%ki(i)
+if(kw0<5d0) then
+    write(*,'(A)'), "    Problem: width of Gaussian beam at focal point is smaller than wavelength!"
+    write(*,'(2(A, ES9.3))'), "     Wavelength is ", 2d0*pi/mesh%ki(i), ", width is ", width
 end if
 
 ind = 0
@@ -46,9 +46,9 @@ do n = 1,Nmax
         matrices%bs(ind,i) = gn*matrices%bs(ind,i)
     end do 
 end do
-
-matrices%as(:,i) = matrices%as(:,i)/maxgn
-matrices%bs(:,i) = matrices%bs(:,i)/maxgn
+! print*, maxgn
+! matrices%as(:,i) = matrices%as(:,i)/maxgn
+! matrices%bs(:,i) = matrices%bs(:,i)/maxgn
 
 end subroutine gaussian_beam_shape
 
