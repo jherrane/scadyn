@@ -5,7 +5,7 @@ implicit none
 contains
 
 !*******************************************************************************
-! The Gaussian amplitude profile in localized approximation (kw0<0.2) a'la
+! The Gaussian amplitude profile in localized approximation (kw0>=5) a'la
 ! MSTM 3.0 (Mackowski et al 2013)
 subroutine gaussian_beams(matrices,mesh)
 type (mesh_struct) :: mesh
@@ -22,7 +22,7 @@ end do
 end subroutine gaussian_beams
 
 !*******************************************************************************
-! The Gaussian amplitude profile in localized approximation (kw0<0.2) a'la
+! The Gaussian amplitude profile in localized approximation (kw0>=5) a'la
 ! MSTM 3.0 (Mackowski et al 2013)
 subroutine gaussian_beam_shape(matrices, mesh, i, Nmax, width)
 type (mesh_struct) :: mesh
@@ -31,6 +31,7 @@ real(dp) :: C, gn, kw0, width, maxgn
 integer :: n, m, ind, i, Nmax
 
 kw0 = mesh%ki(i)*width
+
 if(kw0<5d0) then
     write(*,'(A)'), "    Problem: width of Gaussian beam at focal point is smaller than wavelength!"
     write(*,'(2(A, ES9.3))'), "     Wavelength is ", 2d0*pi/mesh%ki(i), ", width is ", width
@@ -93,6 +94,7 @@ nn = n*n
 
 grid = field_grid(matrices,mesh)
 
+! Ensure that directions are ok. They might already be...
 matrices%Rkt = eye(3)
 allocate(E(3,nn))
 call rot_setup(matrices)
@@ -100,7 +102,7 @@ call scattered_fields(matrices,1d0,p,q,p90,q90,which)
 
 matrices%field_points = grid
 do i = 1,nn
-    call calc_fields(p,q,dcmplx(mesh%ki(which)), grid(:,i),F,G,0)
+    call calc_fields(p,q,dcmplx(mesh%ki(which)), grid(:,i),F,G,1)
     E(:,i) = F 
 end do
 
@@ -120,7 +122,7 @@ real(dp), allocatable :: z(:), y(:), grid(:,:)
 complex(dp) :: F(3), G(3) 
 complex(dp), dimension(:,:), allocatable :: E  
 
-lim = 3d0
+lim = 3.5d0
 n = 100
 nn = n*n
 allocate(z(n),y(n),grid(3,nn))
