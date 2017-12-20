@@ -53,7 +53,6 @@ ${BINDIR}/clustermie.o \
 ${BINDIR}/octtree.o \
 ${BINDIR}/setup.o \
 ${BINDIR}/T_matrix.o \
-${BINDIR}/shapebeam.o \
 ${BINDIR}/forces.o \
 ${BINDIR}/integrator.o \
 ${BINDIR}/postprocessing.o \
