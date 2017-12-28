@@ -12,7 +12,7 @@ LIBS = -lm -L/usr/local/lib -L/usr/lib -L/usr/lib/x86_64-linux-gnu/hdf5/serial -
 SRC = src
 COMP = src/compatibility
 EXT = ext
-EXT1 = ext/jvie-t-matrix
+EXT1 = ext/jvie_t_matrix/src
 EXT2 = ext/fastmm/src
 VPATH 	= $(SRC) $(COMP) $(EXT) $(EXT1) $(EXT2)
 BINDIR = bin
@@ -31,6 +31,7 @@ INCS = -I/usr/include -I/usr/local/include/ -J${BINDIR}
 OBJECTS = ${BINDIR}/common.o \
 ${BINDIR}/sfunctions.o \
 ${BINDIR}/io.o \
+${BINDIR}/integration_points.o \
 ${BINDIR}/translations.o \
 ${BINDIR}/mie.o \
 ${BINDIR}/possu.o \
@@ -38,7 +39,6 @@ ${BINDIR}/sparse.o \
 ${BINDIR}/singularity_subtraction.o \
 ${BINDIR}/singularity_subtraction_N.o \
 ${BINDIR}/integrals.o \
-${BINDIR}/integration_points.o \
 ${BINDIR}/geometry.o \
 ${BINDIR}/sparse_mat.o \
 ${BINDIR}/precorrection.o \
