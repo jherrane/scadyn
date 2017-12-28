@@ -38,7 +38,7 @@ else
 	call vie_params(matrices,mesh)
 end if
 
-call diagnonalize_inertia(matrices, mesh)
+call diagonalize_inertia(matrices, mesh)
 
 call polarization(matrices)
 call init_values(matrices, mesh)
@@ -383,7 +383,7 @@ end subroutine PCDM_update
 
 !******************************************************************************
 
-subroutine diagnonalize_inertia(matrices, mesh)
+subroutine diagonalize_inertia(matrices, mesh)
 
 type(data) :: matrices
 type(mesh_struct) :: mesh
@@ -439,7 +439,6 @@ end if
 
 ! Probably the choice in DDSCAT: force eigenvectors to have mostly positive
 ! components
-
 do i = 1,3
  negs = 0
  if(matrices%P(1,i) < 0d0) negs = negs + 1
@@ -454,7 +453,7 @@ matrices%I_inv = 0d0
 forall(i = 1:3) matrices%I(i,i) = matrices%Ip(i)
 forall(i = 1:3) matrices%I_inv(i,i) = 1d0/matrices%Ip(i)
 
-end subroutine diagnonalize_inertia
+end subroutine diagonalize_inertia
 
 subroutine mie_params(matrices,mesh)
 type(data) :: matrices

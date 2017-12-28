@@ -37,3 +37,5 @@
 /data/
 *.sh
 scadyn
+*/bin/**
+/bin/
