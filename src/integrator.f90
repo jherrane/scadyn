@@ -78,8 +78,7 @@ type(data) :: matrices
 real(dp) :: max_w, test_dt, dw(3), dt0
 
 ! Use an adaptive time step, integrate over rotation <= rot_max
-! dw = get_dotw(matrices%N, matrices%w, matrices%I, matrices%I_inv)
-max_w = vlen(matrices%w) !+ vlen(dw*matrices%dt0)
+max_w = vlen(matrices%w)
 if(max_w<1d-7) max_w = max_w + vlen(get_dotw(matrices%N, matrices%w, matrices%I, matrices%I_inv))
 test_dt = matrices%rot_max/max_w
 
