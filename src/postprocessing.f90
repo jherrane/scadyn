@@ -66,6 +66,10 @@ do j = 1,2
 	write(*,'(A,3ES11.3,A)') ' F = (', real(FF), ' ) N'
 	write(*,'(A,3ES11.3,A)') ' N = (', real(NN), ' ) Nm'
 	
+	write(*,'(A)') '  [ In body coordinates, where incident field direction = z_b = a_3:'
+	write(*,'(A,3ES11.3,A)') '   F = (', matmul(matrices%P,real(FF)), ' ) N'
+	write(*,'(A,3ES11.3,A)') '   N = (', matmul(matrices%P,real(NN)), ' ) Nm ]'
+	
 	if(j == 2) then
 		N_DG = DG_torque(matrices,mesh)
 		N_B = barnett_torque(matrices,mesh)
@@ -75,7 +79,13 @@ do j = 1,2
 	end if 
 	
 	print*, ''
-	print*, 'Efficiencies for each wavelength separately'
+	
+	print*, 'Efficiencies for each wavelength separately, in body coordinates'
+	do i = 1, size(Q_fcoll,2)
+		Q_fcoll(:,i) = matmul(matrices%P,Q_fcoll(:,i))
+		Q_tcoll(:,i) = matmul(matrices%P,Q_tcoll(:,i))
+	end do
+
 	write(*,'(A, 80F7.1)') 'WL(nm):', 2d9*pi/mesh%ki
 	write(*,'(A, 80F7.3)') '   Qfx:', Q_fcoll(1,:)
 	write(*,'(A, 80F7.3)') '   Qfy:', Q_fcoll(2,:)
@@ -86,25 +96,31 @@ do j = 1,2
 	write(*,'(A, 80F7.3)') '   Qtz:', Q_tcoll(3,:)
 end do
 
-!call print_mat(matrices%P, 'P')
-!write(*,'(A, 3ES12.4)')  'Ip   =', matrices%Ip
-!write(*,'(A, 3F8.4)') 'E0   =', real(matrices%E0hat)
-!write(*,'(A, 3F8.4)') 'E90  =', real(matrices%E90hat)
-!write(*,'(A, 3F8.4)') 'khat =', matrices%khat
 
-!open(unit=2, file="out/Q.dat", ACTION="write", STATUS="replace")
-!write(2,'(A)') "      ka        Qf_k       Qt_1       Qt_2       Qt_3       |Qt|"
-!do i = range(1),range(2)
-!	ii = i
-!	if(matrices%whichbar > 0) ii = matrices%whichbar
-!	Qmag = dsqrt(Q_tcoll(1,ii)**2 + Q_tcoll(2,ii)**2 + Q_tcoll(3,ii)**2)
-!	write(2,'(9F11.7)') mesh%ki(ii)*mesh%a, &
-!	dot_product(Q_fcoll(:,ii),matrices%khat), &
-!	dot_product(Q_tcoll(:,ii),matrices%khat), &
-!	dot_product(Q_tcoll(:,ii),-matrices%P(:,2)), &
-!	dot_product(Q_tcoll(:,ii),-matrices%P(:,1)),  Qmag
-!end do
-!close(2)
+! do i = 1, size(Q_fcoll,2)
+! 	Q_fcoll(:,i) = matmul(transpose(matrices%P),Q_fcoll(:,i))
+! 	Q_tcoll(:,i) = matmul(transpose(matrices%P),Q_tcoll(:,i))
+! end do
+
+! call print_mat(matrices%P, 'P')
+! write(*,'(A, 3ES12.4)')  'Ip   =', matrices%Ip
+! write(*,'(A, 3F8.4)') 'E0   =', real(matrices%E0hat)
+! write(*,'(A, 3F8.4)') 'E90  =', real(matrices%E90hat)
+! write(*,'(A, 3F8.4)') 'khat =', matrices%khat
+
+! open(unit=2, file="out/Q.dat", ACTION="write", STATUS="replace")
+! write(2,'(A)') "      ka        Qf_k       Qt_1       Qt_2       Qt_3       |Qt|"
+! do i = range(1),range(2)
+! 	ii = i
+! 	if(matrices%whichbar > 0) ii = matrices%whichbar
+! 	Qmag = dsqrt(Q_tcoll(1,ii)**2 + Q_tcoll(2,ii)**2 + Q_tcoll(3,ii)**2)
+! 	write(2,'(9F11.7)') mesh%ki(ii)*mesh%a, &
+! 	dot_product(Q_fcoll(:,ii),matrices%khat), &
+! 	dot_product(Q_tcoll(:,ii),matrices%khat), &
+! 	dot_product(Q_tcoll(:,ii),-matrices%P(:,2)), &
+! 	dot_product(Q_tcoll(:,ii),-matrices%P(:,1)),  Qmag
+! end do
+! close(2)
 
 end subroutine test_methods
 
