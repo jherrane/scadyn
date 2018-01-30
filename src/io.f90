@@ -716,7 +716,7 @@ integer :: error, i
 
 real(dp), dimension(:,:), allocatable :: coord
 integer, dimension(:,:), allocatable :: etopol
-real(dp), dimension(:), allocatable :: param_r, param_i
+real(dp), dimension(:,:), allocatable :: param_r, param_i
 real(dp) :: vol, a_eff
 
 file = mesh%meshname
@@ -747,7 +747,7 @@ call h5dclose_f(etopol_dataset_id, error)
 call h5dopen_f(file_id, param_r_dataset, param_r_dataset_id, error) 
 call h5dget_space_f(param_r_dataset_id, param_r_dataspace_id, error) 
 call H5sget_simple_extent_dims_f(param_r_dataspace_id, dims_out, param_r_dims, error)
-allocate(param_r(param_r_dims(1)))
+allocate(param_r(param_r_dims(1),param_r_dims(2)))
 call h5dread_f(param_r_dataset_id, H5T_NATIVE_DOUBLE, param_r, param_r_dims, error)
 call h5dclose_f(param_r_dataset_id, error)
 
@@ -756,7 +756,7 @@ call h5dclose_f(param_r_dataset_id, error)
 call h5dopen_f(file_id, param_i_dataset, param_i_dataset_id, error) 
 call h5dget_space_f(param_i_dataset_id, param_i_dataspace_id, error) 
 call H5sget_simple_extent_dims_f(param_i_dataspace_id, dims_out, param_i_dims, error)
-allocate(param_i(param_i_dims(1)))
+allocate(param_i(param_i_dims(1),param_i_dims(2)))
 call h5dread_f(param_i_dataset_id, H5T_NATIVE_DOUBLE, param_i, param_i_dims, error)
 call h5dclose_f(param_i_dataset_id, error)
 
@@ -776,7 +776,9 @@ mesh%etopol = etopol
 print *,'   Number of elements   =',size(etopol,2)
 mesh%N_tet = size(etopol,2)
 
-allocate(mesh%param(size(param_r)))
+allocate(mesh%params(size(param_r,1),size(param_r,2)))
+allocate(mesh%param(size(param_r,1)))
+mesh%params = dcmplx(param_r,param_i)
 if(matrices%refr>1d-7) then
  mesh%param = dcmplx(matrices%refr**2 - matrices%refi**2, &
  2d0*matrices%refr*matrices%refi)
@@ -784,10 +786,10 @@ if(matrices%refr>1d-7) then
  write(*,'(2(A,F5.3))') '    Dielectric constant  =   ', matrices%refr**2 - matrices%refi**2, &
  ' + i', 2d0*matrices%refr*matrices%refi
 else
- mesh%param = dcmplx(param_r,param_i)
- if(maxval(param_r)-minval(param_r)>1d-7 .OR. maxval(param_i)-minval(param_i)>1d-7)then
+ mesh%param = dcmplx(param_r(:,1),param_i(:,1))
+ if(maxval(param_r(:,1))-minval(param_r(:,1))>1d-7 .OR. maxval(param_i(:,1))-minval(param_i(:,1))>1d-7)then
  else
- 	write(*,'(2(A,F5.3))') '    Dielectric constant  =   ', param_r(1), ' + i', param_i(1)
+ 	write(*,'(2(A,F5.3))') '    Dielectric constant  =   ', param_r(1,1), ' + i', param_i(1,1)
  end if
 end if
 

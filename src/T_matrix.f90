@@ -24,6 +24,7 @@ if (use_mie == 1) then
 	call mie_T_matrix(matrices, mesh)
 else
 	do i = 1,sz
+		if(size(mesh%params,2)>1) mesh%param = mesh%params(:,i)
 		ii = i
 		if(matrices%singleT == 1) ii = matrices%whichbar
 		write(*,'(3(A,I0))') ' Step ', ii, '/', sz, ''

@@ -31,6 +31,7 @@ integer                ::  calc_extra_torques = 0
 !******************************************************************************
 
 type mesh_struct
+complex( dp ), dimension( :, : ), allocatable :: params
 complex( dp ), dimension( : ), allocatable :: param
 
 real( dp ), dimension( :, : ), allocatable  ::  coord, nodes, P
