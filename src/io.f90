@@ -57,9 +57,9 @@ bar = '='
 r = 100d0*dble(i1)/dble(Nmax)
 ! print the percentage and the bar
 if(r-floor(r)<1d-7 .OR. i1 == 1) then
-	write(6,'(2x,1i3,1a1,2x,1a1,256a1)', advance='no') &
-	100*i1/Nmax,'%','|', (bar, k =1,50*i1/Nmax)
-	write(6,'(256a1)', advance='no') (back, k =1,(50*i1/Nmax)+9)
+  write(6,'(2x,1i3,1a1,2x,1a1,256a1)', advance='no') &
+  100*i1/Nmax,'%','|', (bar, k =1,50*i1/Nmax)
+  write(6,'(256a1)', advance='no') (back, k =1,(50*i1/Nmax)+9)
 end if
  
 end subroutine print_bar
@@ -106,12 +106,12 @@ integer ::  i
 CHARACTER(LEN=80) :: arg
 
 do i = 1, command_argument_count(), 2
-	 call get_command_argument(i, arg)
+   call get_command_argument(i, arg)
 
-	 select case (arg)
-	 case ('-paramsfile')
-		call get_command_argument(i+1,matrices%paramsfile)
-	 end select
+   select case (arg)
+   case ('-paramsfile')
+    call get_command_argument(i+1,matrices%paramsfile)
+   end select
 end do
 end subroutine check_paramsfile
 
@@ -155,8 +155,8 @@ do i = 1,command_argument_count(),2
   call get_command_argument(i+1,arg)
   matrices%paramsfile = arg
  case('-refr')
- 	call get_command_argument(i+1,arg)
- 	read(arg,*) matrices%refr
+  call get_command_argument(i+1,arg)
+  read(arg,*) matrices%refr
  case('-refi')
   call get_command_argument(i+1,arg)
   read(arg,*) matrices%refi
@@ -167,15 +167,15 @@ do i = 1,command_argument_count(),2
   call get_command_argument(i+1,arg)
   read(arg,*) matrices%singleT
  case('-seed')
-	call get_command_argument(i+1,arg)
-	read(arg,*) seedling
+  call get_command_argument(i+1,arg)
+  read(arg,*) seedling
   matrices%R = rand_rot()
  case('-mie')
-	call get_command_argument(i+1,arg)
-	read(arg,*) use_mie
+  call get_command_argument(i+1,arg)
+  read(arg,*) use_mie
  case('-B')
-	call get_command_argument(i+1,arg)
-	read(arg,*) calc_extra_torques
+  call get_command_argument(i+1,arg)
+  read(arg,*) calc_extra_torques
    
  case('-help')
   print*, 'Command line parameters' 
@@ -199,8 +199,8 @@ do i = 1,command_argument_count(),2
 end do
 
 if(matrices%singleT == 1 .AND. matrices%whichbar == 0)then
-	write(*,'(A)') ' Warning: Single T-matrix chosen but all bars used. Now whichbar = 1'
-	matrices%whichbar = 1
+  write(*,'(A)') ' Warning: Single T-matrix chosen but all bars used. Now whichbar = 1'
+  matrices%whichbar = 1
 end if
 
 matrices%B = [1d0,0d0,0d0]*1d-9
@@ -229,7 +229,7 @@ expansion_order, Tmat, it_max, which_int, test_forces, is_aggr, &
 whichbar, it_log
 character(len=4) :: R0
 character(len=8) :: mode
-			  
+        
 open(fh, file=matrices%paramsfile)
 
 ! ios is negative if an end of record condition is encountered or if
@@ -265,7 +265,7 @@ do while (ios == 0)
   case('R0')
    read(buffer, *, iostat=ios) R0
    if(R0=='r') then
-   	matrices%R = rand_rot()
+    matrices%R = rand_rot()
    else if (R0=='t')then
     matrices%R = reshape([0,1,0,0,0,1,1,0,0],[3,3])
    else
@@ -354,8 +354,8 @@ do while (ios == 0)
   case('tol_m')
    read(buffer, *, iostat=ios) matrices%tol_m
   case('B')
-		read(buffer,*,iostat=ios) matrices%B
-		if(vlen(matrices%B)>1d-14) calc_extra_torques = 1
+    read(buffer,*,iostat=ios) matrices%B
+    if(vlen(matrices%B)>1d-14) calc_extra_torques = 1
   case('beam_shape')
     read(buffer, *, iostat=ios) beam_shape
   case default
@@ -425,7 +425,7 @@ lastlineno = get_last_line_no(matrices%out)
 
 open(fh, file=trim(matrices%out))
 do i=1,lastlineno-1
-	read(fh,*)
+  read(fh,*)
 end do
 
 read(fh,*) line, dummy, x, dummy, v, dummy, w, dummy, J, dummy, F, dummy, N, dummy, &
@@ -447,25 +447,25 @@ t2 = t-10*t_tresh
 w_av = 0d0
 open(fh, file=trim(matrices%out))
 do i=1,lastlineno
-	if(i>=firstlineno)then
-		read(fh,*) line, dummy, x, dummy, v, dummy, w, dummy, J, dummy, F, dummy, N, dummy, &
+  if(i>=firstlineno)then
+    read(fh,*) line, dummy, x, dummy, v, dummy, w, dummy, J, dummy, F, dummy, N, dummy, &
 t, dummy, R
-		w_av = w_av + w
-		if(t>t2)then
-!			print*, line
-			t2 = tf
-		end if
-		if(t>t1)then
-!			print*, line
-			t1 = tf
-		end if
-		if(i==firstlineno)then
-!			print*, line
-			n1 = line
-		end if
-	else
-		read(fh,*)
-	end if
+    w_av = w_av + w
+    if(t>t2)then
+!     print*, line
+      t2 = tf
+    end if
+    if(t>t1)then
+!     print*, line
+      t1 = tf
+    end if
+    if(i==firstlineno)then
+!     print*, line
+      n1 = line
+    end if
+  else
+    read(fh,*)
+  end if
 end do
 n2 = line
 w_av = w_av/(lastlineno-firstlineno+1)
@@ -479,14 +479,14 @@ allocate(matrices%www(3,n2-n1+1))
 
 open(fh, file=trim(matrices%out))
 do i=1,lastlineno
-	if(i>=firstlineno)then
-		read(fh,*) line, dummy, x, dummy, v, dummy, w, dummy, J, dummy, F, dummy, N, dummy, &
+  if(i>=firstlineno)then
+    read(fh,*) line, dummy, x, dummy, v, dummy, w, dummy, J, dummy, F, dummy, N, dummy, &
 t, dummy, R
-		matrices%RRR(:,:,i-firstlineno+1) = reshape(R,[3,3])
-		matrices%www(:,i-firstlineno+1) = w
-	else
-		read(fh,*)
-	end if
+    matrices%RRR(:,:,i-firstlineno+1) = reshape(R,[3,3])
+    matrices%www(:,i-firstlineno+1) = w
+  else
+    read(fh,*)
+  end if
 end do
 
 close(fh)
@@ -604,8 +604,8 @@ CHARACTER(LEN=80) :: fname
 matrices%buffer = 0
 
 !if(file_exists(fname)) then
-!	print*, "Log exists, shutting down... (Remember to disable this later!)"
-!	stop
+! print*, "Log exists, shutting down... (Remember to disable this later!)"
+! stop
 !end if
 
 open(unit=1, file=fname, ACTION="write", STATUS="replace")
@@ -653,9 +653,9 @@ if(n>100000) then
  if(matrices%is_aligned==0) then
   matrices%is_aligned = alignment_state(matrices)
  else if (matrices%alignment_found == 0) then
-	 print*, " ******************* HEY, IT'S ALIGNED! ********************"
-	 matrices%it_stop = n + matrices%it_log
-	 matrices%alignment_found = 1
+   print*, " ******************* HEY, IT'S ALIGNED! ********************"
+   matrices%it_stop = n + matrices%it_log
+   matrices%alignment_found = 1
  end if
 end if
 
@@ -671,24 +671,24 @@ matrices%R_buf(:,:,md) = matrices%R
 
 md = mod(n,1000)
 if( md == 0 .OR. n == matrices%it_stop) then
-	open(unit=1, file=fname, action="write", position="append", STATUS="old")
-	if(n>matrices%it_stop-matrices%it_log .OR. matrices%it_log == 0) then
-		do i = 1,1000
-		 if(i+matrices%buffer<=matrices%it_stop) then
-		  write(1,fmt) i+matrices%buffer, ' |', &
-		  matrices%x_buf(:,i), ' |', &
-		  matrices%v_buf(:,i), ' |', &
-		  matmul(matmul(matrices%P,matrices%R_buf(:,:,i)),matrices%w_buf(:,i)), ' |', &
-		  matrices%J_buf(:,i), ' |', &
-		  matrices%N_buf(:,i), ' |', &
-		  matrices%F_buf(:,i), ' |', &
-		  matrices%t_buf(:,i), ' |', &
-		  matrices%R_buf(:,:,i)
-		 end if
-		end do
-	end if
-	close(1)
-	matrices%buffer = n
+  open(unit=1, file=fname, action="write", position="append", STATUS="old")
+  if(n>matrices%it_stop-matrices%it_log .OR. matrices%it_log == 0) then
+    do i = 1,1000
+     if(i+matrices%buffer<=matrices%it_stop) then
+      write(1,fmt) i+matrices%buffer, ' |', &
+      matrices%x_buf(:,i), ' |', &
+      matrices%v_buf(:,i), ' |', &
+      matmul(matmul(matrices%P,matrices%R_buf(:,:,i)),matrices%w_buf(:,i)), ' |', &
+      matrices%J_buf(:,i), ' |', &
+      matrices%N_buf(:,i), ' |', &
+      matrices%F_buf(:,i), ' |', &
+      matrices%t_buf(:,i), ' |', &
+      matrices%R_buf(:,:,i)
+     end if
+    end do
+  end if
+  close(1)
+  matrices%buffer = n
 end if
 
 end subroutine append_log
@@ -720,7 +720,6 @@ real(dp), dimension(:,:), allocatable :: param_r, param_i
 real(dp) :: vol, a_eff
 
 file = mesh%meshname
-
 call h5open_f(error)
 call h5fopen_f(file, H5F_ACC_RDWR_F, file_id, error) 
 
@@ -747,7 +746,11 @@ call h5dclose_f(etopol_dataset_id, error)
 call h5dopen_f(file_id, param_r_dataset, param_r_dataset_id, error) 
 call h5dget_space_f(param_r_dataset_id, param_r_dataspace_id, error) 
 call H5sget_simple_extent_dims_f(param_r_dataspace_id, dims_out, param_r_dims, error)
-allocate(param_r(param_r_dims(1),param_r_dims(2)))
+if(param_r_dims(1) < size(etopol,2)) then
+  allocate(param_r(size(etopol,2),param_r_dims(1)))
+else
+  allocate(param_r(param_r_dims(1),1))
+end if
 call h5dread_f(param_r_dataset_id, H5T_NATIVE_DOUBLE, param_r, param_r_dims, error)
 call h5dclose_f(param_r_dataset_id, error)
 
@@ -756,7 +759,11 @@ call h5dclose_f(param_r_dataset_id, error)
 call h5dopen_f(file_id, param_i_dataset, param_i_dataset_id, error) 
 call h5dget_space_f(param_i_dataset_id, param_i_dataspace_id, error) 
 call H5sget_simple_extent_dims_f(param_i_dataspace_id, dims_out, param_i_dims, error)
-allocate(param_i(param_i_dims(1),param_i_dims(2)))
+if(param_i_dims(1) < size(etopol,2)) then
+  allocate(param_i(size(etopol,2),param_i_dims(1)))
+else
+  allocate(param_i(param_i_dims(1),1))
+end if
 call h5dread_f(param_i_dataset_id, H5T_NATIVE_DOUBLE, param_i, param_i_dims, error)
 call h5dclose_f(param_i_dataset_id, error)
 
@@ -765,7 +772,7 @@ call h5dclose_f(param_i_dataset_id, error)
 call h5fclose_f(file_id, error) 
 call h5close_f(error) 
 
-if(allocated(mesh%coord)) deallocate(mesh%coord,mesh%etopol,mesh%param)
+if(allocated(mesh%coord)) deallocate(mesh%coord,mesh%etopol,mesh%param,mesh%params)
 allocate(mesh%coord(3,size(coord,2)))
 mesh%coord = coord
 print *,'   Number of nodes      =',size(coord,2)
@@ -789,7 +796,7 @@ else
  mesh%param = dcmplx(param_r(:,1),param_i(:,1))
  if(maxval(param_r(:,1))-minval(param_r(:,1))>1d-7 .OR. maxval(param_i(:,1))-minval(param_i(:,1))>1d-7)then
  else
- 	write(*,'(2(A,F5.3))') '    Dielectric constant  =   ', param_r(1,1), ' + i', param_i(1,1)
+  write(*,'(2(A,F5.3))') '    Dielectric constant  =   ', param_r(1,1), ' + i', param_i(1,1)
  end if
 end if
 
@@ -975,45 +982,45 @@ Tbbi = dcmplx(Tbbi_r, Tbbi_i)
 
 call h5lexists_f(file_id, dataset9, exists, error)
 if(exists)then
-	call h5dopen_f(file_id, dataset9, dataset9_id, error)
-	call h5dget_space_f(dataset9_id, dataspace_id, error) 
-	call H5sget_simple_extent_dims_f(dataspace_id, dimsinfo, dims1, error)
+  call h5dopen_f(file_id, dataset9, dataset9_id, error)
+  call h5dget_space_f(dataset9_id, dataspace_id, error) 
+  call H5sget_simple_extent_dims_f(dataspace_id, dimsinfo, dims1, error)
 
-	call h5dread_f(dataset9_id, H5T_NATIVE_DOUBLE, ref_a, dims1, error)
-	call h5dclose_f(dataset9_id, error)
+  call h5dread_f(dataset9_id, H5T_NATIVE_DOUBLE, ref_a, dims1, error)
+  call h5dclose_f(dataset9_id, error)
 
-	mesh%a = ref_a(3)
-	allocate(param_r(size(mesh%param)), param_i(size(mesh%param)))
-	param_r = real(mesh%param)
-	param_i = imag(mesh%param)
-	if(maxval(param_r)-minval(param_r)>1d-7 .OR. maxval(param_i)-minval(param_i)>1d-7)then
-		write(*,'(A)') '    Note: Geometry is inhomogeneous.'
-	else
-		mesh%param = dcmplx(ref_a(1),ref_a(2))
-		ref = sqrt(dcmplx(ref_a(1),ref_a(2)))
-		matrices%refr = real(ref)
-		matrices%refi = imag(ref)
-	end if
+  mesh%a = ref_a(3)
+  allocate(param_r(size(mesh%param)), param_i(size(mesh%param)))
+  param_r = real(mesh%param)
+  param_i = imag(mesh%param)
+  if(maxval(param_r)-minval(param_r)>1d-7 .OR. maxval(param_i)-minval(param_i)>1d-7)then
+    write(*,'(A)') '    Note: Geometry is inhomogeneous.'
+  else
+    mesh%param = dcmplx(ref_a(1),ref_a(2))
+    ref = sqrt(dcmplx(ref_a(1),ref_a(2)))
+    matrices%refr = real(ref)
+    matrices%refi = imag(ref)
+  end if
 
-	!******************************************************************
+  !******************************************************************
 
-	call h5dopen_f(file_id, dataset10, dataset10_id, error)
-	call h5dget_space_f(dataset10_id, dataspace_id, error) 
-	call H5sget_simple_extent_dims_f(dataspace_id, dimswl, dims1, error)
-	allocate(wls(dims1(1)))
-	call h5dread_f(dataset10_id, H5T_NATIVE_DOUBLE, wls, dims1, error)
-	call h5dclose_f(dataset10_id, error)
+  call h5dopen_f(file_id, dataset10, dataset10_id, error)
+  call h5dget_space_f(dataset10_id, dataspace_id, error) 
+  call H5sget_simple_extent_dims_f(dataspace_id, dimswl, dims1, error)
+  allocate(wls(dims1(1)))
+  call h5dread_f(dataset10_id, H5T_NATIVE_DOUBLE, wls, dims1, error)
+  call h5dclose_f(dataset10_id, error)
 
-	mesh%ki = 2d0*pi/wls
-	do i = 1,size(wls,1)
-!		num = 0
-!		do j = 1,size(Taai,1)
-!			if(real(Taai(j,1,i))/=0d0) num = num + 1
-!		end do
-!		matrices%Nmaxs(i) = int(dsqrt(real(num)+1d0)-1d0)
-		matrices%Nmaxs( i ) = truncation_order( mesh%ki(i) * mesh%a )
-	end do
-	!******************************************************************
+  mesh%ki = 2d0*pi/wls
+  do i = 1,size(wls,1)
+!   num = 0
+!   do j = 1,size(Taai,1)
+!     if(real(Taai(j,1,i))/=0d0) num = num + 1
+!   end do
+!   matrices%Nmaxs(i) = int(dsqrt(real(num)+1d0)-1d0)
+    matrices%Nmaxs( i ) = truncation_order( mesh%ki(i) * mesh%a )
+  end do
+  !******************************************************************
 end if
 
 call h5fclose_f(file_id, error) 
@@ -1042,11 +1049,11 @@ type (mesh_struct) :: mesh
 logical :: file_exists
 
 if(matrices%singleT == 1) then
-	INQUIRE(FILE=matrices%tname, EXIST=file_exists)
-	if(.NOT. file_exists) call T_empty(matrices, mesh)
-	call singleT_write2file(matrices,mesh)
+  INQUIRE(FILE=matrices%tname, EXIST=file_exists)
+  if(.NOT. file_exists) call T_empty(matrices, mesh)
+  call singleT_write2file(matrices,mesh)
 else
-	call T_write2file(matrices,mesh)
+  call T_write2file(matrices,mesh)
 end if
 
 end subroutine write_T
