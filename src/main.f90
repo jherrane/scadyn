@@ -33,6 +33,10 @@ if (matrices%Tmat == 1 .AND. file_exists(trim(matrices%tname))) then
 	call fix_band( matrices, mesh )
 else
 	write(*,'(A,1ES8.2)') '  a = ', mesh%a
+	if(matrices%singleT == 1) then
+		if(.NOT. file_exists(trim(matrices%tname))) call T_empty(matrices, mesh)
+	end if
+
 	call calc_T( matrices, mesh )
 	call write_T( matrices, mesh )
 end if

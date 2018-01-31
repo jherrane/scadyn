@@ -1046,11 +1046,8 @@ end subroutine read_T
 subroutine write_T(matrices,mesh)
 type (data) :: matrices
 type (mesh_struct) :: mesh 
-logical :: file_exists
 
 if(matrices%singleT == 1) then
-  INQUIRE(FILE=matrices%tname, EXIST=file_exists)
-  if(.NOT. file_exists) call T_empty(matrices, mesh)
   call singleT_write2file(matrices,mesh)
 else
   call T_write2file(matrices,mesh)
