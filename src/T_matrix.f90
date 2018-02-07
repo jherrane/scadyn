@@ -299,5 +299,57 @@ q90 = sparse_matmul(rbak, ibak, q90temp, nm)
 
 end subroutine scattered_fields
 
+!******************************************************************************
+
+function vsh(n, m, thet, ph) result(BCP)
+integer :: n, m,  mm
+real(dp) :: r, thet, ph,theta, phi, q
+complex(dp) :: BCP(9), P(3), B(3), C(3), Y, Y1, Y2
+real(dp), dimension(:), allocatable :: L, L1, L2
+
+theta = max(1d-7, thet)
+phi = max(1d-7, ph)
+
+allocate(L(n+1),L1(n+2),L2(n))
+
+call legendre2(n,cos(theta),L)  
+call legendre2(n+1,cos(theta),L1)
+call legendre2(n-1,cos(theta),L2)
+
+q=(sqrt(n*(n+1.0d0)))/((n*2d0+1.0d0)*sin(theta));
+
+mm = abs(m)
+
+! Unnormalized complex scalar spherical harmonics
+Y=L(mm+1)*exp(dcmplx(0.0, m*phi));
+Y1=L1(mm+1)*exp(dcmplx(0.0, m*phi));
+
+if(mm == n) then
+   Y2 = dcmplx(0.0,0.0)
+else 
+   Y2 = L2(mm+1)*exp(dcmplx(0.0, m*phi)) 
+end if
+
+! vector spherical harmonics
+P(:) = dcmplx(0.0,0.0)
+P(1) = Y
+
+Y1=Y1*((n-mm+1.0d0)/(n+1.0d0))
+
+Y2=Y2*(dble(n+mm)/dble(n))
+
+B(:) = dcmplx(0.0,0.0)
+B(2) = Y1-Y2
+B(3)=((dcmplx(0.0, m*(2*n+1.0)))/(n*(n+1.0)))*Y
+
+B = B*q
+
+C(:) = dcmplx(0.0,0.0)
+C(2) = B(3) 
+C(3) = -B(2)
+
+BCP = [B, C, P]
+
+end function vsh
 
 end module T_matrix
