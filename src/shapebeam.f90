@@ -53,10 +53,10 @@ end subroutine gaussian_beam_shape
 
 !*******************************************************************************
 
-subroutine laguerre_gauss_farfield(nmax, p, l, w0, P, x, y, trunc, offset)
+subroutine laguerre_gauss_farfield(nmax, p, l, w0, PP, x, y, trunc, offset)
 integer :: nmax, axisymmetry, total_modes, i
 integer, dimension(:), allocatable :: nn, mm
-real(dp) :: p, k, w0, P, x, y, trunc, offset(3), zero_rejection_level, &
+real(dp) :: p, k, w0, PP, l, x, y, trunc, offset(3), zero_rejection_level, &
 medium_refractive_index, beam_wavelength0, beam_power, speed_in_medium, &
 epsilon0, kappa, xcomponent, ycomponent, radial_mode, azimuthal_mode, &
 truncation_angle
@@ -69,7 +69,7 @@ beam_wavelength0 = 1
 beam_power = 1e-3
 speed_in_medium = cc/medium_refractive_index
 epsilon0 = 8.854187817e-12
-kappa = medium_refractive_index^2
+kappa = medium_refractive_index**2
 
 k = 2*pi * medium_refractive_index / beam_wavelength0
 xcomponent = x
@@ -83,11 +83,11 @@ else
     truncation_angle = 90
 end if
 
-total_modes = nmax^2 + 2*nmax
+total_modes = nmax**2 + 2*nmax
 allocate(nn(total_modes), mm(total_modes))
-do i = 1:total_modes
-    nn(i) = floor(sqrt(i));
-    mm(i) = i - nn(i)^2 - nn(i)
+do i = 1,total_modes
+    nn(i) = floor(sqrt(dble(i)));
+    mm(i) = i - nn(i)**2 - nn(i)
 end do
 
 end subroutine laguerre_gauss_farfield

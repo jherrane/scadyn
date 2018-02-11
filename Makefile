@@ -25,7 +25,7 @@ EXEC = scadyn
 yell = "Starting Make..."
 
 # Includes and flag for putting .mod files to directory bin, home version
-INCS = -I/usr/include -I/usr/local/include/ -J${BINDIR}
+INCS = -I/usr/include -I/usr/local/include/ -I/usr/include/hdf5/serial/ -J${BINDIR}
 
 # Dependency tree
 OBJECTS = ${BINDIR}/common.o \
