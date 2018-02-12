@@ -710,7 +710,23 @@ do nn = 1,N
    H(nn) = dcmplx(0.0,-1.0)**(nn) * exp(dcmplx(0.0,1.0)*x) / x
 end do
 
-
 end function sphankel_a
+
+
+function laguerre(p,l,x) result(Lpl)
+real(dp), dimension(:), allocatable :: x, Lpl
+integer :: n, m, p, l, j
+n = size(x,1)
+allocate(Lpl(n))
+Lpl = 1d0
+Lpl = Lpl*choose(p+l,p)
+
+do m = 1,p
+  do j = 1,size(x,1)
+   Lpl(j) = Lpl(j) + (-1)**m/factorial(m)*choose(p+l,p-m)*x(j)**m
+ enddo
+enddo
+
+end function laguerre
 
 end module sfunctions

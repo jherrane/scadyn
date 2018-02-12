@@ -1402,6 +1402,45 @@ grid(n) = d2
 
 end subroutine linspace
 
+!******************************************************************************
+
+subroutine angular_grid(ntheta, nphi, theta, phi)
+
+implicit none
+
+integer, intent(in) :: ntheta, nphi
+real(dp), DIMENSION(ntheta*nphi), intent(out) :: theta, phi
+real(dp) :: theta_temp(ntheta), phi_temp(nphi)
+integer :: i, j, ii
+
+call linspace(pi/ntheta,pi,ntheta,theta_temp)
+theta_temp = theta_temp - 0.5d0*pi/ntheta
+call linspace(2*pi/nphi,2*pi,nphi,phi_temp)
+phi_temp = phi_temp - 2d0*pi/nphi
+
+ii = 0
+do j = 1,nphi
+  do i = 1,ntheta
+   ii = ii + 1
+   theta(ii) = theta_temp(i)
+   phi(ii) = phi_temp(j)
+  end do
+end do 
+
+end subroutine angular_grid
+
+!*******************************************************************************
+
+function choose (n, k) result (res)
+implicit none
+integer, intent (in) :: n
+integer, intent (in) :: k
+integer :: res
+
+ res = factorial (n) / (factorial (k) * factorial (n - k))
+ 
+end function choose
+
 !*******************************************************************************
 
 function R_theta(matrices, theta) result(R)

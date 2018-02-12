@@ -52,43 +52,117 @@ end do
 end subroutine gaussian_beam_shape
 
 !*******************************************************************************
+subroutine laguerre_gaussian_beams(matrices, mesh, p, l)
+type (mesh_struct) :: mesh
+type (data) :: matrices
+real(dp) :: width
+integer :: i , p, l
 
-subroutine laguerre_gauss_farfield(nmax, p, l, w0, PP, x, y, trunc, offset)
-integer :: nmax, axisymmetry, total_modes, i
-integer, dimension(:), allocatable :: nn, mm
-real(dp) :: p, k, w0, PP, l, x, y, trunc, offset(3), zero_rejection_level, &
-medium_refractive_index, beam_wavelength0, beam_power, speed_in_medium, &
-epsilon0, kappa, xcomponent, ycomponent, radial_mode, azimuthal_mode, &
-truncation_angle
-    
-zero_rejection_level = 1e-8
+width = 5d0/(minval(mesh%ki))
 
-medium_refractive_index = 1
-! beam_wavelength0 = 1064e-9
-beam_wavelength0 = 1
-beam_power = 1e-3
-speed_in_medium = cc/medium_refractive_index
-epsilon0 = 8.854187817e-12
-kappa = medium_refractive_index**2
-
-k = 2*pi * medium_refractive_index / beam_wavelength0
-xcomponent = x
-ycomponent = y
-radial_mode = p
-azimuthal_mode = l
-
-if(trunc>1d-7)then
-    truncation_angle = trunc
-else
-    truncation_angle = 90
-end if
-
-total_modes = nmax**2 + 2*nmax
-allocate(nn(total_modes), mm(total_modes))
-do i = 1,total_modes
-    nn(i) = floor(sqrt(dble(i)));
-    mm(i) = i - nn(i)**2 - nn(i)
+do i = 1,matrices%bars
+    call laguerre_gauss_farfield(matrices, mesh, i, p, l, width)
 end do
+
+end subroutine laguerre_gaussian_beams
+
+!*******************************************************************************
+! Axisymmetric LG-beam
+subroutine laguerre_gauss_farfield(matrices, mesh, i, p, l, w0)
+type (data) :: matrices
+type (mesh_struct) :: mesh
+integer :: i, nmax, total_modes, iii, jjj, ntheta, nphi, p, l, tp, info, lwork, ind
+integer, dimension(:), allocatable :: nn, mm, nn_old
+complex(dp) :: x, y, BCP(9)
+real(dp) :: k, w0, offset(3), zero_rejection_level, truncation_angle
+real(dp), dimension(:), allocatable :: theta, phi, rw, LL, work
+complex(dp), dimension(:), allocatable :: beam_envelope, Ex, Ey, &
+Etheta, Ephi, e_field, expansion_coefficients, a, b, a_nm, b_nm
+complex(dp), dimension(:,:), allocatable :: coefficient_matrix
+
+k = mesh%ki(i)
+nmax = matrices%Nmaxs(i)
+allocate(a_nm((nmax+1)**2-1), b_nm((nmax+1)**2-1))
+truncation_angle = 90
+x = dcmplx(1d0,0d0)
+y = dcmplx(0d0,0d0)
+
+! total_modes = nmax**2 + 2*nmax
+total_modes = 2*nmax
+allocate(nn(total_modes), mm(total_modes), nn_old(total_modes))
+do iii = 1,total_modes
+    nn(iii) = ceiling(dble(iii)/2d0)
+    mm(iii) = (-1d0)**(iii) + l
+end do
+nn_old = nn
+nn = PACK(nn, nn_old >= abs(mm))
+mm = PACK(mm, nn_old >= abs(mm))
+ntheta = 2*(nmax+1)
+nphi = 3
+tp = ntheta*nphi
+allocate(theta(tp), phi(tp))
+call angular_grid(ntheta,nphi,theta,phi)
+allocate(e_field(2*tp), rw(tp), LL(tp), beam_envelope(tp), Ex(tp), Ey(tp), &
+    Etheta(tp), Ephi(tp))
+
+do iii = 1,tp
+ rw(i) = k**2*w0**2*(dtan(theta(iii)))**2/2
+end do 
+
+LL = laguerre(p, abs(l), rw)
+
+do iii = 1,tp
+ beam_envelope(i) = rw(iii)**(abs(l/2))*LL(iii)*zexp(-rw(iii)/2 + &
+    dcmplx(0d0,1d0)*l*phi(iii))
+ if(theta(iii)<pi*(180-truncation_angle)/180) beam_envelope(iii) = 0
+end do 
+
+! if(vlen(offset)>1d-9)
+ ! Phase shift is exp(-i*k * offset.rhat)
+ ! rhat = rtpv2xyzv( ones(size(theta)), zeros(size(theta)), zeros(size(theta)), ones(size(theta)), theta, phi );
+ ! [offset,rhat] = matchsize(offset,rhat);
+ ! phase_shift = exp( -i * k * dot(offset,rhat,2) );
+ ! beam_envelope = beam_envelope .* phase_shift;
+! endif
+
+Ex = x*beam_envelope
+Ey = y*beam_envelope
+do iii = 1,tp
+ Etheta(iii) = -Ex(i)*dcos(phi(iii)) - Ey(iii)*dsin(phi(iii))
+ Ephi = -Ex(iii)*dsin(phi(iii)) + Ey(iii)*dcos(phi(iii))
+end do
+
+e_field = [Etheta,Ephi]
+allocate(coefficient_matrix(2*tp,2*size(nn,1)), expansion_coefficients(2*size(nn,1)))
+
+do iii = 1,size(nn,1)
+ do jjj = 1,tp
+  BCP = vsh(nn(iii), mm(iii), theta(jjj), phi(jjj) )
+  coefficient_matrix(jjj,iii) = BCP(5) * dcmplx(0d0,1d0)**(nn(iii)+1)/dsqrt(dble(nn(iii))*(nn(iii)+1))
+  coefficient_matrix(tp + jjj,iii) = BCP(6) * dcmplx(0d0,1d0)**(nn(iii)+1)/dsqrt(dble(nn(iii))*(nn(iii)+1))
+  coefficient_matrix(jjj,iii+size(nn,1)) = BCP(2) * dcmplx(0d0,1d0)**(nn(iii))/dsqrt(dble(nn(iii))*(nn(iii)+1))
+  coefficient_matrix(tp + jjj,iii+size(nn,1)) = BCP(3) * dcmplx(0d0,1d0)**(nn(iii))/dsqrt(dble(nn(iii))*(nn(iii)+1))
+ end do
+end do
+
+lwork = 64*min(2*tp, 2*size(nn,1))
+allocate(work(lwork))
+call zgels('N', 2*tp, 2*size(nn,1), 1, coefficient_matrix, 2*tp, e_field, &
+    2*tp, work, lwork, info)
+
+expansion_coefficients = e_field(1:2*size(nn,1))
+allocate(a(size(nn,1)), b(size(nn,1)))
+a = expansion_coefficients(1:size(nn,1))
+b = expansion_coefficients(size(nn,1)+1:2*size(nn,1))
+
+do iii = 1,size(nn,1)
+  ind = nn(iii)*(nn(iii)+1) + mm(iii)
+  a_nm(ind) = a(iii)
+  b_nm(ind) = b(iii)
+end do
+
+matrices%as(1:(nmax+1)**2-1,i) = a_nm
+matrices%bs(1:(nmax+1)**2-1,i) = b_nm
 
 end subroutine laguerre_gauss_farfield
 

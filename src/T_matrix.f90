@@ -21,41 +21,41 @@ if(matrices%singleT == 1) sz = 1
 
 write(*,'(3(A,I0))') ' Construct matrices for ', sz, ' wavelengths...'
 if (use_mie == 1) then
-	call mie_T_matrix(matrices, mesh)
+ call mie_T_matrix(matrices, mesh)
 else
-	do i = 1,sz
-		if(size(mesh%params,2)>1) mesh%param = mesh%params(:,i)
-		ii = i
-		if(matrices%singleT == 1) ii = matrices%whichbar
-		write(*,'(3(A,I0))') ' Step ', ii, '/', sz, ''
-		nm = (matrices%Nmaxs(ii)+1)**2-1 
-		mesh%k = mesh%ki(ii)
+ do i = 1,sz
+  if(size(mesh%params,2)>1) mesh%param = mesh%params(:,i)
+  ii = i
+  if(matrices%singleT == 1) ii = matrices%whichbar
+  write(*,'(3(A,I0))') ' Step ', ii, '/', sz, ''
+  nm = (matrices%Nmaxs(ii)+1)**2-1 
+  mesh%k = mesh%ki(ii)
 
-		call allocate_T(ii, matrices)
+  call allocate_T(ii, matrices)
 
-		call update_projections(matrices,ii)
+  call update_projections(matrices,ii)
 
-		if(allocated(matrices%Fg)) deallocate(matrices%Fg)
-		if(allocated(matrices%sp_mat)) deallocate(matrices%sp_mat, matrices%sp_ind)
-		call build_G(matrices, mesh)
+  if(allocated(matrices%Fg)) deallocate(matrices%Fg)
+  if(allocated(matrices%sp_mat)) deallocate(matrices%sp_mat, matrices%sp_ind)
+  call build_G(matrices, mesh)
 
-		print*,' Constructing the sparse part of the system matrix'
-		if(mesh%order == 0) then
-			call compute_near_zone_interactions_const(matrices,mesh)
-		end if
-		if(mesh%order == 1) then 
-			call compute_near_zone_interactions_lin(matrices,mesh)
-		end if
+  print*,' Constructing the sparse part of the system matrix'
+  if(mesh%order == 0) then
+   call compute_near_zone_interactions_const(matrices,mesh)
+  end if
+  if(mesh%order == 1) then 
+  call compute_near_zone_interactions_lin(matrices,mesh)
+  end if
 
-		print*,' Compute T-matrix...'
-		call compute_T_matrix(matrices, mesh, matrices%Nmaxs(ii), matrices%Taa, &
-		matrices%Tab, matrices%Tba, matrices%Tbb)
-		
-		matrices%Taai(1:nm,1:nm,ii) = matrices%Taa
-		matrices%Tabi(1:nm,1:nm,ii) = matrices%Tab
-		matrices%Tbai(1:nm,1:nm,ii) = matrices%Tba
-		matrices%Tbbi(1:nm,1:nm,ii) = matrices%Tbb
-	end do
+  print*,' Compute T-matrix...'
+  call compute_T_matrix(matrices, mesh, matrices%Nmaxs(ii), matrices%Taa, &
+  matrices%Tab, matrices%Tba, matrices%Tbb)
+
+  matrices%Taai(1:nm,1:nm,ii) = matrices%Taa
+  matrices%Tabi(1:nm,1:nm,ii) = matrices%Tab
+  matrices%Tbai(1:nm,1:nm,ii) = matrices%Tba
+  matrices%Tbbi(1:nm,1:nm,ii) = matrices%Tbb
+ end do
 end if
 
 end subroutine calc_T
@@ -154,58 +154,58 @@ complex(dp), dimension(:), allocatable :: tnaa, tnab, tnba, tnbb
 
 sz = size(mesh%ki)
 do i = 1,sz
-	
-	Nmax = matrices%Nmaxs(i)
-	nm = (Nmax+1)**2-1 
-	mesh%k = mesh%ki(i)
-	
-	if(allocated(Taa)) deallocate(Taa,Tab,Tba,Tbb,Taa_av,Tab_av,Tba_av,&
-	Tbb_av,tnaa,tnab,tnba,tnbb)
-	
-	allocate(Taa(nm,nm),Tab(nm,nm),Tba(nm,nm),Tbb(nm,nm),&
-	Taa_av(nm,nm),Tab_av(nm,nm),Tba_av(nm,nm),Tbb_av(nm,nm))
-	allocate(tnaa(Nmax),tnab(Nmax),tnba(Nmax),tnbb(Nmax))
-	
-	Taa = matrices%Taai(1:nm,1:nm,i)
-	Tab = matrices%Tabi(1:nm,1:nm,i) 
-	Tba = matrices%Tbai(1:nm,1:nm,i) 
-	Tbb = matrices%Tbbi(1:nm,1:nm,i) 
-	
-	tnaa = dcmplx(0d0)
-	tnab = dcmplx(0d0)
-	tnba = dcmplx(0d0)
-	tnbb = dcmplx(0d0)
-	ii = 1
-	do n = 1,Nmax
-		do m = -n,n
-			tnaa(n) = tnaa(n) + (Taa(ii,ii))/(2*n+1)
-			tnab(n) = tnab(n) + (Tab(ii,ii))/(2*n+1)
-			tnba(n) = tnba(n) + (Tba(ii,ii))/(2*n+1)
-			tnbb(n) = tnbb(n) + (Tbb(ii,ii))/(2*n+1)
-			ii = ii + 1
-		end do	
-	end do
-	
-	Taa_av = dcmplx(0d0)
-	Tab_av = dcmplx(0d0)
-	Tba_av = dcmplx(0d0)
-	Tbb_av = dcmplx(0d0)
-	
-	ii = 1
-	do n = 1,Nmax
-		do m = -n,n
-			Taa_av(ii,ii) = tnaa(n)
-			Tab_av(ii,ii) = tnab(n)
-			Tba_av(ii,ii) = tnba(n)
-			Tbb_av(ii,ii) = tnbb(n)
-			ii = ii + 1
-		end do	
-	end do
-	
-	matrices%Taai(1:nm,1:nm,i) = Taa_av
-	matrices%Tabi(1:nm,1:nm,i) = Tab_av
-	matrices%Tbai(1:nm,1:nm,i) = Tba_av
-	matrices%Tbbi(1:nm,1:nm,i) = Tbb_av
+ Nmax = matrices%Nmaxs(i)
+ nm = (Nmax+1)**2-1 
+ mesh%k = mesh%ki(i)
+
+ if(allocated(Taa)) deallocate(Taa,Tab,Tba,Tbb,Taa_av,Tab_av,Tba_av,&
+ Tbb_av,tnaa,tnab,tnba,tnbb)
+
+ allocate(Taa(nm,nm),Tab(nm,nm),Tba(nm,nm),Tbb(nm,nm),&
+ Taa_av(nm,nm),Tab_av(nm,nm),Tba_av(nm,nm),Tbb_av(nm,nm))
+ allocate(tnaa(Nmax),tnab(Nmax),tnba(Nmax),tnbb(Nmax))
+
+ Taa = matrices%Taai(1:nm,1:nm,i)
+ Tab = matrices%Tabi(1:nm,1:nm,i) 
+ Tba = matrices%Tbai(1:nm,1:nm,i) 
+ Tbb = matrices%Tbbi(1:nm,1:nm,i) 
+
+ tnaa = dcmplx(0d0)
+ tnab = dcmplx(0d0)
+ tnba = dcmplx(0d0)
+ tnbb = dcmplx(0d0)
+ ii = 1
+ 
+ do n = 1,Nmax
+  do m = -n,n
+   tnaa(n) = tnaa(n) + (Taa(ii,ii))/(2*n+1)
+   tnab(n) = tnab(n) + (Tab(ii,ii))/(2*n+1)
+   tnba(n) = tnba(n) + (Tba(ii,ii))/(2*n+1)
+   tnbb(n) = tnbb(n) + (Tbb(ii,ii))/(2*n+1)
+   ii = ii + 1
+  end do
+ end do
+
+ Taa_av = dcmplx(0d0)
+ Tab_av = dcmplx(0d0)
+ Tba_av = dcmplx(0d0)
+ Tbb_av = dcmplx(0d0)
+
+ ii = 1
+ do n = 1,Nmax
+  do m = -n,n
+   Taa_av(ii,ii) = tnaa(n)
+   Tab_av(ii,ii) = tnab(n)
+   Tba_av(ii,ii) = tnba(n)
+   Tbb_av(ii,ii) = tnbb(n)
+   ii = ii + 1
+  end do
+ end do
+
+ matrices%Taai(1:nm,1:nm,i) = Taa_av
+ matrices%Tabi(1:nm,1:nm,i) = Tab_av
+ matrices%Tbai(1:nm,1:nm,i) = Tba_av
+ matrices%Tbbi(1:nm,1:nm,i) = Tbb_av
 end do
 
 end subroutine ori_ave_T
