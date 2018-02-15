@@ -33,9 +33,9 @@ lg = matrices%out
 
 ! Calculates the mass parameters for the mesh
 if (use_mie==1)then
-	call mie_params(matrices,mesh)
+ call mie_params(matrices,mesh)
 else
-	call vie_params(matrices,mesh)
+ call vie_params(matrices,mesh)
 end if
 
 call diagonalize_inertia(matrices, mesh)
@@ -48,22 +48,22 @@ call allocate_inc_wave(matrices, mesh)
 
 ! Iteration of optical force calculation -------------------------------------
 do i = 1, matrices%it_max
-	if(i >= matrices%it_stop) exit
+ if(i >= matrices%it_stop) exit
 
-	select case(matrices%which_int)
-	case(1)
-		call RK4_update(matrices, mesh)
-	case(2)
-		call vlv_update(matrices, mesh)
-	case(3)
-		call PCDM_update(matrices, mesh)
-	case default
-		call euler_update(matrices, mesh)
-	end select
+ select case(matrices%which_int)
+  case(1)
+   call RK4_update(matrices, mesh)
+  case(2)
+   call vlv_update(matrices, mesh)
+  case(3)
+   call PCDM_update(matrices, mesh)
+  case default
+   call euler_update(matrices, mesh)
+ end select
 
-	call update_values(matrices, mesh)
-	call append_log(lg, i, matrices)
-	call print_bar(i, matrices%it_max)
+call update_values(matrices, mesh)
+call append_log(lg, i, matrices)
+call print_bar(i, matrices%it_max)
 
 end do ! i = 1, matrices%it_max ---------------------------------------------
 print*, ''

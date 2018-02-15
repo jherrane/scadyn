@@ -904,9 +904,9 @@ integer, allocatable :: seed(:)
 
 ! Overly complicated random number hassle... Something may be awry somewhere.
 if(seedling==0) then
-	call system_clock(i)
+ call system_clock(i)
 else
-	i = seedling
+ i = seedling
 end if
 call random_seed(size=size)
 allocate(seed(size))
@@ -1128,29 +1128,29 @@ real(dp) :: vec(3,n), x, y, z, t, r, rnd, offset, incr
 
 rnd = 1d0
 if(randomize == 1) then
-	! Overly complicated random number hassle... Something may be awry somewhere.
-	call system_clock(i)
-	call random_seed(size=size)
-	allocate(seed(size))
-	seed=i+37*[(i,i=0,size-1)]
-	call random_seed(put=seed)
-	call random_number(rnd)
-	deallocate(seed)
+  ! Overly complicated random number hassle... Something may be awry somewhere.
+  call system_clock(i)
+  call random_seed(size=size)
+  allocate(seed(size))
+  seed=i+37*[(i,i=0,size-1)]
+  call random_seed(put=seed)
+  call random_number(rnd)
+  deallocate(seed)
 end if
 
 offset = 2d0/n
 incr = pi*(3d0-dsqrt(5d0))
 
 do i = 1,n
-	y = ((dble(i)*offset)-1d0)+0.5d0*offset
-	if(y>1d0) y = 1d0
-	r = dsqrt(1d0-y**2)
-	t = dmod(i+rnd,dble(n))*incr
-	x = r*dcos(t)
-	z = r*dsin(t)
-	vec(1,i) = x
-	vec(2,i) = y
-	vec(3,i) = z
+  y = ((dble(i)*offset)-1d0)+0.5d0*offset
+  if(y>1d0) y = 1d0
+  r = dsqrt(1d0-y**2)
+  t = dmod(i+rnd,dble(n))*incr
+  x = r*dcos(t)
+  z = r*dsin(t)
+  vec(1,i) = x
+  vec(2,i) = y
+  vec(3,i) = z
 end do
 
 end function fibonacci_sphere
@@ -1166,12 +1166,12 @@ real(dp) :: vec(3,n), x, y, z, t, r, rnd, offset, incr
 
 do j = 1,size(phi,1)
 	do i = 1,size(theta,1)
-		x = dsin(theta(i))*dcos(phi(j))
-		y = dsin(theta(i))*dsin(phi(j))
-		z = dcos(theta(i))
-		vec(1,i+(j-1)*size(theta,1)) = x
-		vec(2,i+(j-1)*size(theta,1)) = y
-		vec(3,i+(j-1)*size(theta,1)) = z
+    x = dsin(theta(i))*dcos(phi(j))
+    y = dsin(theta(i))*dsin(phi(j))
+    z = dcos(theta(i))
+    vec(1,i+(j-1)*size(theta,1)) = x
+    vec(2,i+(j-1)*size(theta,1)) = y
+    vec(3,i+(j-1)*size(theta,1)) = z
 	end do
 end do
 
@@ -1396,7 +1396,7 @@ integer :: indxi
 
 grid(1) = d1
 do indxi= 0,n-2
-	grid(indxi+1) = d1+(DBLE(indxi)*(d2-d1))/DBLE(n-1)
+ grid(indxi+1) = d1+(DBLE(indxi)*(d2-d1))/DBLE(n-1)
 end do
 grid(n) = d2
 
@@ -1462,28 +1462,28 @@ a_3 = matrices%P(1:3,3)
 ! Rotation of a_3 to k
 theta0 = dacos(dot_product(k, a_3))
 if(theta0>1d-6)then
-	ninit = crossRR(k,a_3)
-	ninit = ninit/vlen(ninit)
-	R_init = R_aa(ninit,-theta0)
+ ninit = crossRR(k,a_3)
+ ninit = ninit/vlen(ninit)
+ R_init = R_aa(ninit,-theta0)
 else
-	R_init = eye(3)
+ R_init = eye(3)
 !	print*, 'check this out 1'
 end if
 
 ! Rotate polarizations to align with a_1, a_2
 theta0 = dacos(dot_product(e_3,matmul(R_init,a_1)))
 if(theta0>1d-6)then
-	ninit = crossRR(e_3,matmul(R_init,a_1))
-	ninit = ninit/vlen(ninit)
-	R_pol = R_aa(ninit,-theta0)
+ ninit = crossRR(e_3,matmul(R_init,a_1))
+ ninit = ninit/vlen(ninit)
+ R_pol = R_aa(ninit,-theta0)
 else
-	R_pol = eye(3)
+ R_pol = eye(3)
 !	print*, 'check that out 2'
 end if
 R_init = matmul(R_pol,R_init)
 
 if(dot_product(matmul(R_init,a_3),k)<1d0-1d-6)then
-	print*, ' WARNING (R_theta): Did not succeed to rotate a_3 onto k'
+ print*, ' WARNING (R_theta): Did not succeed to rotate a_3 onto k'
 end if
 
 ! Rotation of a_3 from k to current theta away from k
@@ -1491,7 +1491,7 @@ R_thta = R_aa(e_3, theta)
 R = matmul(R_thta,R_init)
 
 if(dacos(dot_product(matmul(R,a_3), k))-theta>1d-6 ) then
-	print*, 'WARNING (R_theta): Rotation of a_3 to given theta failed'
+ print*, 'WARNING (R_theta): Rotation of a_3 to given theta failed'
 end if
 
 end function R_theta

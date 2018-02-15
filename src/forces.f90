@@ -31,22 +31,22 @@ F = dcmplx(0.0d0, 0.0d0)
 
 ! Iteration of a single wavelength
 if(matrices%whichbar == 0) then
-	do i = 1, matrices%bars
-		call forcetorque(i,matrices,mesh)
-		F = F + matrices%force
-		N = N + matrices%torque
-	end do
+ do i = 1, matrices%bars
+  call forcetorque(i,matrices,mesh)
+  F = F + matrices%force
+  N = N + matrices%torque
+ end do
 else
-	call forcetorque(matrices%whichbar, matrices, mesh)
+ call forcetorque(matrices%whichbar, matrices, mesh)
  F = F + matrices%force
  N = N + matrices%torque
 end if
 
 if(calc_extra_torques == 1) then
-	N_DG = DG_torque(matrices,mesh)
-	N_B = barnett_torque(matrices,mesh)
-	
-	N = N + N_B + N_DG
+ N_DG = DG_torque(matrices,mesh)
+ N_B = barnett_torque(matrices,mesh)
+ 
+ N = N + N_B + N_DG
 end if
 
 FN(1:3) = matmul(matrices%R, real(F)) ! {x}_sca -> {x}_lab
@@ -280,15 +280,15 @@ b = bb*dcmplx(0d0,1d0)
 q = qq*dcmplx(0d0,1d0)
 do n = 1, Nmax
  do m = -n, n
- 	ind = ind+1
+  ind = ind+1
   g = (2d0*m/(n*(n+1d0)))*dimag(dconjg(a(ind))*b(ind) - dconjg(p(ind))*q(ind))
   if(ind+2*n+2<=Nmax*(Nmax+2)) then
-		 g = g &
-		 - (2d0/(n+1d0))*sqrt((n*(n+2d0)*(n-m+1d0)*(n+m+1d0))/((2d0*n+1d0)*(2d0*n+3d0))) &
-		 *dimag(a(ind)*dconjg(a(ind+2*n+2)) + b(ind)*dconjg(b(ind+2*n+2)) - &
-		 p(ind)*dconjg(p(ind+2*n+2)) - q(ind)*dconjg(q(ind+2*n+2)))
-		end if
-		f = f + g
+   g = g &
+   - (2d0/(n+1d0))*sqrt((n*(n+2d0)*(n-m+1d0)*(n+m+1d0))/((2d0*n+1d0)*(2d0*n+3d0))) &
+   *dimag(a(ind)*dconjg(a(ind+2*n+2)) + b(ind)*dconjg(b(ind+2*n+2)) - &
+    p(ind)*dconjg(p(ind+2*n+2)) - q(ind)*dconjg(q(ind+2*n+2)))
+  end if
+  f = f + g
  end do
 end do
 end function F_z
@@ -304,7 +304,7 @@ ind = 0
 t = 0.d0
 do n = 1, Nmax
  do m = -n, n
-	ind = ind+1
+  ind = ind+1
   t = t + dble(m)*(cdabs(a(ind))**2 + cdabs(b(ind))**2 - &
   cdabs(p(ind))**2 - cdabs(q(ind))**2)
  end do
