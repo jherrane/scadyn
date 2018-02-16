@@ -26,64 +26,69 @@ integer                ::  use_mie   =  0
 integer                ::  run_test   =  0
 integer                ::  beam_shape = 0
 integer                ::  calc_extra_torques = 0
+integer                ::  p = 0
+integer                ::  l = 0
 
 ! TYPES ***********************************************************************
 !******************************************************************************
 
 type mesh_struct
-complex( dp ), dimension( :, : ), allocatable :: params
-complex( dp ), dimension( : ), allocatable :: param
+   complex( dp ), dimension( :, : ), allocatable :: params
+   complex( dp ), dimension( : ), allocatable :: param
 
-real( dp ), dimension( :, : ), allocatable  ::  coord, nodes, P
-real( dp ), dimension( : ), allocatable ::  ki, w, radius
-real( dp ), dimension( 3 )  ::  min_coord
-real( dp )  ::  delta, k, box_delta, tol, grid_size, rho, a, V, mass, CM(3), &
-I(3,3), maxrad
+   real( dp ), dimension( :, : ), allocatable  ::  coord, nodes, P
+   real( dp ), dimension( : ), allocatable ::  ki, w, radius
+   real( dp ), dimension( 3 )  ::  min_coord
+   real( dp )  ::  delta, k, box_delta, tol, grid_size, rho, a, V, mass, CM(3), &
+   I(3,3), maxrad
 
-integer, dimension(:,:), allocatable :: etopol, etopol_box, tetras, etopol_edges, edges
-integer :: Nx, Ny, Nz, N_cubes, N_tet, N_tet_cube, M_ex, Nx_cube, Ny_cube, &
-Nz_cube, M1_loc, M2_loc, N1_loc, N2_loc, restart, maxit, near_zone, order, &
-N_node, is_mesh
+   integer, dimension(:,:), allocatable :: etopol, etopol_box, tetras, etopol_edges, edges
+   integer :: Nx, Ny, Nz, N_cubes, N_tet, N_tet_cube, M_ex, Nx_cube, Ny_cube, &
+   Nz_cube, M1_loc, M2_loc, N1_loc, N2_loc, restart, maxit, near_zone, order, &
+   N_node, is_mesh
 
-CHARACTER(LEN=80) :: meshname, projector
+   character(LEN=80) :: meshname = 'shape.h5'
+   character(LEN=80) :: projector = 'pfft'
 end type mesh_struct
 
 type data
-complex, dimension(:,:,:), allocatable :: sp_mat
-complex(dp), dimension(:,:,:), allocatable :: Fg, listS, listSx, listSy, &
-listSz, Taai, Tbbi, Tabi, Tbai, Ai
-complex(dp), dimension(:,:), allocatable :: S, Sx, Sy, Sz, E_field, &
-Taa, Tbb, Tab, Tba, S_loc, Sx_loc, Sy_loc, Sz_loc, as, bs
-complex(dp), dimension(:), allocatable ::  x, Ax, rhs, rcs
-complex(dp), dimension(3) :: E0, E90, force, torque, E0hat, E90hat
-complex( 8 ), dimension( :, : ), allocatable :: rotDs, rotD90s, rotYs, rotXs
+   complex, dimension(:,:,:), allocatable :: sp_mat
+   complex(dp), dimension(:,:,:), allocatable :: Fg, listS, listSx, listSy, &
+   listSz, Taai, Tbbi, Tabi, Tbai, Ai
+   complex(dp), dimension(:,:), allocatable :: S, Sx, Sy, Sz, E_field, &
+   Taa, Tbb, Tab, Tba, S_loc, Sx_loc, Sy_loc, Sz_loc, as, bs
+   complex(dp), dimension(:), allocatable ::  x, Ax, rhs, rcs
+   complex(dp), dimension(3) :: E0, E90, force, torque, E0hat, E90hat
+   complex( 8 ), dimension( :, : ), allocatable :: rotDs, rotD90s, rotYs, rotXs
 
-real(dp), dimension(:,:,:), allocatable :: RRR
-real(dp), dimension(:,:), allocatable :: field_points, T, www
-real(dp), dimension(:), allocatable :: E_rel
+   real(dp), dimension(:,:,:), allocatable :: RRR
+   real(dp), dimension(:,:), allocatable :: field_points, T, www
+   real(dp), dimension(:), allocatable :: E_rel
 
-real(dp), dimension(3,1000) :: x_buf, v_buf, w_buf, J_buf, N_buf, F_buf
-real(dp), dimension(3,3,1000) :: R_buf
-real(dp), dimension(1,1000) :: t_buf
+   real(dp), dimension(3,1000) :: x_buf, v_buf, w_buf, J_buf, N_buf, F_buf
+   real(dp), dimension(3,3,1000) :: R_buf
+   real(dp), dimension(1,1000) :: t_buf
 
-real(dp), dimension(4) :: q, qn
-real(dp), dimension(3,3) :: R, Rn, Rkt, P, I, I_inv, R_init, R90_init, Rexp, R_al
-real(dp), dimension(3) :: khat, w, x_CM, v_CM, N, wn, xn, vn, J, F, Ip, CM,&
-dw, k_orig, E0_orig, E90_orig, Q_t, Q_f, B
-real(dp) ::  khi_0, rot_max, lambda1, lambda2, temp, dt0, dt, tt, &
-E, refr, refi, tol_m, M1, M3
+   real(dp), dimension(4) :: q, qn
+   real(dp), dimension(3,3) :: R, Rn, Rkt, P, I, I_inv, R_init, R90_init, Rexp, R_al
+   real(dp), dimension(3) :: khat, w, x_CM, v_CM, N, wn, xn, vn, J, F, Ip, CM,&
+   dw, k_orig, E0_orig, E90_orig, Q_t, Q_f, B
+   real(dp) ::  khi_0, rot_max, lambda1, lambda2, temp, dt0, dt, tt, &
+   E, refr, refi, tol_m, M1, M3
 
-integer, dimension(:,:,:), allocatable :: listindS, indDs, indD90s, indXs, indYs
-integer, dimension(:,:), allocatable :: indS, T_ind, indS_loc, sp_ind
-integer, dimension(:), allocatable :: S_tet_loc, Nmaxs
-integer :: Nmax, polarization, bars, Tmat, it_max, which_int, &
-is_aggr, whichbar, buffer, it_log, N_mean, is_aligned, alignment_found, it_stop, &
-singleT
+   integer, dimension(:,:,:), allocatable :: listindS, indDs, indD90s, indXs, indYs
+   integer, dimension(:,:), allocatable :: indS, T_ind, indS_loc, sp_ind
+   integer, dimension(:), allocatable :: S_tet_loc, Nmaxs
+   integer :: Nmax, polarization, bars, Tmat, it_max, which_int, &
+   is_aggr, whichbar, buffer, it_log, N_mean, is_aligned, alignment_found, it_stop, &
+   singleT
 
-character(len=38) :: waves
-character(len=38) :: paramsfile
-CHARACTER(LEN=80) :: tname, out, mueller 
-character(len=8) :: mueller_mode
+   character(len=38) :: waves = 'band'
+   character(len=38) :: paramsfile = 'params.in'
+   character(LEN=80) :: tname = 'T.h5'
+   character(LEN=80) :: out = 'log'
+   character(LEN=80) :: mueller = 'mueller'
+   character(len=8)  :: mueller_mode = 'none'
 end type data
 
 type data_struct

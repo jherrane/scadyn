@@ -52,6 +52,7 @@ end do
 end subroutine gaussian_beam_shape
 
 !*******************************************************************************
+
 subroutine laguerre_gaussian_beams(matrices, mesh, p, l)
 type (mesh_struct) :: mesh
 type (data) :: matrices
@@ -165,6 +166,26 @@ matrices%as(1:(nmax+1)**2-1,i) = a_nm
 matrices%bs(1:(nmax+1)**2-1,i) = b_nm
 
 end subroutine laguerre_gauss_farfield
+
+!*******************************************************************************
+
+function LG_mode(p, l, r, phi) result(res)
+integer :: p, l, fp, fpl
+real(dp), dimension(:), allocatable :: r2
+real(dp) :: r, phi
+complex(dp) :: LG(1), res
+
+fp = factorial(p)
+fpl = factorial(p+abs(l))
+allocate(r2(1))
+r2(1) = 2*r**2
+LG = sqrt(2d0*fp/(pi*fpl)) * &
+(sqrt(2d0)*r)**abs(l)*laguerre(p,abs(l),r2)*exp(dcmplx(0,1)*l*phi) * &
+ exp(-r**2) * exp(dcmplx(0,1) * (2*p + abs(l) + 1) * pi/2)
+
+res = LG(1)
+
+end function LG_mode
 
 !*******************************************************************************
 

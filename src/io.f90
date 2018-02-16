@@ -55,7 +55,7 @@ real(dp) :: r
 back = char(8)
 bar = '='
 r = 100d0*dble(i1)/dble(Nmax)
-! print the percentage and the bar
+! print the percentage and the bar without line change, then reset cursor
 if(r-floor(r)<1d-7 .OR. i1 == 1) then
   write(6,'(2x,1i3,1a1,2x,1a1,256a1)', advance='no') &
   100*i1/Nmax,'%','|', (bar, k =1,50*i1/Nmax)
@@ -110,7 +110,7 @@ do i = 1, command_argument_count(), 2
 
    select case (arg)
    case ('-paramsfile')
-    call get_command_argument(i+1,matrices%paramsfile)
+      call get_command_argument(i+1,matrices%paramsfile)
    end select
 end do
 end subroutine check_paramsfile
@@ -222,11 +222,8 @@ integer :: ios = 0
 integer :: line = 0
 
 ! Control file variables
-real(dp) :: rho, a, khat(3), khi_0, dt, rot_max, w0(3), &
-v0(3), lambda1, lambda2, T, E, tol, cell_size
-integer :: polarization, bars, restart, maxit, order, near_zone, &
-expansion_order, Tmat, it_max, which_int, test_forces, is_aggr, &
-whichbar, it_log
+real(dp) :: khat(3), lambda1, lambda2
+integer :: whichbar
 character(len=4) :: R0
 character(len=8) :: mode
         
@@ -237,132 +234,111 @@ open(fh, file=matrices%paramsfile)
 ! detected.  ios is zero otherwise.
 
 do while (ios == 0)
- read(fh, '(A)', iostat=ios) buffer
- if (ios == 0) then
-  line = line + 1
+   read(fh, '(A)', iostat=ios) buffer
+   if (ios == 0) then
+      line = line + 1
 
-  ! Find the first instance of whitespace.  Split label and data.
-  pos = scan(buffer, '    ')
-  label = buffer(1:pos)
-  buffer = buffer(pos+1:)
+      ! Find the first instance of whitespace.  Split label and data.
+      pos = scan(buffer, '    ')
+      label = buffer(1:pos)
+      buffer = buffer(pos+1:)
 
-  select case (label)
-  case ('rho')
-   read(buffer, *, iostat=ios) rho
-   mesh%rho = rho
-  case ('a')
-   read(buffer, *, iostat=ios) a
-   mesh%a = a
-  case('E')
-   read(buffer, *, iostat=ios) E
-   matrices%E = E
-  case('v0')
-   read(buffer, *, iostat=ios) v0
-   matrices%v_CM = v0
-  case('w0')
-   read(buffer, *, iostat=ios) w0
-   matrices%w = w0
-  case('R0')
-   read(buffer, *, iostat=ios) R0
-   if(R0=='r') then
-    matrices%R = rand_rot()
-   else if (R0=='t')then
-    matrices%R = reshape([0,1,0,0,0,1,1,0,0],[3,3])
-   else
-    matrices%R = eye(3)
+      select case (label)
+         case ('rho')
+            read(buffer, *, iostat=ios) mesh%rho
+         case ('a')
+            read(buffer, *, iostat=ios) mesh%a
+         case('E')
+            read(buffer, *, iostat=ios) matrices%E
+         case('v0')
+            read(buffer, *, iostat=ios) matrices%v_CM
+         case('w0')
+            read(buffer, *, iostat=ios) matrices%w
+         case('R0')
+            read(buffer, *, iostat=ios) R0
+            if(R0=='r') then
+               matrices%R = rand_rot()
+            else if (R0=='t')then
+               matrices%R = reshape([0,1,0,0,0,1,1,0,0],[3,3])
+            else
+               matrices%R = eye(3)
+            end if
+         case('khi_0')
+            read(buffer, *, iostat=ios) matrices%khi_0
+         case('dt')
+            read(buffer, *, iostat=ios) matrices%dt0
+         case('it_max')
+            read(buffer, *, iostat=ios) matrices%it_max
+         case('it_log')
+            read(buffer, *, iostat=ios) matrices%it_log
+         case('rot_max')
+            read(buffer, *, iostat=ios) matrices%rot_max
+         case('khat')
+            read(buffer, *, iostat=ios) khat
+            matrices%khat = khat/vlen(khat)
+         case('polarization')
+            read(buffer, *, iostat=ios) matrices%polarization
+         case ('bars')
+            read(buffer, *, iostat=ios) matrices%bars
+         case ('lambda1')
+            read(buffer, *, iostat=ios) lambda1
+            matrices%lambda1 = lambda1*1.d-9
+         case ('lambda2')
+            read(buffer, *, iostat=ios) lambda2
+            matrices%lambda2 = lambda2*1.d-9
+         case ('T')
+            read(buffer, *, iostat=ios) matrices%temp
+         case('tol')
+            read(buffer, *, iostat=ios) mesh%tol
+         case('maxit')
+            read(buffer, *, iostat=ios) mesh%maxit
+         case('restart')
+            read(buffer, *, iostat=ios) mesh%restart
+         case('order')
+            read(buffer, *, iostat=ios) mesh%M_ex
+         case('cell_size')
+            read(buffer, *, iostat=ios) mesh%grid_size
+         case('near_zone')
+            read(buffer, *, iostat=ios) mesh%near_zone
+         case('expansion_order')
+            read(buffer, *, iostat=ios) mesh%order
+         case('Tmat')
+            read(buffer, *, iostat=ios) matrices%Tmat
+         case('choose_integrator')
+            read(buffer, *, iostat=ios) matrices%which_int
+         case('whichbar')
+            read(buffer, *, iostat=ios) whichbar
+            if(matrices%whichbar == 0) matrices%whichbar = whichbar
+         case('test_forces')
+            read(buffer, *, iostat=ios) run_test
+         case('is_aggr')
+            read(buffer, *, iostat=ios) matrices%is_aggr
+         case('mueller_mode')
+            read(buffer, *, iostat=ios) mode
+            if (trim(mode)/='none') matrices%mueller_mode = mode
+         case('waves')
+            read(buffer, *, iostat=ios) matrices%waves
+         case('refr')
+            read(buffer, *, iostat=ios) temp
+            if(temp>1d-7) matrices%refr = temp
+         case('refi')
+            read(buffer, *, iostat=ios) tempii
+         case('N_mean')
+            read(buffer, *, iostat=ios) matrices%N_mean
+         case('tol_m')
+            read(buffer, *, iostat=ios) matrices%tol_m
+         case('B')
+            read(buffer,*,iostat=ios) matrices%B
+            if(vlen(matrices%B)>1d-14) calc_extra_torques = 1
+         case('beam_shape')
+            read(buffer, *, iostat=ios) beam_shape
+         case('pl')
+            read(buffer, *, iostat=ios) p, l
+         case default
+            !print *, 'Skipping invalid label at line', line
+
+      end select
    end if
-  case('khi_0')
-   read(buffer, *, iostat=ios) khi_0
-   matrices%khi_0 = khi_0
-  case('dt')
-   read(buffer, *, iostat=ios) dt
-   matrices%dt0 = dt
-  case('it_max')
-   read(buffer, *, iostat=ios) it_max
-   matrices%it_max = it_max
-  case('it_log')
-   read(buffer, *, iostat=ios) it_log
-   matrices%it_log = it_log
-  case('rot_max')
-   read(buffer, *, iostat=ios) rot_max
-   matrices%rot_max = rot_max
-  case('khat')
-   read(buffer, *, iostat=ios) khat
-   matrices%khat = khat/vlen(khat)
-  case('polarization')
-   read(buffer, *, iostat=ios) polarization
-   matrices%polarization = polarization
-  case ('bars')
-   read(buffer, *, iostat=ios) bars
-   matrices%bars = bars
-  case ('lambda1')
-   read(buffer, *, iostat=ios) lambda1
-   matrices%lambda1 = lambda1*1.d-9
-  case ('lambda2')
-   read(buffer, *, iostat=ios) lambda2
-   matrices%lambda2 = lambda2*1.d-9
-  case ('T')
-   read(buffer, *, iostat=ios) T
-   matrices%temp = T
-  case('tol')
-   read(buffer, *, iostat=ios) tol
-   mesh%tol = tol
-  case('maxit')
-   read(buffer, *, iostat=ios) maxit
-   mesh%maxit = maxit
-  case('restart')
-   read(buffer, *, iostat=ios) restart
-   mesh%restart = restart
-  case('order')
-   read(buffer, *, iostat=ios) order
-   mesh%M_ex = order
-  case('cell_size')
-   read(buffer, *, iostat=ios) cell_size
-   mesh%grid_size = cell_size
-  case('near_zone')
-   read(buffer, *, iostat=ios) near_zone
-   mesh%near_zone = near_zone
-  case('expansion_order')
-   read(buffer, *, iostat=ios) expansion_order
-   mesh%order = expansion_order
-  case('Tmat')
-   read(buffer, *, iostat=ios) Tmat
-   matrices%Tmat = Tmat
-  case('choose_integrator')
-   read(buffer, *, iostat=ios) which_int
-   matrices%which_int = which_int
-  case('whichbar')
-   read(buffer, *, iostat=ios) whichbar
-   if(matrices%whichbar == 0) matrices%whichbar = whichbar
-  case('test_forces')
-   read(buffer, *, iostat=ios) run_test
-  case('is_aggr')
-   read(buffer, *, iostat=ios) is_aggr
-   matrices%is_aggr = is_aggr
-  case('mueller_mode')
-   read(buffer, *, iostat=ios) mode
-   if (trim(mode)/='none') matrices%mueller_mode = mode
-  case('waves')
-   read(buffer, *, iostat=ios) matrices%waves
-  case('refr')
-   read(buffer, *, iostat=ios) temp
-   if(temp>1d-7) matrices%refr = temp
-  case('refi')
-   read(buffer, *, iostat=ios) tempii
-  case('N_mean')
-   read(buffer, *, iostat=ios) matrices%N_mean
-  case('tol_m')
-   read(buffer, *, iostat=ios) matrices%tol_m
-  case('B')
-    read(buffer,*,iostat=ios) matrices%B
-    if(vlen(matrices%B)>1d-14) calc_extra_torques = 1
-  case('beam_shape')
-    read(buffer, *, iostat=ios) beam_shape
-  case default
-   !print *, 'Skipping invalid label at line', line
-
-  end select
- end if
 end do 
 
 close(fh)
