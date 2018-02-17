@@ -17,7 +17,7 @@ E 1d0                   # Amplitude of E at its maximum
 #####  Run parameters   #####################################
 waves bnd               # Wavelength band options lin, inv, log, bnd
 mueller_mode none       # Mueller matrix type, none, ave, ori, perf_ori
-test_forces 4           # 0 = integrate, 1 = test methods, 2 = calc Qt, 
+test_forces 1           # 0 = integrate, 1 = test methods, 2 = calc Qt, 
                         # 3 = stability analysis, 4 = write fields to file
 
 Tmat 1                  # 1 = file is usable / 0 = force T-matrix calculation
@@ -26,7 +26,7 @@ bars 10                 # in range lmb1-lmb2 nm
 lambda1 200
 lambda2 2000
 whichbar 0              # 0 = use all
-beam_shape 2            # 0 = plane wave, 1 = Gaussian, 2 = LG
+beam_shape 0            # 0 = plane wave, 1 = Gaussian, 2 = LG
 pl 0 0                  # Laguerre-Gaussian beam mode
 
 choose_integrator 2     # 1 = RK4, 2 = VLV, 3 = PCDM
