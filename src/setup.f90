@@ -24,96 +24,96 @@ complex(dp) :: k
 if(matrices%is_aggr .NE. 1 .AND. use_mie .NE. 1) then
 	if (matrices%Tmat == 0) print*, 'Order of basis functions  =', mesh%order
 	if(mesh%M_ex > 3 .or. mesh%M_ex < 1) then
-		print*, 'ERROR: order should be 1, 2 or 3'
-		stop
+      print*, 'ERROR: order should be 1, 2 or 3'
+      stop
 	end if
 	if(mesh%order > 1 .or. mesh%M_ex < 0) then
-		print*, 'ERROR: Expansion order should be 0 or 1 '
-		stop
+      print*, 'ERROR: Expansion order should be 0 or 1 '
+      stop
 	end if
 
-	print*,'Reading mesh...'
-	call read_mesh( matrices, mesh ) ! io
-	call int_points( mesh )
+   print*,'Reading mesh...'
+   call read_mesh( matrices, mesh ) ! io
+   call int_points( mesh )
 
 	if (matrices%Tmat == 0) print*,'Initializing FFT... '
 	if(allocated(mesh%nodes)) deallocate(mesh%nodes, mesh%etopol_box, mesh%tetras)
-	call build_grid2( mesh ) ! geometry
-	call build_box( mesh ) ! geometry
-	call tetras_in_cubes( mesh ) ! geometry
-	
+   call build_grid2( mesh ) ! geometry
+   call build_box( mesh ) ! geometry
+   call tetras_in_cubes( mesh ) ! geometry
+
 	if (matrices%Tmat == 0) then
-		print*,'   Grid size            = ', (/ mesh%Nx, mesh%Ny, mesh%Nz /)
-		print*,'   Delta grid           = ', real( mesh%delta )
-		print*,'   Number of cubes      = ', mesh%N_cubes
-		print*,'   Delta cubes          = ', real( mesh%box_delta )
-		print*,'   Elems. in cube (max) = ', mesh%N_tet_cube
-		print*,'Done'
+      print*,'   Grid size            = ', (/ mesh%Nx, mesh%Ny, mesh%Nz /)
+      print*,'   Delta grid           = ', real( mesh%delta )
+      print*,'   Number of cubes      = ', mesh%N_cubes
+      print*,'   Delta cubes          = ', real( mesh%box_delta )
+      print*,'   Elems. in cube (max) = ', mesh%N_tet_cube
+      print*,'Done'
 	end if
-	
+
 	if (matrices%Tmat == 0) call construct_projectors( matrices, mesh ) ! projection
-		
-	! Check whether using maxval is good or not
+
+   ! Check whether using maxval is good or not
 	do i = 1, matrices%bars
-	ka = mesh%ki(i) * ( dble(maxval( [ mesh%Nx, mesh%Ny, mesh%Nz ] )) &
-			 * mesh%delta ) / 2.0d0
-	matrices%Nmaxs( i ) = truncation_order( ka )
+   ka = mesh%ki(i) * ( dble(maxval( [ mesh%Nx, mesh%Ny, mesh%Nz ] )) &
+   * mesh%delta ) / 2.0d0
+   matrices%Nmaxs( i ) = truncation_order( ka )
 	end do
 
-	write(*,'(A, 20F6.3)') ' Wavelengths in um: ', 2d6*pi/mesh%ki
+   write(*,'(A, 20F6.3)') ' Wavelengths in um: ', 2d6*pi/mesh%ki
 
 else if (use_mie .NE. 1) then !* SPHERICAL AGGREGATE *******************
-	call read_aggr(mesh)
-	Nspheres = size(mesh%radius)
-	allocate(sphere(Nspheres))
+   call read_aggr(mesh)
+   Nspheres = size(mesh%radius)
+   allocate(sphere(Nspheres))
 
 	do i = 1,matrices%bars
-		k = dcmplx(mesh%ki(i),0d0)
-		maxrad = 0d0
-		vol = 0d0
+      k = dcmplx(mesh%ki(i),0d0)
+      maxrad = 0d0
+      vol = 0d0
 		do sph = 1, Nspheres
-				 sphere(sph)%cp = mesh%coord(:,sph)
-				 sphere(sph)%r = mesh%radius(sph)
+            sphere(sph)%cp = mesh%coord(:,sph)
+            sphere(sph)%r = mesh%radius(sph)
 
-				 ka = real(mesh%ki(i)) * mesh%radius(sph)
-				 sphere(sph)%Nmax = truncation_order2(ka)  ! Note
+            ka = real(mesh%ki(i)) * mesh%radius(sph)
+            sphere(sph)%Nmax = truncation_order2(ka)  ! Note
 
-				 sphere(sph)%Tmat_ind = 1
+            sphere(sph)%Tmat_ind = 1
 
-				 maxrad_sph = sqrt(dot_product(mesh%coord(:,sph), mesh%coord(:,sph)))  + mesh%radius(sph)
+            maxrad_sph = sqrt(dot_product(mesh%coord(:,sph), mesh%coord(:,sph)))  + mesh%radius(sph)
 			if(maxrad < maxrad_sph) then
-				 maxrad = maxrad_sph
+            maxrad = maxrad_sph
 			end if
 
 			if(max_sph < sphere(sph)%Nmax) then
-				 max_sph = sphere(sph)%Nmax
+            max_sph = sphere(sph)%Nmax
 			end if
 
-			vol = vol + 4.0/3.0*pi*(mesh%radius(sph))**3
+         vol = vol + 4.0/3.0*pi*(mesh%radius(sph))**3
 		end do
 		if(allocated(otree)) deallocate(otree)
-		call create_octtree(sphere, otree, dble(mesh%ki(i)), max_level)
+      call create_octtree(sphere, otree, dble(mesh%ki(i)), max_level)
 	end do
-	mesh%maxrad = maxrad
-	call int_points( mesh )
+   mesh%maxrad = maxrad
+   call int_points( mesh )
 
 	do i = 1, matrices%bars
-		ka = mesh%ki(i) * sqrt(3.0)/2.0*otree(1)%tree(1)%dl
-		matrices%Nmaxs( i ) = truncation_order2( ka )
+      ka = mesh%ki(i) * sqrt(3.0)/2.0*otree(1)%tree(1)%dl
+      matrices%Nmaxs( i ) = truncation_order2( ka )
 	end do
 else ! MIE *************************************************************
-	call int_points_mie( mesh )
+   call int_points_mie( mesh )
 	do i = 1, matrices%bars
-		ka = mesh%ki(i) * mesh%a
-		matrices%Nmaxs( i ) = truncation_order( ka )
+      ka = mesh%ki(i) * mesh%a
+      matrices%Nmaxs( i ) = truncation_order( ka )
 	end do
-	
-	allocate(mesh%param(1))
-	mesh%param = dcmplx(matrices%refr**2 - matrices%refi**2, &
-	2d0*matrices%refr*matrices%refi)
-	write(*,'(2(A,F5.3))') '    Refractive index     =   ', matrices%refr, ' + i', matrices%refi
-	write(*,'(2(A,F5.3))') '    Dielectric constant  =   ', matrices%refr**2 - matrices%refi**2, &
-	' + i', 2d0*matrices%refr*matrices%refi
+
+   allocate(mesh%param(1))
+   mesh%param = dcmplx(matrices%refr**2 - matrices%refi**2, &
+   2d0*matrices%refr*matrices%refi)
+   write(*,'(2(A,F5.3))') '    Refractive index     =   ', matrices%refr, ' + i', matrices%refi
+   write(*,'(2(A,F5.3))') '    Dielectric constant  =   ', matrices%refr**2 - matrices%refi**2, &
+   ' + i', 2d0*matrices%refr*matrices%refi
 end if
 end subroutine init_geometry
 
@@ -156,7 +156,7 @@ print*, 'Constructing ', trim(mesh%projector),'-projectors... '
 
 do i = 1,size(mesh%ki)
 	if(allocated(matrices%S))then
-		deallocate(matrices%S,matrices%Sx,matrices%Sy,matrices%Sz,matrices%indS)
+      deallocate(matrices%S,matrices%Sx,matrices%Sy,matrices%Sz,matrices%indS)
 	end if
  mesh%k = mesh%ki(i)
  call print_bar(i,size(mesh%ki))
@@ -212,15 +212,15 @@ allocate(matrices%rotYs(las,matrices%bars))
 allocate(matrices%indYs(las,2,matrices%bars))
 
 do i = 1,matrices%bars
- if(allocated(a_in)) deallocate(a_in,b_in)
- Nmax = matrices%Nmaxs(i)
- nm = (Nmax+1)**2-1
- allocate(a_in(nm))
- allocate(b_in(nm))
- call planewave(Nmax, dble(mesh%ki(i)), a_in, b_in)
- 
- matrices%as(1:nm,i) = a_in
- matrices%bs(1:nm,i) = b_in
+   if(allocated(a_in)) deallocate(a_in,b_in)
+   Nmax = matrices%Nmaxs(i)
+   nm = (Nmax+1)**2-1
+   allocate(a_in(nm))
+   allocate(b_in(nm))
+   call planewave(Nmax, dble(mesh%ki(i)), a_in, b_in)
+
+   matrices%as(1:nm,i) = a_in
+   matrices%bs(1:nm,i) = b_in
 end do
 
 end subroutine allocate_inc_wave
@@ -295,8 +295,8 @@ type(data) :: matrices
 type(mesh_struct) :: mesh
 
 if(dabs(matrices%lambda1-2d0*pi/mesh%ki(1))>1d-7) then
-	matrices%lambda1 = 2d0*pi/mesh%ki(1)
-	matrices%lambda2 = 2d0*pi/mesh%ki(matrices%bars)
+   matrices%lambda1 = 2d0*pi/mesh%ki(1)
+   matrices%lambda2 = 2d0*pi/mesh%ki(matrices%bars)
 	if(matrices%waves == 'bnd') call calc_E_rel(matrices,mesh)
 !~ 	call init_geometry(matrices,mesh)
 end if
@@ -359,14 +359,14 @@ integer                                     ::  i1
 if(mesh%is_mesh == 1) then
  d = 0d0
 	do i1 = 1, size(mesh%coord,2)
-	 d2 = vlen(mesh%coord(:,i1))
-	 if(d2 > d) then
-	  d = d2
-		end if
+      d2 = vlen(mesh%coord(:,i1))
+      if(d2 > d) then
+         d = d2
+   	end if
 	end do
-	d = 1.05d0 * d
+   d = 1.05d0 * d
 else
-	d = 1.05d0*(mesh%maxrad+mesh%radius(1))
+   d = 1.05d0*(mesh%maxrad+mesh%radius(1))
 end if
 
 call sample_points(P,w,20,20)
@@ -460,9 +460,9 @@ dlmbda = (matrices%lambda2-matrices%lambda1)/n
 
 ! Calculate c(i) and test vectors for adjusting the centers
 do i = 1,n
- c(i) = matrices%lambda1 + (2d0*i-1d0)*dlmbda/2d0
- diff(i) = lmax-c(i)
- absdif(i) = abs(diff(i))
+   c(i) = matrices%lambda1 + (2d0*i-1d0)*dlmbda/2d0
+   diff(i) = lmax-c(i)
+   absdif(i) = abs(diff(i))
 end do
 
 ! Find the minimum distance from lambda_max
@@ -470,22 +470,22 @@ imin = minloc(absdif,1)
 
 ! fix = amount to slide c(i)
 if(imin>0)then
- fix = diff(imin)
+   fix = diff(imin)
 else
- fix = 0d0
+   fix = 0d0
 end if
 
 ! Test whether or not the slide takes the minimum to negative wavelength
 if(diff(imin)<0) then
- if(diff(imin)+c(1)<0) then
-  fix = -matrices%lambda1
- end if
+   if(diff(imin)+c(1)<0) then
+      fix = -matrices%lambda1
+   end if
 end if
 
 ! Calculate the final wavelengths and the corresponding wave numbers
 do i= 1,n
- c(i) = c(i) + fix
- mesh%ki(i) = 2d0*pi/c(i)
+   c(i) = c(i) + fix
+   mesh%ki(i) = 2d0*pi/c(i)
 end do
 
 end subroutine find_k
@@ -502,24 +502,24 @@ real(dp) :: lambda, N, sm, sm2, dlmbda, M
 integer :: i
 
 if(matrices%bars == 1) then
-	matrices%E_rel = 1
+   matrices%E_rel = 1
 else
-	dlmbda = (matrices%lambda2-matrices%lambda1)/matrices%bars
-	sm = 0.0d0
-	sm2 = 0.0d0
-	M = 0.5d0*epsilon*cc*(matrices%E)**2
+   dlmbda = (matrices%lambda2-matrices%lambda1)/matrices%bars
+   sm = 0.0d0
+   sm2 = 0.0d0
+   M = 0.5d0*epsilon*cc*(matrices%E)**2
 	do i = 1,matrices%bars
-	 lambda = 2d0*pi/mesh%ki(i)
-	 sm2 = sm2 + B_lambda(lambda,matrices%temp)
+      lambda = 2d0*pi/mesh%ki(i)
+      sm2 = sm2 + B_lambda(lambda,matrices%temp)
 	end do
-	N = M/(sm2*dlmbda)
+   N = M/(sm2*dlmbda)
 	do i = 1,matrices%bars
-	 lambda = 2d0*pi/mesh%ki(i)
-	 matrices%E_rel(i) = sqrt(2d0*N*B_lambda(lambda,matrices%temp)*dlmbda&
-	/(epsilon*cc))
-	 sm = sm + matrices%E_rel(i)
+       lambda = 2d0*pi/mesh%ki(i)
+       matrices%E_rel(i) = sqrt(2d0*N*B_lambda(lambda,matrices%temp)*dlmbda&
+      /(epsilon*cc))
+       sm = sm + matrices%E_rel(i)
 	end do
-	matrices%E_rel = matrices%E_rel/sm
+   matrices%E_rel = matrices%E_rel/sm
 end if
 
 end subroutine calc_E_rel
@@ -534,10 +534,10 @@ type(data), intent(inout):: matrices
 type(mesh_struct), intent(inout) :: mesh
 
 if(matrices%waves == 'bnd')then
- call find_k(matrices,mesh)
- call calc_E_rel(matrices,mesh)
+   call find_k(matrices,mesh)
+   call calc_E_rel(matrices,mesh)
 else
- call band_no_blackbody(matrices,mesh)
+   call band_no_blackbody(matrices,mesh)
 end if
 
 end subroutine setup_band
@@ -561,28 +561,28 @@ allocate(absdif(n))
 
 ! Calculate lambda_max of distribution and width of bars
 lmax = b/matrices%temp
-!dlmbda = (matrices%lambda2-matrices%lambda1)/n
+! dlmbda = (matrices%lambda2-matrices%lambda1)/n
 
 if(matrices%waves == 'inv')then
-!~  print*, 'inv = ', matrices%waves
- call linspace(1d0/(matrices%lambda1),1d0/(matrices%lambda2),n,c)
- do i = 1,n
-  c(i) = 1d0/c(i)
- end do
+   ! print*, 'inv = ', matrices%waves
+   call linspace(1d0/(matrices%lambda1),1d0/(matrices%lambda2),n,c)
+   do i = 1,n
+      c(i) = 1d0/c(i)
+   end do
 else if(matrices%waves == 'log') then
-!~  print*, 'log = ', matrices%waves
- call linspace(dlog10(matrices%lambda1),dlog10(matrices%lambda2),n,c)
- do i = 1,n
-  c(i) = 10**c(i)
- end do
+   ! print*, 'log = ', matrices%waves
+   call linspace(dlog10(matrices%lambda1),dlog10(matrices%lambda2),n,c)
+   do i = 1,n
+      c(i) = 10**c(i)
+   end do
 else
-!~  print*, matrices%waves
- call linspace(matrices%lambda1,matrices%lambda2,n,c)
+   ! print*, matrices%waves
+   call linspace(matrices%lambda1,matrices%lambda2,n,c)
 end if
 
 ! Calculate the final wavelengths and the corresponding wave numbers
 do i= 1,n
- mesh%ki(i) = 2d0*pi/c(i)
+   mesh%ki(i) = 2d0*pi/c(i)
 end do
 matrices%E_rel = 1d0
 
@@ -636,124 +636,124 @@ las = 0
 ! n = 1
 n = 1
 do m2 = -n,n
- do mu2 = -n,n
-  las = las + 1
+   do mu2 = -n,n
+      las = las + 1
 
-  ind1 = n*n + n + m2
-  ind2 = n*n + n + mu2
+      ind1 = n*n + n + m2
+      ind2 = n*n + n + mu2
 
-  if(m2 >= 0 .and. mu2 >= 0) then
-   delta = 1d0
-  end if
+      if(m2 >= 0 .and. mu2 >= 0) then
+         delta = 1d0
+      end if
 
-  if(m2 >= 0 .and. mu2 < 0) then
-   delta = (-1d0)**mu2
-  end if
+      if(m2 >= 0 .and. mu2 < 0) then
+         delta = (-1d0)**mu2
+      end if
 
-  if(m2 < 0 .and. mu2 >= 0) then
-   delta = (-1d0)**m2
-  end if
+      if(m2 < 0 .and. mu2 >= 0) then
+         delta = (-1d0)**m2
+      end if
 
-  if(m2 < 0 .and. mu2 < 0) then
-   delta = (-1d0)**(m2+mu2)
-  end if
+      if(m2 < 0 .and. mu2 < 0) then
+         delta = (-1d0)**(m2+mu2)
+      end if
 
-  spD(las) = delta * D1(2+m2+n+1,2+mu2+n+1)
-  ind(las,1) = ind1
-  ind(las,2) = ind2
- end do
+      spD(las) = delta * D1(2+m2+n+1,2+mu2+n+1)
+      ind(las,1) = ind1
+      ind(las,2) = ind2
+   end do
 end do
 
 do n = 2,Nmax
- locD(:,:) = dcmplx(0.0d0,0.0d0)
+   locD(:,:) = dcmplx(0.0d0,0.0d0)
 
- do mu = -n+1, n-1
-  denom_mu(mu+n) = sqrt(dble((n+mu)*(n-mu)))
- end do
+   do mu = -n+1, n-1
+      denom_mu(mu+n) = sqrt(dble((n+mu)*(n-mu)))
+   end do
 
- do m = -n, n
-  mm = -m
+   do m = -n, n
+      mm = -m
 
-  nom_a = sqrt(dble((n+m)*(n-m)))
-  nom_b = sqrt(dble((n+m)*(n+m-1)))
-  nom_b2 = sqrt(dble((n+mm)*(n+mm-1)))
+      nom_a = sqrt(dble((n+m)*(n-m)))
+      nom_b = sqrt(dble((n+m)*(n+m-1)))
+      nom_b2 = sqrt(dble((n+mm)*(n+mm-1)))
 
-  do mu = -n+1, n-1
-   a = nom_a / denom_mu(mu+n)
-   b = nom_b / (sqrt(2.0d0)*denom_mu(mu+n))
-   b2 = nom_b2 / (sqrt(2.0d0)*denom_mu(mu+n))
+      do mu = -n+1, n-1
+         a = nom_a / denom_mu(mu+n)
+         b = nom_b / (sqrt(2.0d0)*denom_mu(mu+n))
+         b2 = nom_b2 / (sqrt(2.0d0)*denom_mu(mu+n))
 
-   x = mu+n+1
-   y = m+n+1
+         x = mu+n+1
+         y = m+n+1
 
-   locD(x,y) = D1(4,4) * a * DD(x+1,y+1) &
-   + b * D1(4,5) * DD(x+1,y) &
-   + b2 * D1(4,3) * DD(x+1,y+2)
-  end do
+         locD(x,y) = D1(4,4) * a * DD(x+1,y+1) &
+         + b * D1(4,5) * DD(x+1,y) &
+         + b2 * D1(4,3) * DD(x+1,y+2)
+      end do
 
-  mu = -n
+      mu = -n
 
-  cm = sqrt(dble(n+m)*dble(n-m)/dble(n*(2*n-1)) );
-  dm = sqrt( dble(n+m)*dble(n+m-1d0)/dble(2*n*(2*n-1)) );
-  dmm = sqrt( dble(n-m)*dble(n-m-1d0)/dble(2*n*(2*n-1)) );
+      cm = sqrt(dble(n+m)*dble(n-m)/dble(n*(2*n-1)) )
+      dm = sqrt( dble(n+m)*dble(n+m-1d0)/dble(2*n*(2*n-1)) )
+      dmm = sqrt( dble(n-m)*dble(n-m-1d0)/dble(2*n*(2*n-1)) )
 
-  x = mu+n+1;
-  y = m+n+1;
+      x = mu+n+1
+      y = m+n+1
 
-  locD(x,y) = (D1(3,4) * cm * DD(x+2,y+1) &
-  + dm * D1(3,5) * DD(x+2,y) &
-  + dmm * D1(3,3) * DD(x+2,y+2))
+      locD(x,y) = (D1(3,4) * cm * DD(x+2,y+1) &
+      + dm * D1(3,5) * DD(x+2,y) &
+      + dmm * D1(3,3) * DD(x+2,y+2))
 
-  mu = n;
+      mu = n
 
-  x = mu+n+1;
-  y = m+n+1;
+      x = mu+n+1
+      y = m+n+1
 
-  locD(x,y) = (D1(5,4) * cm * DD(x,y+1) &
-  + dm * D1(5,5) * DD(x,y) &
-  + dmm * D1(5,3) * DD(x,y+2));
+      locD(x,y) = (D1(5,4) * cm * DD(x,y+1) &
+      + dm * D1(5,5) * DD(x,y) &
+      + dmm * D1(5,3) * DD(x,y+2))
 
- end do
+   end do
 
- DD(:,:) = dcmplx(0.0d0,0.0d0)
- en = 2*(n+2)-1
- en2 = 2*n+1
- DD(3:en,3:en) = locD(1:en2,1:en2)
+   DD(:,:) = dcmplx(0.0d0,0.0d0)
+   en = 2*(n+2)-1
+   en2 = 2*n+1
+   DD(3:en,3:en) = locD(1:en2,1:en2)
 
- ind1 = n**2;
- ind2 = (n+1)**2 - 1;
+   ind1 = n**2
+   ind2 = (n+1)**2 - 1;
 
- do m2 = -n,n
-  do mu2 = -n,n
-     las = las + 1
+   do m2 = -n,n
+      do mu2 = -n,n
+         las = las + 1
 
-     ind1 = n*n + n + m2
-     ind2 = n*n + n + mu2
+         ind1 = n*n + n + m2
+         ind2 = n*n + n + mu2
 
-     if(m2 >= 0 .and. mu2 >= 0) then
-      delta = 1d0
-     end if
+         if(m2 >= 0 .and. mu2 >= 0) then
+            delta = 1d0
+         end if
 
-     if(m2 >= 0 .and. mu2 < 0) then
-      delta = (-1d0)**mu2
-     end if
+         if(m2 >= 0 .and. mu2 < 0) then
+            delta = (-1d0)**mu2
+         end if
 
-     if(m2 < 0 .and. mu2 >= 0) then
-      delta = (-1d0)**m2
-     end if
+         if(m2 < 0 .and. mu2 >= 0) then
+            delta = (-1d0)**m2
+         end if
 
-     if(m2 < 0 .and. mu2 < 0) then
-      delta = (-1d0)**(m2+mu2)
-     end if
+         if(m2 < 0 .and. mu2 < 0) then
+            delta = (-1d0)**(m2+mu2)
+         end if
 
-     !delta = 1
+         ! delta = 1
 
-     spD(las) = delta * locD(m2+n+1,mu2+n+1)
-     ind(las,1) = ind1
-     ind(las,2) = ind2
+         spD(las) = delta * locD(m2+n+1,mu2+n+1)
+         ind(las,1) = ind1
+         ind(las,2) = ind2
 
-  end do
- end do
+      end do
+   end do
 end do
 
 end subroutine sph_rotation_sparse_gen2

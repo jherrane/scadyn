@@ -19,13 +19,13 @@ call init_geometry(matrices,mesh)
 
 call allocate_Ti(matrices)
 
-if (matrices%Tmat == 1 .AND. file_exists(trim(matrices%tname))) then
+if (matrices%Tmat == 1 .AND. file_exists(matrices%tname)) then
    call read_T(matrices, mesh)
    call fix_band(matrices, mesh)
 else
    write(*,'(A,1ES8.2)') '  a = ', mesh%a
    if(matrices%singleT == 1) then
-      if(.NOT. file_exists(trim(matrices%tname))) call T_empty(matrices, mesh)
+      if(.NOT. file_exists(matrices%tname)) call T_empty(matrices, mesh)
    end if
 
    call calc_T( matrices, mesh )
@@ -67,6 +67,7 @@ call init_values(matrices, mesh)
 
 if(beam_shape == 1) call gaussian_beams(matrices,mesh)
 if(beam_shape == 2) call laguerre_gaussian_beams(matrices,mesh,p,l)
+if(beam_shape == 3) call bessel_beams(matrices,mesh)
 
 if(run_test == 1) call test_methods(matrices, mesh)
 if(run_test == 2) call torque_efficiency(matrices, mesh)

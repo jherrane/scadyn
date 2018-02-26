@@ -1229,9 +1229,9 @@ ans = 0
 wnorm = vlen(matrices%w)
 
 if(wnorm>0d0)then
-	w = matrices%w/vlen(matrices%w)
+   w = matrices%w/vlen(matrices%w)
 else
-	w = matrices%w
+   w = matrices%w
 end if
 
 aw = dabs(dot_product(w,[1d0,0d0,0d0]))

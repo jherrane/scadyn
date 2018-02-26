@@ -729,4 +729,459 @@ enddo
 
 end function laguerre
 
+subroutine jyna ( n, x, nm, bj, dj, by, dy )
+
+!*****************************************************************************80
+!
+!! JYNA computes Bessel functions Jn(x) and Yn(x) and derivatives.
+!
+!  Licensing:
+!
+!    This routine is copyrighted by Shanjie Zhang and Jianming Jin.  However, 
+!    they give permission to incorporate this routine into a user program 
+!    provided that the copyright is acknowledged.
+!
+!  Modified:
+!
+!    29 April 2012
+!
+!  Author:
+!
+!    Shanjie Zhang, Jianming Jin
+!
+!  Reference:
+!
+!    Shanjie Zhang, Jianming Jin,
+!    Computation of Special Functions,
+!    Wiley, 1996,
+!    ISBN: 0-471-11963-6,
+!    LC: QA351.C45.
+!
+!  Parameters:
+!
+!    Input, integer ( kind = 4 ) N, the order.
+!
+!    Input, real ( kind = 8 ) X, the argument.
+!
+!    Output, integer ( kind = 4 ) NM, the highest order computed.
+!
+!    Output, real ( kind = 8 ) BJ(0:N), DJ(0:N), BY(0:N), DY(0:N), the values
+!    of Jn(x), Jn'(x), Yn(x), Yn'(x).
+!
+  implicit none
+
+  integer ( kind = 4 ) n
+
+  real ( kind = 8 ) bj(0:n)
+  real ( kind = 8 ) bj0
+  real ( kind = 8 ) bj1
+  real ( kind = 8 ) bjk
+  real ( kind = 8 ) by(0:n)
+  real ( kind = 8 ) by0
+  real ( kind = 8 ) by1
+  real ( kind = 8 ) cs
+  real ( kind = 8 ) dj(0:n)
+  real ( kind = 8 ) dj0
+  real ( kind = 8 ) dj1
+  real ( kind = 8 ) dy(0:n)
+  real ( kind = 8 ) dy0
+  real ( kind = 8 ) dy1
+  real ( kind = 8 ) f
+  real ( kind = 8 ) f0
+  real ( kind = 8 ) f1
+  real ( kind = 8 ) f2
+  integer ( kind = 4 ) k
+  integer ( kind = 4 ) m
+  integer ( kind = 4 ) nm
+  real ( kind = 8 ) x
+
+  nm = n
+
+  if ( x < 1.0D-100 ) then
+
+    do k = 0, n
+      bj(k) = 0.0D+00
+      dj(k) = 0.0D+00
+      by(k) = -1.0D+300
+      dy(k) = 1.0D+300
+    end do
+    bj(0) = 1.0D+00
+    dj(1) = 0.5D+00
+    return
+
+  end if
+
+  call jy01b ( x, bj0, dj0, bj1, dj1, by0, dy0, by1, dy1 )
+  bj(0) = bj0
+  bj(1) = bj1
+  by(0) = by0
+  by(1) = by1
+  dj(0) = dj0
+  dj(1) = dj1
+  dy(0) = dy0
+  dy(1) = dy1
+
+  if ( n <= 1 ) then
+    return
+  end if
+
+  if ( n < int ( 0.9D+00 * x) ) then
+
+    do k = 2, n
+      bjk = 2.0D+00 * ( k - 1.0D+00 ) / x * bj1 - bj0
+      bj(k) = bjk
+      bj0 = bj1
+      bj1 = bjk
+    end do
+
+  else
+
+    m = msta1 ( x, 200 )
+
+    if ( m < n ) then
+      nm = m
+    else
+      m = msta2 ( x, n, 15 )
+    end if
+
+    f2 = 0.0D+00
+    f1 = 1.0D-100
+    do k = m, 0, -1
+      f = 2.0D+00 * ( k + 1.0D+00 ) / x * f1 - f2
+      if ( k <= nm ) then
+        bj(k) = f
+      end if
+      f2 = f1
+      f1 = f
+    end do
+
+    if ( abs ( bj1 ) < abs ( bj0 ) ) then
+      cs = bj0 / f
+    else
+      cs = bj1 / f2
+    end if
+
+    do k = 0, nm
+      bj(k) = cs * bj(k)
+    end do
+
+  end if
+
+  do k = 2, nm
+    dj(k) = bj(k-1) - k / x * bj(k)
+  end do
+
+  f0 = by(0)
+  f1 = by(1)
+  do k = 2, nm
+    f = 2.0D+00 * ( k - 1.0D+00 ) / x * f1 - f0
+    by(k) = f
+    f0 = f1
+    f1 = f
+  end do
+
+  do k = 2, nm
+    dy(k) = by(k-1) - k * by(k) / x
+  end do
+
+  return
+end
+
+subroutine jy01b ( x, bj0, dj0, bj1, dj1, by0, dy0, by1, dy1 )
+
+!*****************************************************************************80
+!
+!! JY01B computes Bessel functions J0(x), J1(x), Y0(x), Y1(x) and derivatives.
+!
+!  Licensing:
+!
+!    This routine is copyrighted by Shanjie Zhang and Jianming Jin.  However, 
+!    they give permission to incorporate this routine into a user program 
+!    provided that the copyright is acknowledged.
+!
+!  Modified:
+!
+!    02 August 2012
+!
+!  Author:
+!
+!    Shanjie Zhang, Jianming Jin
+!
+!  Reference:
+!
+!    Shanjie Zhang, Jianming Jin,
+!    Computation of Special Functions,
+!    Wiley, 1996,
+!    ISBN: 0-471-11963-6,
+!    LC: QA351.C45.
+!
+!  Parameters:
+!
+!    Input, real ( kind = 8 ) X, the argument.
+!
+!    Output, real ( kind = 8 ) BJ0, DJ0, BJ1, DJ1, BY0, DY0, BY1, DY1,
+!    the values of J0(x), J0'(x), J1(x), J1'(x), Y0(x), Y0'(x), Y1(x), Y1'(x).
+!
+  implicit none
+
+  real ( kind = 8 ) a0
+  real ( kind = 8 ) bj0
+  real ( kind = 8 ) bj1
+  real ( kind = 8 ) by0
+  real ( kind = 8 ) by1
+  real ( kind = 8 ) dj0
+  real ( kind = 8 ) dj1
+  real ( kind = 8 ) dy0
+  real ( kind = 8 ) dy1
+  real ( kind = 8 ) p0
+  real ( kind = 8 ) p1
+  real ( kind = 8 ) pi
+  real ( kind = 8 ) q0
+  real ( kind = 8 ) q1
+  real ( kind = 8 ) t
+  real ( kind = 8 ) t2
+  real ( kind = 8 ) ta0
+  real ( kind = 8 ) ta1
+  real ( kind = 8 ) x
+
+  pi = 3.141592653589793D+00
+
+  if ( x == 0.0D+00 ) then
+
+    bj0 = 1.0D+00
+    bj1 = 0.0D+00
+    dj0 = 0.0D+00
+    dj1 = 0.5D+00
+    by0 = -1.0D+300
+    by1 = -1.0D+300
+    dy0 = 1.0D+300
+    dy1 = 1.0D+300
+    return
+
+  else if ( x <= 4.0D+00 ) then
+
+    t = x / 4.0D+00
+    t2 = t * t
+
+    bj0 = (((((( &
+      - 0.5014415D-03 * t2 &
+      + 0.76771853D-02 ) * t2 &
+      - 0.0709253492D+00 ) * t2 &
+      + 0.4443584263D+00 ) * t2 &
+      - 1.7777560599D+00 ) * t2 &
+      + 3.9999973021D+00 ) * t2 &
+      - 3.9999998721D+00 ) * t2 &
+      + 1.0D+00
+
+    bj1 = t * ((((((( &
+      - 0.1289769D-03 * t2 &
+      + 0.22069155D-02 ) * t2 &
+      - 0.0236616773D+00 ) * t2 &
+      + 0.1777582922D+00 ) * t2 &
+      - 0.8888839649D+00 ) * t2 &
+      + 2.6666660544D+00 ) * t2 &
+      - 3.9999999710D+00 ) * t2 &
+      + 1.9999999998D+00 )
+
+    by0 = ((((((( &
+      - 0.567433D-04 * t2 &
+      + 0.859977D-03 ) * t2 &
+      - 0.94855882D-02 ) * t2 &
+      + 0.0772975809D+00 ) * t2 &
+      - 0.4261737419D+00 ) * t2 &
+      + 1.4216421221D+00 ) * t2 &
+      - 2.3498519931D+00 ) * t2 &
+      + 1.0766115157D+00 ) * t2 &
+      + 0.3674669052D+00
+
+    by0 = 2.0D+00 / pi * log ( x / 2.0D+00 ) * bj0 + by0
+
+    by1 = (((((((( &
+        0.6535773D-03 * t2 &
+      - 0.0108175626D+00 ) * t2 &
+      + 0.107657606D+00 ) * t2 &
+      - 0.7268945577D+00 ) * t2 &
+      + 3.1261399273D+00 ) * t2 &
+      - 7.3980241381D+00 ) * t2 &
+      + 6.8529236342D+00 ) * t2 &
+      + 0.3932562018D+00 ) * t2 &
+      - 0.6366197726D+00 ) / x
+
+    by1 = 2.0D+00 / pi * log ( x / 2.0D+00 ) * bj1 + by1
+
+  else
+
+    t = 4.0D+00 / x
+    t2 = t * t
+    a0 = sqrt ( 2.0D+00 / ( pi * x ) )
+
+    p0 = (((( &
+      - 0.9285D-05 * t2 &
+      + 0.43506D-04 ) * t2 &
+      - 0.122226D-03 ) * t2 &
+      + 0.434725D-03 ) * t2 &
+      - 0.4394275D-02 ) * t2 &
+      + 0.999999997D+00
+
+    q0 = t * ((((( &
+        0.8099D-05 * t2 &
+      - 0.35614D-04 ) * t2 &
+      + 0.85844D-04 ) * t2 &
+      - 0.218024D-03 ) * t2 &
+      + 0.1144106D-02 ) * t2 &
+      - 0.031249995D+00 )
+
+    ta0 = x - 0.25D+00 * pi
+    bj0 = a0 * ( p0 * cos ( ta0 ) - q0 * sin ( ta0 ) )
+    by0 = a0 * ( p0 * sin ( ta0 ) + q0 * cos ( ta0 ) )
+
+    p1 = (((( &
+        0.10632D-04 * t2 &
+      - 0.50363D-04 ) * t2 &
+      + 0.145575D-03 ) * t2 &
+      - 0.559487D-03 ) * t2 &
+      + 0.7323931D-02 ) * t2 &
+      + 1.000000004D+00
+
+    q1 = t * ((((( &
+      - 0.9173D-05      * t2 &
+      + 0.40658D-04 )   * t2 &
+      - 0.99941D-04 )   * t2 &
+      + 0.266891D-03 )  * t2 &
+      - 0.1601836D-02 ) * t2 &
+      + 0.093749994D+00 )
+
+    ta1 = x - 0.75D+00 * pi
+    bj1 = a0 * ( p1 * cos ( ta1 ) - q1 * sin ( ta1 ) )
+    by1 = a0 * ( p1 * sin ( ta1 ) + q1 * cos ( ta1 ) )
+
+  end if
+
+  dj0 = - bj1
+  dj1 = bj0 - bj1 / x
+  dy0 = - by1
+  dy1 = by0 - by1 / x
+
+  return
+end
+
+subroutine lpmn ( mm, m, n, x, pm, pd )
+!*****************************************************************************80
+!
+!! LPMN computes associated Legendre functions Pmn(X) and derivatives P'mn(x).
+!
+!  Licensing:
+!
+!    This routine is copyrighted by Shanjie Zhang and Jianming Jin.  However, 
+!    they give permission to incorporate this routine into a user program 
+!    provided that the copyright is acknowledged.
+!
+!  Modified:
+!
+!    19 July 2012
+!
+!  Author:
+!
+!    Shanjie Zhang, Jianming Jin
+!
+!  Reference:
+!
+!    Shanjie Zhang, Jianming Jin,
+!    Computation of Special Functions,
+!    Wiley, 1996,
+!    ISBN: 0-471-11963-6,
+!    LC: QA351.C45.
+!
+!  Parameters:
+!
+!    Input, integer ( kind = 4 ) MM, the leading dimension of PM and PD.
+!    Input, integer ( kind = 4 ) M, the order of Pmn(x).
+!    Input, integer ( kind = 4 ) N, the degree of Pmn(x).
+!    Input, real ( kind = 8 ) X, the argument of Pmn(x).
+!    Output, real ( kind = 8 ) PM(0:MM,0:N), PD(0:MM,0:N), the
+!    values of Pmn(x) and Pmn'(x).
+
+implicit none
+integer ( kind = 4 ) mm
+integer ( kind = 4 ) n
+
+integer ( kind = 4 ) i
+integer ( kind = 4 ) j
+integer ( kind = 4 ) ls
+integer ( kind = 4 ) m
+real ( kind = 8 ) pd(0:mm,0:n)
+real ( kind = 8 ) pm(0:mm,0:n)
+real ( kind = 8 ) x
+real ( kind = 8 ) xq
+real ( kind = 8 ) xs
+
+do i = 0, n
+   do j = 0, m
+      pm(j,i) = 0.0D+00
+      pd(j,i) = 0.0D+00
+   end do
+end do
+
+pm(0,0) = 1.0D+00
+
+if ( abs ( x ) == 1.0D+00 ) then
+
+   do i = 1, n
+      pm(0,i) = x ** i
+      pd(0,i) = 0.5D+00 * i * ( i + 1.0D+00 ) * x ** ( i + 1 )
+   end do
+
+   do j = 1, n
+      do i = 1, m
+         if ( i == 1 ) then
+            pd(i,j) = 1.0D+300
+         else if ( i == 2 ) then
+            pd(i,j) = -0.25D+00 * ( j + 2 ) * ( j + 1 ) * j &
+            * ( j - 1 ) * x ** ( j + 1 )
+         end if
+      end do
+   end do
+
+   return
+
+end if
+
+if ( 1.0D+00 < abs ( x ) ) then
+   ls = -1
+else
+   ls = +1
+end if
+
+xq = sqrt ( ls * ( 1.0D+00 - x * x ) )
+xs = ls * ( 1.0D+00 - x * x )
+do i = 1, m
+   pm(i,i) = - ls * ( 2.0D+00 * i - 1.0D+00 ) * xq * pm(i-1,i-1)
+end do
+
+do i = 0, m
+   pm(i,i+1) = ( 2.0D+00 * i + 1.0D+00 ) * x * pm(i,i)
+end do
+
+do i = 0, m
+   do j = i + 2, n
+      pm(i,j) = ( ( 2.0D+00 * j - 1.0D+00 ) * x * pm(i,j-1) - &
+      ( i + j - 1.0D+00 ) * pm(i,j-2) ) / ( j - i )
+   end do
+end do
+
+pd(0,0) = 0.0D+00
+do j = 1, n
+   pd(0,j) = ls * j * ( pm(0,j-1) - x * pm(0,j) ) / xs
+end do
+
+do i = 1, m
+   do j = i, n
+      pd(i,j) = ls * i * x * pm(i,j) / xs + ( j + i ) &
+      * ( j - i + 1.0D+00 ) / xq * pm(i-1,j)
+   end do
+end do
+
+return
+end
+
 end module sfunctions
