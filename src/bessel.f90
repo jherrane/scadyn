@@ -20,10 +20,12 @@ integer :: i         !
 real(dp) :: k       ! The wavenumber
 real(dp) :: kx, ky, kz      ! x,y,z-directed parts of the wavenumber
 real(dp) :: gamma   ! Transverse wavenumber
-complex(dp), dimension(:), allocatable :: GTE  ! The final expansion, first half (a)
-complex(dp), dimension(:), allocatable :: GTM  ! The final expansion, second half (b)
+complex(dp) :: GTE(0:lmx*(lmx+2)+1)  ! The final expansion, first half (a)
+complex(dp) :: GTM(0:lmx*(lmx+2)+1)  ! The final expansion, second half (b)
 real(dp) :: rho, gr, cth, sth, cph, sph, zz, lambda, a, b, c, x, y, J0, J1, pf, pd
-real(dp), dimension(:), allocatable :: Qlm, dQlm, Jn, dn, Yn, DYn
+real(dp) :: Jn(0:lmx*(lmx+2)), Dn(0:lmx*(lmx+2))
+real(dp) :: Qlm(0:lmx*(lmx+2)+1), dQlm(0:lmx*(lmx+2)+1)
+real(dp) :: Pmn(0:lmx, 0:lmx), DPmn(0:lmx, 0:lmx)
 integer, dimension(:), allocatable :: ll, mm
 integer :: ls, le, mo, l, m
 complex(dp) :: Wlsm, psi, i1
@@ -32,15 +34,13 @@ i1 = dcmplx(0d0,1d0)
 MMM = 3
 NNN = 5
 S = -1
-TM = 1
+TM = 0
 x = 1d-7
 y = 1d-7
 
-lmax = lmx*(lmx+2)+1
+lmax = lmx*(lmx+2)
 
-allocate(Qlm(lmax), dQlm(lmax))
 allocate(ll(lmax), mm(lmax))
-allocate(GTE(lmax),GTM(lmax))
 
 ! Waveguide
 lambda = 2d0*pi/mesh%ki(i)
@@ -60,6 +60,7 @@ gr = gamma*rho
 cph = x/rho
 sph = y/rho
 sth = gamma/k
+zz = kz*0d0
 
 ls = abs(MMM-lmax-1)
 le = abs(MMM+lmax+1)
@@ -68,66 +69,70 @@ if(ls>le) then
     le = ls
     ls = 0
 endif
-allocate(Jn(le), Dn(le), Yn(le), DYn(le))
+
 Jn = 0d0
 Dn = 0d0
 
-call lpmn(lmx, MMM, lmx, cth, Qlm, dQlm )
-call jyna(lmax, gr, lmax, Jn, Dn, Yn, DYn )
+call vswf_qlm(cth,lmx,Qlm,dQlm)
+call bess_cyl(lmax,gr,Jn,Dn)
 
-! Normalizations
-pf = 1d0
-J0 = bessel_jn(0,x)
-J1 = bessel_jn(1,x)
-if(abs(J0)>1d-10)then
-   pf = J0/Jn(1)
-else
-   pf = J1/Jn(2)
-end if
+! call lpmn(lmx, lmx-1, lmx, cth, Pmn, DPmn)
+! if(i==1)print*, size(Pmn, 1), size(Pmn,2)
+! do l = 1,lmx
+!    do m = -l,l
+!       if(m>=0)then
+!          Qlm(jlm(l,m)) = Pmn(l,m)
+!          if(i==1)write(*, '(3(A, I0), A, ES11.3)'), 'l = ', l, ' m = ', &
+!       m, ' jlm = ', jlm(l,m), ' Plm = ', Pmn(l,m)
+!       else
+!          Qlm(jlm(l,m)) = (-1d0)**m*(factorial(l-m))/(factorial(l+m))*Pmn(l,-m)
+!       end if
+!    end do
+! end do
+! call jyna(lmax, gr, lmax, Jn, Dn, Yn, DYn )
 
-pd = 1d0
-if(abs(J1)>1d-10)then
-   pd = -J1/Dn(1)
-else
-   pd = 0.5*(Jn(1)-Jn(3))/Dn(2)
-end if
-
-do l = 1, lmax
-   Jn(l) = Jn(l)*pf
-   Dn(l) = Dn(l)*pd
-end do
+! if(i==1) then
+!    do l = 0,lmax
+!       write(*, '(4(A, ES11.3))') 'Qlm(l) = ', Qlm(l), ' dQlm(l) = ', dQlm(l), &
+!       ' Jn(l) = ', Jn(l), ' Dn(l) = ', Dn(l)
+!    end do
+! end if
 
 do l = 1,lmx
-    do m = -l,l
-        mo = MMM-S*m
-        Wlsm = 4d0*pi*i1**(l-S*m)/sqrt(dble(l*(l+1)))
-        if(mo<0) then
-            psi = Jn(abs(mo)+1)*(cph+S*i1*sph)**(mo)*1*(-1)**abs(mo) !*exp(I*zz=0)
-        else
-            psi = Jn(abs(mo)+1)*(cph+S*i1*sph)**(mo)*1 !*exp(I*zz=0)
-        end if
-        if(TM == 1)then
-            GTE(jlm(l,m)) =   Wlsm*psi*m*Qlm(jlm(l,m))
-            GTM(jlm(l,m)) = i1*Wlsm*psi*sth**2*dQlm(jlm(l,m))
-        else
-            GTE(jlm(l,m)) = i1*Wlsm*psi*sth**2*dQlm(jlm(l,m))
-            GTM(jlm(l,m)) =  -Wlsm*psi*m*Qlm(jlm(l,m))
-        end if
-    end do
-end do
+   do m = -l,l
+      mo = MMM-S*m
+      Wlsm = 4d0*pi*i1**(l-S*m)/sqrt(dble(l*(l+1)))
+      if(mo<0) then
+         psi = Jn(abs(mo))*(cph+S*i1*sph)**(mo)*(-1)**abs(mo)*exp(I*zz)
+      else
+         psi = Jn(abs(mo))*(cph+S*i1*sph)**(mo)*exp(I*zz)
+      end if
 
+      if(TM == 1)then
+         GTE(jlm(l,m)) =   Wlsm*psi*m*Qlm(jlm(l,m))
+         GTM(jlm(l,m)) = i1*Wlsm*psi*sth**2*dQlm(jlm(l,m))
+      else
+         GTE(jlm(l,m)) = i1*Wlsm*psi*sth**2*dQlm(jlm(l,m))
+         GTM(jlm(l,m)) =  -Wlsm*psi*m*Qlm(jlm(l,m))
+      end if
+   end do
+end do
+if(i == 1) then
+   do l = 0,lmax
+      write(*,'(ES11.3,SP,ES11.3,"i")'), real(GTE(l)), imag(GTE(l))
+   end do
+end if 
 ! Write result to matrices%a etc
-matrices%as(1:lmax-1,i) = GTE(1:lmax-1)
-matrices%bs(1:lmax-1,i) = GTM(1:lmax-1)
+matrices%as(1:lmax,i) = GTE
+matrices%bs(1:lmax,i) = GTM
 
 end subroutine bessel_beam_z
 
 !*******************************************************************************
 ! The associated Legendre functions Qlm and their derivatives
-subroutine vswf_qlm(x,lmax,Qlm,dQlm,lo,mo)
+subroutine vswf_qlm(x,lmax,Qlm,dQlm)
 real(dp), intent(inout) :: x
-real(dp), dimension(:), allocatable, intent(inout) :: Qlm, dQlm
-integer, dimension(:), allocatable, intent(inout) :: lo, mo
+real(dp) :: Qlm(0:lmax*(lmax+2)+1), dQlm(0:lmax*(lmax+2)+1)
 integer :: l, m, lmax
 real(dp) :: kl, cth, sth, cs2
 
@@ -136,28 +141,17 @@ sth = sqrt(1d0-cth**2)
 cs2 = sth**(-2)
 
 ! Qlm - First 4 terms
-Qlm(jlm(1,1))=1/sqrt(4d0*pi)
-Qlm(jlm(2, 2))=-gammaQ(1)*sth*Qlm(jlm(1,1))! Q11
-Qlm(jlm(2, 1))=sqrt(3d0)*cth*Qlm(jlm(1,1))  ! Q10
-Qlm(jlm(2,-2))=-Qlm(jlm(1,1))               ! Q11*(-1)
+Qlm(jlm(0,0))=1/sqrt(4d0*pi)
+Qlm(jlm(1, 1))=-gammaQ(1)*sth*Qlm(jlm(0,0))! Q11
+Qlm(jlm(1, 0))=sqrt(3d0)*cth*Qlm(jlm(0,0))  ! Q10
+Qlm(jlm(1,-1))=-Qlm(jlm(1,1))               ! Q11*(-1)
 
 ! dQlm - First 4 terms
 dQlm(jlm(0,0))=0d0
-dQlm(jlm(1,1))= -cth*Qlm(jlm(2, 2))*cs2
-dQlm(jlm(1,0))=-(cth*Qlm(jlm(2, 1))-sqrt(3d0)*Qlm(jlm(1,1)))*cs2
-dQlm(jlm(1,-1))= -cth*Qlm(jlm(2,-2))*cs2
+dQlm(jlm(1,1))= -cth*Qlm(jlm(1, 1))*cs2
+dQlm(jlm(1,0))=-(cth*Qlm(jlm(1, 0))-sqrt(3d0)*Qlm(jlm(0,0)))*cs2
+dQlm(jlm(1,-1))= -cth*Qlm(jlm(1,-1))*cs2
 
-! lo - First 4 terms
-lo(jlm(0,0)) = 1
-lo(jlm(1,-1)) = 2
-lo(jlm(1, 0)) = 2
-lo(jlm(1, 1)) = 2
-
-! mo - First 4 terms
-mo(jlm(0, 0)) =  1
-mo(jlm(1,-1)) = -2
-mo(jlm(1, 0)) =  1
-mo(jlm(1, 1)) =  2
 
 do l = 2,lmax
    ! Qlm positives extremes 
@@ -170,13 +164,6 @@ do l = 2,lmax
    kl=1d0/(sqrt(dble(l)*(l+1)))
 
    do m = l,0,-1
-      ! print*, 'jlm(',l,', ',m,') = ', jlm(l, m)
-      ! print*, 'jlm(',l,', -',m,') = ', jlm(l, -m)
-      lo(jlm(l, m)) =  l
-      lo(jlm(l,-m)) =  l
-      mo(jlm(l, m)) =  m
-      mo(jlm(l,-m)) = -m
-
       if(m<l-1) then
          Qlm(jlm(l, m))=alfaQ(l,m)*cth*Qlm(jlm(l-1,m)) &
             -betaQ(l,m)*Qlm(jlm(l-2,m)) 
@@ -190,96 +177,94 @@ do l = 2,lmax
       sqrt((2d0*l+1.)/(2*l-1.))*sqrt(dble(l+m)*(l-m))*cs2*Qlm(jlm(l-1,-m))
    end do 
 end do 
-! print*, 'lo = ', lo
 
 end subroutine vswf_qlm
 
-! !*******************************************************************************
-! ! Array of cylindrical Bessel functions
-! subroutine bess_cyl(nmax, x, Jn, Dn)
-! real(dp), intent(inout) :: x
-! real(dp), dimension(:), allocatable, intent(inout) :: Jn, Dn 
-! integer, intent(inout) :: nmax
-! integer :: l, m, digits, n, j
-! real(dp) :: kl, cth, sth, cs2, pf, pd, J0, J1, j_n, d_n
+!*******************************************************************************
+! Array of cylindrical Bessel functions
+subroutine bess_cyl(nmax, x, Jn, Dn)
+integer, intent(in) :: nmax
+real(dp), intent(in) :: x
+real(dp), intent(inout) :: Jn(0:nmax*(nmax+2)), Dn(0:nmax*(nmax+2))
+integer :: l, m, digits, n, j
+real(dp) :: kl, cth, sth, cs2, pf, pd, J0, J1, j_n, d_n
 
-! digits = 15
+digits = 15
 
-! call bess_csv(nmax, digits, x, j_n, d_n)
-! Jn(nmax) = j_n
-! Dn(nmax) = d_n
+call bess_csv(nmax, digits, x, j_n, d_n)
+Jn(nmax) = j_n
+Dn(nmax) = d_n
 
-! ! Downward recursion
-! do n = nmax, 2, -1
-!    Jn(n-1) = dble(n)/x*Jn(n)+Dn(n)
-!    Dn(n-1) = dble(n-1)/x*Jn(n-1)-Jn(n)
-!    if(abs(Jn(n-1))>1d2) then
-!       do j = nmax, n-1, -1
-!          Dn(j) = Dn(j)/Jn(n-1)
-!          Jn(j) = Jn(j)/Jn(n-1)
-!       end do
-!    end if
-! end do
+! Downward recursion
+do n = nmax, 1, -1
+   Jn(n-1) = dble(n)/x*Jn(n)+Dn(n)
+   Dn(n-1) = dble(n-1)/x*Jn(n-1)-Jn(n)
+   if(abs(Jn(n-1))>1d2) then
+      do j = nmax, n-1, -1
+         Dn(j) = Dn(j)/Jn(n-1)
+         Jn(j) = Jn(j)/Jn(n-1)
+      end do
+   end if
+end do
 
-! ! Normalization factor for the function
-! pf = 1d0
-! J0 = bessel_jn(0,x)
-! J1 = bessel_jn(1,x)
+! Normalization factor for the function
+pf = 1d0
+J0 = bessel_jn(0,x)
+J1 = bessel_jn(1,x)
+if(abs(J0)>1d-10) then
+   pf = bessel_jn(0,x)/Jn(0)
+else
+   pf = bessel_jn(1,x)/Jn(1)
+end if
 
-! if(abs(J0)>1d-10) then
-!    pf = bessel_jn(0,x)/Jn(1)
-! else
-!    pf = bessel_jn(1,x)/Jn(2)
-! end if
+! Normalization factor for the derivative
+pd = 1d0
+if(abs(J1)>1d-10)then
+   pd = -J1/Dn(0)
+else  
+   pd = 0.5d0*(Jn(0)-Jn(2))/Dn(0)
+end if
 
-! ! Normalization factor for the derivative
-! pd = 1d0
-! if(abs(J1)>1d-10)then
-!    pd = -J1/Dn(1)
-! else  
-!    pd = 0.5d0*(Jn(1)-Jn(3))/Dn(2)
-! end if
+! Normalizations
+do n = 0, nmax
+   Jn(n) = Jn(n)*pf
+   Dn(n) = Dn(n)*pd
+end do 
 
-! ! Normalizations
-! do n = 1, nmax
-!    Jn(n) = Jn(n)*pf
-!    Dn(n) = Dn(n)*pd
-! end do 
+end subroutine bess_cyl
 
-! end subroutine bess_cyl
+!******************************************************************************
+! Starting values for downward recurrence, Cylindrical Bessel func
+! For calculation of J_n(x), one can calculate by downward recurrence from
+! J_{n-dig}(x), where dig is the number of precision in J_n(x).
+subroutine bess_csv(nmax, dig, x, Jnn, Dnn)
+integer, intent(in) :: nmax, dig
+real(dp), intent(in) :: x
+real(dp), intent(out) :: Jnn, Dnn
+integer :: n, m
+real(dp) :: Jn(dig), Dn(dig)
 
-! !******************************************************************************
-! ! Starting values for downward recurrence, Cylindrical Bessel func
-! ! For calculation of J_n(x), one can calculate by downward recurrence from
-! ! J_{n-dig}(x), where dig is the number of precision in J_n(x).
-! subroutine bess_csv(nmax, dig, x, Jnn, Dnn)
-! integer, intent(in) :: nmax, dig
-! real(dp), intent(in) :: x
-! real(dp), intent(out) :: Jnn, Dnn
-! integer :: n, m
-! real(dp) :: Jn(dig), Dn(dig)
+Jn = 0d0
+Dn = 0d0
 
-! Jn = 0d0
-! Dn = 0d0
+Jn(dig) = 0d0
+Dn(dig) = 1d0
 
-! Jn(dig) = 0d0
-! Dn(dig) = 1d0
+do n = dig, 2, -1
+   Jn(n-1) = (dble(nmax+n)/x)*Jn(n)+Dn(n)
+   Dn(n-1) = (dble(nmax+n-1)/x)*Jn(n-1)-Jn(n)
+   if(abs(Jn(n-1))>1d2)then
+      do m = dig, n-1, -1
+         Dn(m) = Dn(m)/Jn(n-1)
+         Jn(m) = Jn(m)/Jn(n-1)
+      end do
+   end if
+end do 
 
-! do n = dig, 2, -1
-!    Jn(n-1) = (dble(nmax+n)/x)*Jn(n)+Dn(n)
-!    Dn(n-1) = (dble(nmax+n-1)/x)*Jn(n-1)-Jn(n)
-!    if(abs(Jn(n-1))>1d2)then
-!       do m = dig, n-1, -1
-!          Dn(m) = Dn(m)/Jn(n-1)
-!          Jn(m) = Jn(m)/Jn(n-1)
-!       end do
-!    end if
-! end do 
+Jnn = Jn(1)
+Dnn = Dn(1)
 
-! Jnn = Jn(1)
-! Dnn = Dn(1)
-
-! end subroutine bess_csv
+end subroutine bess_csv
 
 !******************************************************************************
 
@@ -318,9 +303,9 @@ end function deltaQ
 function jlm(l,m) result(j)
 integer :: l, m, j
 if(abs(m)>l) then
-    j = 1
+    j = 0
 else
-    j = l*(l+1)+m+1
+    j = l*(l+1)+m
 endif
 end function jlm
 
