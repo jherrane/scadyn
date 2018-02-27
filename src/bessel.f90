@@ -20,15 +20,17 @@ integer :: i         !
 real(dp) :: k       ! The wavenumber
 real(dp) :: kx, ky, kz      ! x,y,z-directed parts of the wavenumber
 real(dp) :: gamma   ! Transverse wavenumber
-complex(dp) :: GTE(0:lmx*(lmx+2)+1)  ! The final expansion, first half (a)
-complex(dp) :: GTM(0:lmx*(lmx+2)+1)  ! The final expansion, second half (b)
+complex(dp) :: GTE(0:lmx*(lmx+2)), GTE2(0:lmx*(lmx+2))  ! The final expansion, first half (a)
+complex(dp) :: GTM(0:lmx*(lmx+2)), GTM2(0:lmx*(lmx+2))  ! The final expansion, second half (b)
+complex(8), dimension(:), allocatable :: rotD
+integer, dimension(:,:), allocatable :: indD
 real(dp) :: rho, gr, cth, sth, cph, sph, zz, lambda, a, b, c, x, y, J0, J1, pf, pd
 real(dp) :: Jn(0:lmx*(lmx+2)), Dn(0:lmx*(lmx+2))
 real(dp) :: Qlm(0:lmx*(lmx+2)+1), dQlm(0:lmx*(lmx+2)+1)
 real(dp) :: Pmn(0:lmx, 0:lmx), DPmn(0:lmx, 0:lmx)
 integer, dimension(:), allocatable :: ll, mm
-integer :: ls, le, mo, l, m
-complex(dp) :: Wlsm, psi, i1
+integer :: ls, le, mo, l, m, iii, las, nm
+complex(dp) :: Wlsm, psi, i1, gte1, gtm1, T(3,3)
 
 i1 = dcmplx(0d0,1d0)
 MMM = 3
@@ -41,6 +43,12 @@ y = 1d-7
 lmax = lmx*(lmx+2)
 
 allocate(ll(lmax), mm(lmax))
+
+! Transform matrix from circular to cartesian components
+! T = reshape(0.5d0*dcmplx([sqrt(2d0),0d0,sqrt(2d0),-i1*sqrt(2d0),&
+   ! 0d0,i1*sqrt(2d0),0d0,1d0,0d0]),[3,3])
+T = eye(3)
+T = transpose(T)
 
 ! Waveguide
 lambda = 2d0*pi/mesh%ki(i)
@@ -76,29 +84,15 @@ Dn = 0d0
 call vswf_qlm(cth,lmx,Qlm,dQlm)
 call bess_cyl(lmax,gr,Jn,Dn)
 
-! call lpmn(lmx, lmx-1, lmx, cth, Pmn, DPmn)
-! if(i==1)print*, size(Pmn, 1), size(Pmn,2)
-! do l = 1,lmx
-!    do m = -l,l
-!       if(m>=0)then
-!          Qlm(jlm(l,m)) = Pmn(l,m)
-!          if(i==1)write(*, '(3(A, I0), A, ES11.3)'), 'l = ', l, ' m = ', &
-!       m, ' jlm = ', jlm(l,m), ' Plm = ', Pmn(l,m)
-!       else
-!          Qlm(jlm(l,m)) = (-1d0)**m*(factorial(l-m))/(factorial(l+m))*Pmn(l,-m)
-!       end if
-!    end do
-! end do
-! call jyna(lmax, gr, lmax, Jn, Dn, Yn, DYn )
+Nmax = matrices%Nmaxs(i)
+nm = (Nmax + 1)**2 - 1
+las  =  ( Nmax  + 1 ) * ( 2 * Nmax + 1 ) * ( 2 * Nmax + 3 ) / 3 - 1
+if(allocated(rotD)) deallocate(rotD,indD)
+allocate(rotD(las))
+allocate(indD(las,2))
+call sph_rotation_sparse_gen2(eye(3), Nmax, rotD, indD)
 
-! if(i==1) then
-!    do l = 0,lmax
-!       write(*, '(4(A, ES11.3))') 'Qlm(l) = ', Qlm(l), ' dQlm(l) = ', dQlm(l), &
-!       ' Jn(l) = ', Jn(l), ' Dn(l) = ', Dn(l)
-!    end do
-! end if
-
-do l = 1,lmx
+do l = 1,lmx 
    do m = -l,l
       mo = MMM-S*m
       Wlsm = 4d0*pi*i1**(l-S*m)/sqrt(dble(l*(l+1)))
@@ -109,22 +103,24 @@ do l = 1,lmx
       end if
 
       if(TM == 1)then
-         GTE(jlm(l,m)) =   Wlsm*psi*m*Qlm(jlm(l,m))
-         GTM(jlm(l,m)) = i1*Wlsm*psi*sth**2*dQlm(jlm(l,m))
+         gte1 =   Wlsm*psi*m*Qlm(jlm(l,m))
+         gtm1 = i1*Wlsm*psi*sth**2*dQlm(jlm(l,m))
       else
-         GTE(jlm(l,m)) = i1*Wlsm*psi*sth**2*dQlm(jlm(l,m))
-         GTM(jlm(l,m)) =  -Wlsm*psi*m*Qlm(jlm(l,m))
+         gte1 = i1*Wlsm*psi*sth**2*dQlm(jlm(l,m))
+         gtm1 =  -Wlsm*psi*m*Qlm(jlm(l,m))
       end if
+
+      GTE(jlm(l,m)) = gte1
+      GTM(jlm(l,m)) = gtm1
    end do
 end do
-if(i == 1) then
-   do l = 0,lmax
-      write(*,'(ES11.3,SP,ES11.3,"i")'), real(GTE(l)), imag(GTE(l))
-   end do
-end if 
+
+GTE2 = sparse_matmul(rotD, indD, GTE, nm)
+GTM2 = sparse_matmul(rotD, indD, GTM, nm)
+
 ! Write result to matrices%a etc
-matrices%as(1:lmax,i) = GTE
-matrices%bs(1:lmax,i) = GTM
+matrices%as(1:lmax,i) = GTE2(1:lmax)
+matrices%bs(1:lmax,i) = GTM2(1:lmax)
 
 end subroutine bessel_beam_z
 

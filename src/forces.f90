@@ -126,9 +126,14 @@ torque2(:) = dcmplx( 0.0d0, 0.0d0 )
 do i1 = 1, size(mesh%P,2)
  r = mesh%P(:,i1)
  n = r/vlen(r)
-	
- call calc_fields(a_nm, b_nm, dcmplx(mesh%k), r, F, G, 1) ! 1 inout means outgoing wave
- call calc_fields(a_nm90, b_nm90, dcmplx(mesh%k), r, F90, G90, 1)
+
+ if(beam_shape/=3)then
+  call calc_fields(a_nm, b_nm, dcmplx(mesh%k), r, F, G, 1) ! 1 inout means outgoing wave
+  call calc_fields(a_nm90, b_nm90, dcmplx(mesh%k), r, F90, G90, 1)
+ else
+  call calc_fields(a_nm, b_nm, dcmplx(mesh%k), r, F, G, 1) ! 1 inout means outgoing wave
+  call calc_fields(a_nm90, b_nm90, dcmplx(mesh%k), r, F90, G90, 1)
+ end if
 
  E1 = F + matrices%E0 * exp(dcmplx(0.0d0,mesh%k*dot_product(matrices%khat,r)))
  H1 = G + H0 * exp(dcmplx(0.0d0,mesh%k*dot_product(matrices%khat,r)))

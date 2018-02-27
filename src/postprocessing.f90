@@ -14,7 +14,7 @@ real(dp), dimension(:,:), allocatable :: Q_fcoll, Q_tcoll
 real(dp), dimension(3) :: k0, E0, E90
 complex(dp), dimension(3) :: F, N, FF, NN, N_B, N_DG
 real(dp) :: Qmag
-
+complex(dp), dimension(:,:), allocatable :: MM_nm, NN_nm
 ! Now, to comply with the properties of DDSCAT, the scattering happens
 ! with respect to the particle principal axes
 matrices%khat = matrices%P(:,3)
@@ -96,6 +96,8 @@ do j = 1,2
    write(*,'(A, 80F7.3)') '   Qtz:', Q_tcoll(3,:)
 end do
 
+allocate(MM_nm(3,(matrices%Nmaxs(1)+1)**2-1), NN_nm(3,(matrices%Nmaxs(1)+1)**2-1))
+call MN_circ(MM_nm, NN_nm, matrices%Nmaxs(1), dcmplx(mesh%ki(1)), [0d0, -7d-7, -7d-7], 0)
 
 ! do i = 1, size(Q_fcoll,2)
 ! 	Q_fcoll(:,i) = matmul(transpose(matrices%P),Q_fcoll(:,i))
@@ -272,12 +274,12 @@ select case (trim(matrices%mueller_mode))
 	case('ori'); N_points = size(matrices%RRR,3)
 end select
 
-do i2 = 1, N_points, everyn
-	do i1 = 1, N_avgs
+do iii2 = 1, N_points, everyn
+	do iii1 = 1, N_avgs
 		if(trim(matrices%mueller_mode)=='ave') then
          vec(1) = 1d0
-         vec(2) = acos(2*halton_seq(halton_init+i1, 2)-1)
-         vec(3) = halton_seq(halton_init+i1, 3)*2*pi
+         vec(2) = acos(2*halton_seq(halton_init+iii1, 2)-1)
+         vec(3) = halton_seq(halton_init+iii1, 3)*2*pi
          matrices%khat = [dsin(vec(2))*dcos(vec(3)), dsin(vec(2))*dsin(vec(3)), dcos(vec(2))]
 		else if(trim(matrices%mueller_mode)=='ori') then
          RR = transpose(matmul(matrices%R_al,matrices%RRR(:,:,i2)))
@@ -304,7 +306,7 @@ do i2 = 1, N_points, everyn
 		if(allocated(SS)) deallocate(SS)
       call mueller_matrix_coeff(p, q, p90, q90, dcmplx(mesh%k), N_theta, N_phi, Nmax, SS)
       SSS = SSS + SS
-		if(trim(matrices%mueller_mode)=='ave') call print_bar(i1,N_avgs)
+		if(trim(matrices%mueller_mode)=='ave') call print_bar(iii1,N_avgs)
 	end do
    call print_bar(i2,N_points)
 end do

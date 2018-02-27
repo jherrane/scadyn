@@ -20,6 +20,7 @@ real( dp ), parameter  ::  k_b       =  1.38064852d-23
 real( dp ), parameter  ::  cc        =  2.99792458d8
 real( dp ), parameter  ::  b         =  2.8977729d-3
 integer, parameter     ::  nthreads  =  24
+complex(dp), parameter ::  i1        =  dcmplx(0d0,1d0)
 
 integer                ::  seedling  =  0
 integer                ::  use_mie   =  0
@@ -606,6 +607,21 @@ H(3,:) = [cos(theta), -sin(theta), dble(0.0)];
 vec2 = matmul(dcmplx(H),vec)
 
 end function sph2cart_vec
+
+!******************************************************************************
+
+function circ2cart_vec(vec) result(vec2)
+complex(dp), intent(in) :: vec(3)
+complex(dp) :: vec2(3)
+complex(dp) :: H(3,3)
+
+H(1,:) = [dcmplx(1d0)/sqrt(2d0),-i1/sqrt(2d0),dcmplx(0d0)]
+H(2,:) = [dcmplx(0d0),dcmplx(0d0),dcmplx(1d0)]
+H(3,:) = [dcmplx(1d0)/sqrt(2d0),i1/sqrt(2d0),dcmplx(0d0)];
+
+vec2 = matmul(H,vec)
+
+end function circ2cart_vec
 
 !******************************************************************************
 
