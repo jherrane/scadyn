@@ -1,6 +1,7 @@
 module mie
 use sfunctions
 use common
+use io
 use translations
 
 
@@ -433,7 +434,7 @@ do n = 1, Nmax
       N_nm = ccc * (beta*P + gamma * B)
       
       F = F + a_nm(ind) * M_nm + b_nm(ind) * N_nm 
-      G = G + k * (a_nm(ind) * N_nm + b_nm(ind) * M_nm)
+      G = G + k * (a_nm(ind) * N_nm + b_nm(ind) * M_nm)  
      
    end do
    
@@ -498,6 +499,8 @@ T = reshape([dcmplx(1d0)/sqrt(2d0),-i1/sqrt(2d0),dcmplx(0d0),&
    dcmplx(0d0),dcmplx(0d0),dcmplx(1d0),&
    dcmplx(1d0)/sqrt(2d0),i1/sqrt(2d0),dcmplx(0d0)],[3,3])
 T = transpose(T)
+call print_mat(real(T),'reT')
+call print_mat(imag(T),'imT')
 vec = cart2sph(Po)
 
 r = vec(1)

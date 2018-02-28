@@ -98,6 +98,9 @@ end do
 
 allocate(MM_nm(3,(matrices%Nmaxs(1)+1)**2-1), NN_nm(3,(matrices%Nmaxs(1)+1)**2-1))
 call MN_circ(MM_nm, NN_nm, matrices%Nmaxs(1), dcmplx(mesh%ki(1)), [0d0, -7d-7, -7d-7], 0)
+do i = 1,size(MM_nm,2)
+   write(*,'(3(ES11.3,SP,ES11.3,"i"))') MM_nm(:,i)
+end do
 
 ! do i = 1, size(Q_fcoll,2)
 ! 	Q_fcoll(:,i) = matmul(transpose(matrices%P),Q_fcoll(:,i))
