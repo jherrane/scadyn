@@ -309,7 +309,8 @@ matrices%field_points = grid
 do i = 1,nn
     call calc_fields(matrices%as(:,which),matrices%bs(:,which),&
     dcmplx(mesh%ki(which)), grid(:,i),F,G,0)
-    E(:,i) = F 
+    ! E(:,i) = F
+    E(:,i) = crossCC(F,G)/mu
 end do
 matrices%E_field = E
 
@@ -340,7 +341,8 @@ call scattered_fields(matrices,1d0,p,q,p90,q90,which)
 matrices%field_points = grid
 do i = 1,nn
     call calc_fields(p,q,dcmplx(mesh%ki(which)), grid(:,i),F,G,1)
-    E(:,i) = F 
+    ! E(:,i) = F
+    E(:,i) = crossCC(F,G)/mu
 end do
 
 matrices%E_field = E
@@ -370,7 +372,7 @@ grid = 0d0
 do i = 1,n
     do j = 1,n
         ind = n*(j-1)+i 
-        grid(3,ind) = z(i)*mesh%a 
+        grid(1,ind) = z(i)*mesh%a 
         grid(2,ind) = y(j)*mesh%a
     end do
 end do

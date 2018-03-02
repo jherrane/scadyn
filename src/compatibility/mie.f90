@@ -503,6 +503,12 @@ call print_mat(real(T),'reT')
 call print_mat(imag(T),'imT')
 vec = cart2sph(Po)
 
+! T(1,:) = [dcmplx(1d0)/sqrt(2d0),-i1/sqrt(2d0),dcmplx(0d0)]
+! T(2,:) = [dcmplx(0d0),dcmplx(0d0),dcmplx(1d0)]
+! T(3,:) = [dcmplx(1d0)/sqrt(2d0),i1/sqrt(2d0),dcmplx(0d0)];
+! T = transpose(T)
+! call print_mat(real(T),'reT')
+! call print_mat(imag(T),'imT')
 r = vec(1)
 theta = vec(2)
 phi = vec(3)

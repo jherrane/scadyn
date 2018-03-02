@@ -43,9 +43,10 @@ lmax = lmx*(lmx+2)
 allocate(ll(lmax), mm(lmax))
 
 ! Transform matrix from circular to cartesian components
-T = reshape([-i1, dcmplx(1d0), i1, dcmplx(1d0)]/sqrt(2d0),[2,2])
-call print_mat(real(T), 'reTT')
-call print_mat(imag(T), 'imTT')
+T = reshape([ dcmplx(1d0), -i1, dcmplx(1d0), i1]/sqrt(2d0),[2,2])
+! T = transpose(T)
+! call print_mat(real(T), 'reTT')
+! call print_mat(imag(T), 'imTT')
 
 ! Waveguide
 lambda = 2d0*pi/mesh%ki(i)
@@ -81,18 +82,26 @@ Jn = 0d0
 Dn = 0d0
 
 call vswf_qlm(cth,lmx,Qlm,dQlm)
-call bess_cyl(lmax,gr,Jn,Dn)
 
+do l = 1,size(dQlm,1)
+   ! if(i==1) write(*, '(ES11.3)') dQlm(l)
+end do
 ind = 0
 do l = 1,lmx 
    do m = -l,l
       ind = ind + 1
       mo = MMM-S*m
-      Wlsm = 4d0*pi*i1**(l-S*m)/sqrt(dble(l*(l+1)))
+      
       if(mo<0) then
-         psi = Jn(abs(mo))*(cph+S*i1*sph)**(mo)*(-1)**abs(mo)*exp(I*zz)
+         psi = bessel_jn(mo,gr)*(cph+S*i1*sph)**(mo)*(-1)**abs(mo)*exp(I*zz)
       else
-         psi = Jn(abs(mo))*(cph+S*i1*sph)**(mo)*exp(I*zz)
+         psi = bessel_jn(mo,gr)*(cph+S*i1*sph)**(mo)*exp(I*zz)
+      end if
+
+      if(l>0)then
+         Wlsm = 4d0*pi*i1**(l-S*m)/sqrt(dble(l*(l+1)))
+      else
+         Wlsm = 0d0
       end if
 
       if(TM == 1)then
@@ -104,9 +113,18 @@ do l = 1,lmx
       end if
 
       gte_circ = [gte1, gtm1]
-      gte_cart = matmul(T,gte_circ)
 
       ! Fixing signs and stuff
+      if(mod(ind,2)/=0)then
+         gte_circ = gte_circ/(-i1)**(ind)
+      else
+         gte_circ = gte_circ/(-i1)**(2*ind-1)
+      end if
+
+      gte_cart = gte_circ
+      ! gte_cart = matmul(T,gte_circ)
+
+      ! ! Fixing signs and stuff
       ! if(mod(ind,2)/=0)then
       !    gte_cart = (i1)**(ind)*gte_cart
       ! else
@@ -117,7 +135,6 @@ do l = 1,lmx
       GTM(jlm(l,m)) = gte_cart(2)
    end do
 end do
-
 ! Write result to matrices%a etc
 matrices%as(1:lmax,i) = GTE(1:lmax)
 matrices%bs(1:lmax,i) = GTM(1:lmax)
@@ -175,92 +192,6 @@ do l = 2,lmax
 end do 
 
 end subroutine vswf_qlm
-
-!*******************************************************************************
-! Array of cylindrical Bessel functions
-subroutine bess_cyl(nmax, x, Jn, Dn)
-integer, intent(in) :: nmax
-real(dp), intent(in) :: x
-real(dp), intent(inout) :: Jn(0:nmax*(nmax+2)), Dn(0:nmax*(nmax+2))
-integer :: l, m, digits, n, j
-real(dp) :: kl, cth, sth, cs2, pf, pd, J0, J1, j_n, d_n
-
-digits = 15
-
-call bess_csv(nmax, digits, x, j_n, d_n)
-Jn(nmax) = j_n
-Dn(nmax) = d_n
-
-! Downward recursion
-do n = nmax, 1, -1
-   Jn(n-1) = dble(n)/x*Jn(n)+Dn(n)
-   Dn(n-1) = dble(n-1)/x*Jn(n-1)-Jn(n)
-   if(abs(Jn(n-1))>1d2) then
-      do j = nmax, n-1, -1
-         Dn(j) = Dn(j)/Jn(n-1)
-         Jn(j) = Jn(j)/Jn(n-1)
-      end do
-   end if
-end do
-
-! Normalization factor for the function
-pf = 1d0
-J0 = bessel_jn(0,x)
-J1 = bessel_jn(1,x)
-if(abs(J0)>1d-10) then
-   pf = bessel_jn(0,x)/Jn(0)
-else
-   pf = bessel_jn(1,x)/Jn(1)
-end if
-
-! Normalization factor for the derivative
-pd = 1d0
-if(abs(J1)>1d-10)then
-   pd = -J1/Dn(0)
-else  
-   pd = 0.5d0*(Jn(0)-Jn(2))/Dn(0)
-end if
-
-! Normalizations
-do n = 0, nmax
-   Jn(n) = Jn(n)*pf
-   Dn(n) = Dn(n)*pd
-end do 
-
-end subroutine bess_cyl
-
-!******************************************************************************
-! Starting values for downward recurrence, Cylindrical Bessel func
-! For calculation of J_n(x), one can calculate by downward recurrence from
-! J_{n-dig}(x), where dig is the number of precision in J_n(x).
-subroutine bess_csv(nmax, dig, x, Jnn, Dnn)
-integer, intent(in) :: nmax, dig
-real(dp), intent(in) :: x
-real(dp), intent(out) :: Jnn, Dnn
-integer :: n, m
-real(dp) :: Jn(dig), Dn(dig)
-
-Jn = 0d0
-Dn = 0d0
-
-Jn(dig) = 0d0
-Dn(dig) = 1d0
-
-do n = dig, 2, -1
-   Jn(n-1) = (dble(nmax+n)/x)*Jn(n)+Dn(n)
-   Dn(n-1) = (dble(nmax+n-1)/x)*Jn(n-1)-Jn(n)
-   if(abs(Jn(n-1))>1d2)then
-      do m = dig, n-1, -1
-         Dn(m) = Dn(m)/Jn(n-1)
-         Jn(m) = Jn(m)/Jn(n-1)
-      end do
-   end if
-end do 
-
-Jnn = Jn(1)
-Dnn = Dn(1)
-
-end subroutine bess_csv
 
 !******************************************************************************
 
