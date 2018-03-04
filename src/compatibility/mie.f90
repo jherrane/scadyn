@@ -44,6 +44,8 @@ absb =  int
 
 end subroutine sphere_absorbtion2
 
+!******************************************************************************
+
 subroutine cross_sections(a_out, b_out, a_in, b_in, k, Nmax, Cext, Csca, Cabs)
 real(dp) :: Cext, Cabs, Csca
 complex(dp) :: k
@@ -67,6 +69,7 @@ end do
 Cabs = Cext - Csca
 
 end subroutine cross_sections
+
 !******************************************************
 
 subroutine scattering_cross_section(a_out, b_out, k, Nmax, Csca)
@@ -89,11 +92,9 @@ do n = 1, Nmax
 end do
 
 end subroutine scattering_cross_section
-!********************************************************************
-!
+
+!******************************************************************************
 ! Bohren Huffman mie coefficients
-!
-!********************************************************************
 SUBROUTINE BHMIE(NSTOP, X,REFREL,a_n,b_n)
   
 !Arguments:
@@ -166,8 +167,6 @@ DO N=1,NSTOP
    CHI0=CHI1
    CHI1=CHI
    XI1=DCMPLX(PSI1,-CHI1)
-   
-   
 
 END DO
 
@@ -195,16 +194,12 @@ do i1 = 1,N
    end do
 end do
 
-
 end subroutine mie_coeff_nm
 
-!______________________________________________________!!
-!
+!******************************************************************************
 ! The routine computes the SVWF expansion coefficients 
 ! for a time harmonic x-polarized planewave
 ! propagating +z-direction  with the wave number k
-! 
-!_____________________________________________________!!
 subroutine planewave(Nmax, k, a_nm, b_nm)
 complex(dp), dimension((Nmax+1)**2-1) :: a_nm, b_nm
 integer :: Nmax
@@ -236,31 +231,24 @@ do n = 1,Nmax
 
          if(m == -1) then 
             a_nm(ind) = -a_nm(ind)
-         
          end if
-
       else 
          a_nm(ind) = dcmplx(0.0,0.0)
          b_nm(ind) = dcmplx(0.0,0.0)
       end if
-        a_nm(ind) = -a_nm(ind) 
+         a_nm(ind) = -a_nm(ind) 
          b_nm(ind) = -b_nm(ind) 
    end do
 
 end do
 
-
 end subroutine planewave
 
 
-
-!______________________________________________________!!
-!
+!******************************************************************************
 ! The routine computes the SVWF expansion coefficients 
 ! for a time harmonic x-and y-polarized planewave
 ! propagating +z-direction  with the wave number k
-! 
-!_____________________________________________________!!
 subroutine planewave2(Nmax, k, a_nm, b_nm, a_nm2, b_nm2)
 complex(dp), dimension((Nmax+1)**2-1) :: a_nm, b_nm, a_nm2, b_nm2
 integer :: Nmax
@@ -310,7 +298,6 @@ do n = 1,Nmax
    end do
 end do
 
-
 las = 0
 do n = 1,Nmax
    las = las + (2*n+1)**2
@@ -323,23 +310,13 @@ call sph_rotation_sparse(0.0d0, -pi/2.0d0, Nmax, rotD, indD)
 a_nm2 = sparse_matmul(rotD,indD,a_nm,nm_in)
 b_nm2 = sparse_matmul(rotD,indD,b_nm,nm_in)
 
-
-
-
 end subroutine planewave2
 
-
-
-
 !*****************************************************************
-!
 ! Calculates fields from coefficients
 !
 ! F = electric field
 ! G = Magnetic field
-!
-!*******************************************************************
-
 subroutine calc_fields(a_nm, b_nm, k, Po, F, G, inou)
 complex(dp), dimension(:) :: a_nm, b_nm
 real(dp) :: Po(3)
@@ -397,7 +374,7 @@ do n = 1, Nmax
       ind = ind+1
       mm = abs(m)
       
-      ccc = sqrt((2d0*n+1.0d0)*factorial(n-mm)/factorial(n+mm)/(4d0*pi));
+      ccc = sqrt((2d0*n+1.0d0)*factorial(n-mm)/factorial(n+mm)/(4d0*pi))
      
       ! Unnormalized complex scalar spherical harmonics
       Y=L(mm+1)*exp(dcmplx(0.0, m*phi));
@@ -443,163 +420,10 @@ do n = 1, Nmax
 end do
 
 F = sph2cart_vec(theta, phi, F)
-
 G = sph2cart_vec(theta, phi, G)
 G = G/(dcmplx(0.0,1.0) * omega * mu)
 
 end subroutine calc_fields
-
-!**************************************************************************
-
-subroutine calc_fields_circ(a_nm, b_nm, k, Po, F, G, inou)
-complex(dp), dimension(:) :: a_nm, b_nm
-real(dp) :: Po(3)
-complex(dp) :: k, F(3), G(3) 
-integer :: inou
-integer :: Nmax, n, m, ind
-complex(dp), dimension(:,:), allocatable :: MM_nm, NN_nm
-
-Nmax = int(sqrt(dble(1+size(a_nm))))-1
-allocate(MM_nm(3,(Nmax+1)**2-1), NN_nm(3,(Nmax+1)**2-1))
-call MN_circ(MM_nm, NN_nm, Nmax, k, Po, inou)
-
-ind = 0
-F(:) = dcmplx(0.0,0.0)
-G(:) = dcmplx(0.0,0.0)
-
-do n = 1, Nmax
-   do m = -n, n
-      ind = ind+1
-      F = F + a_nm(ind) * MM_nm(m,n) + b_nm(ind) * NN_nm(m,n)
-      G = G + k * (a_nm(ind) * NN_nm(m,n) + b_nm(ind) * MM_nm(m,n))      
-   end do
-end do
-
-F = circ2cart_vec(F)
-G = circ2cart_vec(G)
-
-end subroutine calc_fields_circ
-
-!******************************************************************************
-
-subroutine MN_circ(MM_nm, NN_nm, Nmax, k, Po, inou)
-real(dp) :: Po(3)
-complex(dp) :: k
-integer :: inou
-integer :: Nmax, n, m, ind, mm
-real(dp) :: r, theta, phi, vec(3), q, omega
-complex(dp) :: kr, alpha, beta, gamma, ccc, i1, T(3,3)
-complex(dp), dimension(:), allocatable :: sphj, sphy, sphh
-complex(dp) :: P(3), B(3), C(3), Y, Y1, Y2, M_nm(3), N_nm(3), M_nm2(3), N_nm2(3)
-real(dp), dimension(:), allocatable :: L, L1, L2
-complex(dp), dimension(3,(Nmax+1)**2-1) :: MM_nm, NN_nm
-
-i1 = dcmplx(0d0,1d0)
-T = reshape([dcmplx(1d0)/sqrt(2d0),-i1/sqrt(2d0),dcmplx(0d0),&
-   dcmplx(0d0),dcmplx(0d0),dcmplx(1d0),&
-   dcmplx(1d0)/sqrt(2d0),i1/sqrt(2d0),dcmplx(0d0)],[3,3])
-T = transpose(T)
-call print_mat(real(T),'reT')
-call print_mat(imag(T),'imT')
-vec = cart2sph(Po)
-
-! T(1,:) = [dcmplx(1d0)/sqrt(2d0),-i1/sqrt(2d0),dcmplx(0d0)]
-! T(2,:) = [dcmplx(0d0),dcmplx(0d0),dcmplx(1d0)]
-! T(3,:) = [dcmplx(1d0)/sqrt(2d0),i1/sqrt(2d0),dcmplx(0d0)];
-! T = transpose(T)
-! call print_mat(real(T),'reT')
-! call print_mat(imag(T),'imT')
-r = vec(1)
-theta = vec(2)
-phi = vec(3)
-
-kr = k*r
-
-omega = real(k)*cc
-
-allocate(sphj(Nmax+2), sphy(Nmax+2), sphh(Nmax+2))
-
-! spherical bessel functions at kr
-if(inou == 0) then
-   call cspherebessel(Nmax+1,kr, sphj, sphy)
-   sphh = sphj
-else    
-   sphh = sphankel(Nmax+1, kr)
-end if
-
-ind = 0
-
-do n = 1, Nmax
-
-   alpha = sphh(n+1)
-   beta = sqrt(dble(n*(n+1)))/kr * sphh(n+1)
-   gamma = (n+1.0d0)/kr * sphh(n+1) - sphh(n+2)
- 
-   allocate(L(n+1),L1(n+2),L2(n))
-
-   call legendre2(n,cos(theta),L)  
-   call legendre2(n+1,cos(theta),L1)
-   call legendre2(n-1,cos(theta),L2)
-
-   q=(sqrt(n*(n+1.0d0)))/((n*2d0+1.0d0)*sin(theta));
-
-   do m = -n, n
-      ind = ind+1
-      mm = abs(m)
-      
-      ccc = sqrt((2d0*n+1.0d0)*factorial(n-mm)/factorial(n+mm)/(4d0*pi));
-     
-      ! Unnormalized complex scalar spherical harmonics
-      Y=L(mm+1)*exp(dcmplx(0.0, m*phi));
-      Y1=L1(mm+1)*exp(dcmplx(0.0, m*phi));
-     
-      if(mm == n) then
-         Y2 = dcmplx(0.0,0.0)
-      else 
-         Y2 = L2(mm+1)*exp(dcmplx(0.0, m*phi)) 
-      end if
-
-      ! vector spherical harmonics
-      P(:) = dcmplx(0.0,0.0)
-      P(1) = Y
-
-      Y1=Y1*((n-mm+1.0d0)/(n+1.0d0))
-
-     
-      Y2=Y2*(dble(n+mm)/dble(n))
-
-      B(:) = dcmplx(0.0,0.0)
-      B(2) = Y1-Y2
-      B(3)=((dcmplx(0.0, m*(2*n+1.0)))/(n*(n+1.0)))*Y
-
-      B = B*q
-
-      C(:) = dcmplx(0.0,0.0)
-      C(2) = B(3) 
-      C(3) = -B(2)
-
-      ! Spherical vector wave functions
-      M_nm = ccc * alpha * C
-      N_nm = ccc * (beta*P + gamma * B)
-      
-      M_nm2 = sph2cart_vec(theta, phi, M_nm)
-      N_nm2 = sph2cart_vec(theta, phi, N_nm)
-
-      ! Cartesian vswf to circular
-      if(mod(ind,2)/=0)then
-         M_nm = (-i1)**(ind)*matmul(T,M_nm2)
-      else
-         M_nm = (-i1)**(2*ind-1)*matmul(T,M_nm2)
-      end if
-
-      MM_nm(:,ind) = M_nm
-      NN_nm(:,ind) = N_nm
-   end do
-   
-   deallocate(L,L1,L2)
-end do
-
-end subroutine MN_circ
 
 !*****************************************************************
 ! Calculates fields from coefficients
@@ -628,20 +452,16 @@ omega = real(k)*299792458.0
 
 allocate(sphj(Nmax+2), sphy(Nmax+2), sphh(Nmax+2))
 
-
 ! spherical bessel functions at kr
 if(inou == 0) then
    call cspherebessel(Nmax+1,kr, sphj, sphy)
    sphh = sphj
 else    
    sphh = sphankel(Nmax+1, kr)
-  
 end if
 
 
 ind = 0
-
-
 do n = 1, Nmax
    alpha = sphh(n+1)
    beta = sqrt(dble(n*(n+1)))/kr * sphh(n+1)
@@ -781,9 +601,6 @@ end do
 
 end subroutine mueller_matrix_coeff
 
-
-
-
 subroutine tr_T(Taa, Tbb, Tab, Tba, k, crs)
 
 complex(dp), dimension(:,:) :: Taa, Tbb, Tab, Tba
@@ -797,15 +614,11 @@ T1 = dcmplx(0.0,0.0)
 T2 = dcmplx(0.0,0.0)
 
 do mu = 1, nm
-
    T1 = T1 + (real(Taa(mu, mu)) + real(Tbb(mu, mu)) + real(Tab(mu, mu)) + real(Tba(mu, mu))) 
-
    do nu = 1,nm
 
       T2 = T2 + (abs(Taa(mu, nu))**2 + abs(Tbb(mu, nu))**2 + &
            abs(Tab(mu, nu))**2 + abs(Tba(mu, nu))**2)
-
-   
    end do
 end do
 
@@ -818,7 +631,6 @@ print*,'Ave. Extinction cross section:', -2*pi*T1/k**2
 print*,'Ave. Scattering cross section:', 2*pi*T2/k**2
 print*,'Ave. absorption cross section:', -2*pi*T1/k**2 -2*pi*T2/k**2
 print*,'Tr_(real(T) + T adj(T)):', T1 + T2
-
 
 end subroutine tr_T
 

@@ -25,7 +25,7 @@ polarization 1          # 1 = lin / 2 = un
 bars 10                 # in range lmb1-lmb2 nm
 lambda1 200
 lambda2 2000
-whichbar 1              # 0 = use all
+whichbar 0              # 0 = use all
 beam_shape 3            # 0 = plane wave, 1 = Gaussian, 2 = LG, 3 = Bessel
 pl 0 0                  # Laguerre-Gaussian beam mode
 

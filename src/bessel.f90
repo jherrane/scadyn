@@ -28,7 +28,7 @@ real(dp) :: Qlm(0:lmx*(lmx+2)+1), dQlm(0:lmx*(lmx+2)+1)
 real(dp) :: Pmn(0:lmx, 0:lmx), DPmn(0:lmx, 0:lmx)
 integer, dimension(:), allocatable :: ll, mm
 integer :: ls, le, mo, l, m, iii, ind
-complex(dp) :: Wlsm, psi, i1, gte1, gtm1, T(2,2), gte_circ(2), gte_cart(2)
+complex(dp) :: Wlsm, psi, i1, gte1, gtm1, gtem(2)
 
 i1 = dcmplx(0d0,1d0)
 MMM = 3
@@ -41,12 +41,6 @@ y = 1d-7
 lmax = lmx*(lmx+2)
 
 allocate(ll(lmax), mm(lmax))
-
-! Transform matrix from circular to cartesian components
-T = reshape([ dcmplx(1d0), -i1, dcmplx(1d0), i1]/sqrt(2d0),[2,2])
-! T = transpose(T)
-! call print_mat(real(T), 'reTT')
-! call print_mat(imag(T), 'imTT')
 
 ! Waveguide
 lambda = 2d0*pi/mesh%ki(i)
@@ -83,9 +77,6 @@ Dn = 0d0
 
 call vswf_qlm(cth,lmx,Qlm,dQlm)
 
-do l = 1,size(dQlm,1)
-   ! if(i==1) write(*, '(ES11.3)') dQlm(l)
-end do
 ind = 0
 do l = 1,lmx 
    do m = -l,l
@@ -112,27 +103,17 @@ do l = 1,lmx
          gtm1 =  -Wlsm*psi*m*Qlm(jlm(l,m))
       end if
 
-      gte_circ = [gte1, gtm1]
+      gtem = [gte1, gtm1]
 
       ! Fixing signs and stuff
       if(mod(ind,2)/=0)then
-         gte_circ = gte_circ/(-i1)**(ind)
+         gtem = gtem/(-i1)**(ind)
       else
-         gte_circ = gte_circ/(-i1)**(2*ind-1)
+         gtem = gtem/(-i1)**(2*ind-1)
       end if
 
-      gte_cart = gte_circ
-      ! gte_cart = matmul(T,gte_circ)
-
-      ! ! Fixing signs and stuff
-      ! if(mod(ind,2)/=0)then
-      !    gte_cart = (i1)**(ind)*gte_cart
-      ! else
-      !    gte_cart = (i1)**(2*ind-1)*gte_cart
-      ! end if
-
-      GTE(jlm(l,m)) = gte_cart(1)
-      GTM(jlm(l,m)) = gte_cart(2)
+      GTE(jlm(l,m)) = gtem(1)
+      GTM(jlm(l,m)) = gtem(2)
    end do
 end do
 ! Write result to matrices%a etc
@@ -236,5 +217,81 @@ else
 endif
 end function jlm
 
+!******************************************************************************
+
+subroutine bbz_taylor(matrices, mesh)
+type (mesh_struct) :: mesh
+type (data) :: matrices
+integer :: i
+integer :: Nmax, nm
+complex(dp), dimension(:), allocatable :: a_in, b_in
+
+do i = 1,matrices%bars
+   if(allocated(a_in)) deallocate(a_in,b_in)
+   Nmax = matrices%Nmaxs(i)
+   nm = (Nmax+1)**2-1
+   allocate(a_in(nm))
+   allocate(b_in(nm))
+   call bess(Nmax, dble(mesh%ki(i)), a_in, b_in)
+
+   matrices%as(1:nm,i) = a_in
+   matrices%bs(1:nm,i) = b_in
+end do
+
+
+end subroutine bbz_taylor
+
+!******************************************************************************
+! The routine computes the SVWF expansion coefficients 
+! for a time harmonic x-polarized Bessel beams
+! propagating +z-direction  with the wave number k
+subroutine bess(Nmax, k, a_nm, b_nm)
+complex(dp), dimension((Nmax+1)**2-1) :: a_nm, b_nm
+integer :: Nmax
+real(dp) :: k
+
+integer :: ind, n, m, mm
+real(dp) :: C, E0, rho, x, y, z, vec(3), r, theta, phi, &
+pi_tilde, tau_tilde, cth
+complex(dp) :: Un, Ip, Im
+real(dp) :: Pnm(0:Nmax*(Nmax+2)+1), dPnm(0:Nmax*(Nmax+2)+1)
+
+E0 = 1d0
+ind = 0
+x = 1d-7
+y = 0d0
+z = 1d-7
+vec = cart2sph([x,y,z])
+r = vec(1)
+theta = vec(2)
+phi = vec(3)
+rho = k*sqrt(x**2 + y**2)*sin(theta)
+cth = cos(theta)
+
+call vswf_qlm(cth,Nmax,Pnm,dPnm)
+
+do n = 1,Nmax
+   Un = 4d0*pi*i1**(n)/(n*(n+1))
+
+   do m = -n, n 
+      ind = ind + 1
+      mm = abs(m)
+
+      C = sqrt((2d0*n+1.0d0)*factorial(n-mm)/factorial(n+mm)/(4d0*pi))
+      pi_tilde = C*m/sin(theta)*Pnm(jlm(n,m))
+      tau_tilde = C*dPnm(jlm(n,m))
+
+      Ip = pi*(exp(i1*(m-1)*phi)*bessel_jn(1-m,rho) + &
+      exp(i1*(m+1)*phi)*bessel_jn(-1-m,rho)) 
+      Im = pi*(exp(i1*(m-1)*phi)*bessel_jn(1-m,rho) - &
+      exp(i1*(m+1)*phi)*bessel_jn(-1-m,rho)) 
+
+      a_nm(ind) = E0*Un*exp(i1*k*z*cos(theta))*(tau_tilde*Ip + pi_tilde*Im)
+      b_nm(ind) = E0*Un*exp(i1*k*z*cos(theta))*(pi_tilde*Ip+tau_tilde*Im)
+
+   end do 
+end do
+
+end subroutine bess
 
 end module bessel

@@ -144,11 +144,8 @@ end subroutine gaussian_beam_shape
 subroutine bessel_beams(matrices,mesh)
 type (mesh_struct) :: mesh
 type (data) :: matrices
-integer :: i 
 
-do i = 1,matrices%bars
-    call bessel_beam_z(matrices,mesh,i,matrices%Nmaxs(i))
-end do
+call bbz_taylor(matrices, mesh)
 
 end subroutine bessel_beams
 
@@ -309,8 +306,8 @@ matrices%field_points = grid
 do i = 1,nn
     call calc_fields(matrices%as(:,which),matrices%bs(:,which),&
     dcmplx(mesh%ki(which)), grid(:,i),F,G,0)
-    ! E(:,i) = F
-    E(:,i) = crossCC(F,G)/mu
+    E(:,i) = F
+    ! E(:,i) = crossCC(F,G)/mu
 end do
 matrices%E_field = E
 
@@ -341,8 +338,8 @@ call scattered_fields(matrices,1d0,p,q,p90,q90,which)
 matrices%field_points = grid
 do i = 1,nn
     call calc_fields(p,q,dcmplx(mesh%ki(which)), grid(:,i),F,G,1)
-    ! E(:,i) = F
-    E(:,i) = crossCC(F,G)/mu
+    E(:,i) = F
+    ! E(:,i) = crossCC(F,G)/mu
 end do
 
 matrices%E_field = E
