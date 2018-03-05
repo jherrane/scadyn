@@ -136,18 +136,7 @@ do n = 1,Nmax
     end do 
 end do
 
-
 end subroutine gaussian_beam_shape
-
-!*******************************************************************************
-! Calculate x-polarized bessel beams propagating along the z-axis.
-subroutine bessel_beams(matrices,mesh)
-type (mesh_struct) :: mesh
-type (data) :: matrices
-
-call bbz_taylor(matrices, mesh)
-
-end subroutine bessel_beams
 
 !******************************************************************************
 
@@ -312,7 +301,7 @@ end do
 matrices%E_field = E
 
 end subroutine fields_out
-
+   
 !*******************************************************************************
 
 subroutine scat_fields_out(matrices, mesh, which, n)
