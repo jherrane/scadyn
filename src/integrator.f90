@@ -1,5 +1,6 @@
 module integrator
 use forces
+use shapebeam
 
 implicit none
 
@@ -45,6 +46,10 @@ call init_values(matrices, mesh)
 call start_log(lg, matrices, mesh)
 
 call allocate_inc_wave(matrices, mesh)
+
+if(beam_shape == 1) call gaussian_beams(matrices,mesh)
+if(beam_shape == 2) call laguerre_gaussian_beams(matrices,mesh,p,l)
+if(beam_shape == 3) call bessel_beams(matrices,mesh)
 
 ! Iteration of optical force calculation -------------------------------------
 do i = 1, matrices%it_max

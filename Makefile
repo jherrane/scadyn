@@ -55,9 +55,9 @@ ${BINDIR}/miecoat.o \
 ${BINDIR}/setup.o \
 ${BINDIR}/T_matrix.o \
 ${BINDIR}/forces.o \
-${BINDIR}/integrator.o \
 ${BINDIR}/bessel.o \
 ${BINDIR}/shapebeam.o \
+${BINDIR}/integrator.o \
 ${BINDIR}/postprocessing.o \
 ${BINDIR}/main.o
 

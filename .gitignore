@@ -35,6 +35,8 @@
 /ext/
 */data/**
 /data/
+*/out/**
+/out/
 *.sh
 scadyn
 */bin/**

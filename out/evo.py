@@ -115,6 +115,8 @@ def plot_R(R_list,w,Q,k):
 if __name__ == "__main__":
 	inputfile = 'log'
 	pth = 'figs'
+	#plt.xkcd()
+	#plt.rc('font',family='Times New Roman')
 	argv = sys.argv[1:]
 	try:
 		opts, args = getopt.getopt(argv,"hl:p:",["log=", "path="])
@@ -151,7 +153,7 @@ if __name__ == "__main__":
 
 		Q = np.genfromtxt(islice(log,17,20))
 		log.seek(0)
-		nnn = np.minimum(numlines,24000)
+		nnn = numlines#np.minimum(numlines,24000)
 		lines = log.readlines()[-nnn:]
 		#  lines = log.readlines()[22:100000]
 		#  lines = log.readlines()[39000:40000]

@@ -218,7 +218,7 @@ if __name__ == "__main__":
 
  pth = 'figs'
  make_sure_path_exists(pth)
-
+ #plt.xkcd()
  log = open('log','r')
  with cd(pth):
   # Set up data lists
