@@ -22,13 +22,14 @@ real( dp ), parameter  ::  b         =  2.8977729d-3
 integer, parameter     ::  nthreads  =  24
 complex(dp), parameter ::  i1        =  dcmplx(0d0,1d0)
 
-integer                ::  seedling  =  0
-integer                ::  use_mie   =  0
-integer                ::  run_test   =  0
-integer                ::  beam_shape = 0
+integer                ::  seedling           = 0
+integer                ::  use_mie            = 0
+integer                ::  run_test           = 0
+integer                ::  int_mode           = 0
+integer                ::  beam_shape         = 0
 integer                ::  calc_extra_torques = 0
-integer                ::  p = 0
-integer                ::  l = 0
+integer                ::  p                  = 0
+integer                ::  l                  = 0
 
 ! TYPES ***********************************************************************
 !******************************************************************************
