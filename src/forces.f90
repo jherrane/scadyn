@@ -105,6 +105,11 @@ b = sparse_matmul(rotD, indD, b_in, nm)
 a90 = sparse_matmul(rotD90, indD90, a_in, nm)
 b90 = sparse_matmul(rotD90, indD90, b_in, nm)
 
+if(matrices%polarization == 1) then
+   a90 = 0d0
+   b90 = 0d0
+end if 
+
 a_nm = matmul(Taa, a) + matmul(Tab, b)
 b_nm = matmul(Tbb, b) + matmul(Tba, a)
 a_nm90 = matmul(Taa, a90) + matmul(Tab, b90)
@@ -217,6 +222,10 @@ a = sparse_matmul(rotD, indD, a_in, nm)
 b = sparse_matmul(rotD, indD, b_in, nm)
 a90 = sparse_matmul(rotD90, indD90, a_in, nm)
 b90 = sparse_matmul(rotD90, indD90, b_in, nm)
+if(matrices%polarization == 1) then
+   a90 = 0d0
+   b90 = 0d0
+end if 
 
 p = matmul(Taa, a) + matmul(Tab, b)
 q = matmul(Tbb, b) + matmul(Tba, a)
@@ -231,8 +240,7 @@ q90 = 2d0*q90 + b90
 ! formula is for z-direction
 fz = F_z(Nmax,a,b,p,q) + F_z(Nmax,a90,b90,p90,q90)
 tz = T_z(Nmax,a,b,p,q) + T_z(Nmax,a90,b90,p90,q90)
-tx = T_x(Nmax,a,b,p,q) + T_x(Nmax,a90,b90,p90,q90)
-ty = T_y(Nmax,a,b,p,q) + T_y(Nmax,a90,b90,p90,q90)
+
 ! x-direction
 a2 = sparse_matmul(matrices%rotXs(1:las,i),matrices%indXs(1:las,:,i),a,nm)
 b2 = sparse_matmul(matrices%rotXs(1:las,i),matrices%indXs(1:las,:,i),b,nm)
@@ -244,7 +252,7 @@ p290 = sparse_matmul(matrices%rotXs(1:las,i),matrices%indXs(1:las,:,i),p90,nm)
 q290 = sparse_matmul(matrices%rotXs(1:las,i),matrices%indXs(1:las,:,i),q90,nm)
 
 fx = F_z(Nmax,a2,b2,p2,q2) + F_z(Nmax,a290,b290,p290,q290)
-! tx = T_z(Nmax,a2,b2,p2,q2) + T_z(Nmax,a290,b290,p290,q290)
+tx = T_z(Nmax,a2,b2,p2,q2) + T_z(Nmax,a290,b290,p290,q290)
 
 ! y-direction
 a2 = sparse_matmul(matrices%rotYs(1:las,i),matrices%indYs(1:las,:,i),a,nm)
@@ -257,7 +265,7 @@ p290 = sparse_matmul(matrices%rotYs(1:las,i),matrices%indYs(1:las,:,i),p90,nm)
 q290 = sparse_matmul(matrices%rotYs(1:las,i),matrices%indYs(1:las,:,i),q90,nm)
 
 fy = F_z(Nmax,a2,b2,p2,q2) + F_z(Nmax,a290,b290,p290,q290)
-! ty = T_z(Nmax,a2,b2,p2,q2) + T_z(Nmax,a290,b290,p290,q290)
+ty = T_z(Nmax,a2,b2,p2,q2) + T_z(Nmax,a290,b290,p290,q290)
 
 ! Averaging now, thus division by 2d0
 matrices%force = dcmplx([fx,fy,fz])/cc/2d0
@@ -312,50 +320,6 @@ do n = 1, Nmax
 end do
 
 end function T_z
-
-!******************************************************************************
-! Calculates the x-components of torque analytically
-function T_x(Nmax,a,b,p,q) result(t)
-real(dp) :: t
-complex(dp), dimension(:) , allocatable :: a, b, p, q
-integer :: Nmax, n, m, ind
-
-ind = 0
-t = 0.d0
-do n = 1, Nmax
- do m = -n, n
-  ind = ind+1
-  t = t - sqrt(dble((n-m)*(n+m+1)))*( &
-    q(ind)*dconjg(q(ind+1)) - b(ind)*dconjg(q(ind+1)) &
-    + dconjg(b(ind))*q(ind+1) - dconjg(b(ind))*b(ind+1) + &
-    p(ind)*dconjg(p(ind+1)) - a(ind)*dconjg(p(ind+1)) &
-    + dconjg(a(ind))*p(ind+1) - dconjg(a(ind))*a(ind+1))
- end do
-end do
-
-end function T_x
-
-!******************************************************************************
-! Calculates the y-components of torque analytically
-function T_y(Nmax,a,b,p,q) result(t)
-real(dp) :: t
-complex(dp), dimension(:) , allocatable :: a, b, p, q
-integer :: Nmax, n, m, ind
-
-ind = 0
-t = 0.d0
-do n = 1, Nmax
- do m = -n, n
-  ind = ind+1
-  t = t - sqrt(dble((n-m)*(n+m+1)))*( &
-    q(ind)*dconjg(q(ind+1)) - b(ind)*dconjg(q(ind+1)) &
-    - dconjg(b(ind))*q(ind+1) + dconjg(b(ind))*b(ind+1) + &
-    p(ind)*dconjg(p(ind+1)) - a(ind)*dconjg(p(ind+1)) &
-    - dconjg(a(ind))*p(ind+1) + dconjg(a(ind))*a(ind+1))
- end do
-end do
-
-end function T_y
 
 !******************************************************************************
 ! Calculates the z-component of torque analytically

@@ -30,7 +30,7 @@ lambda1 200
 lambda2 2000
 whichbar 0              # 0 = use all
 beam_shape 0            # 0 = plane wave, 1 = Gaussian, 2 = LG, 3 = Bessel
-pl 0 0                  # Laguerre-Gaussian beam mode
+pl 1 2                  # Laguerre-Gaussian beam mode
 
 choose_integrator 2     # 1 = RK4, 2 = VLV, 3 = PCDM
 it_max 50000
