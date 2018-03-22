@@ -371,7 +371,7 @@ xi = dacos(dot_product(B,a3))
 phi = dacos(dot_product(B_perp,proj_Bperp_a3))
 
 if(psi>pi/2) then
-	psi = psi - pi/2
+   psi = psi - pi/2
 end if
 if(proj_Bperp_a3(2)<0) phi = phi + pi
 

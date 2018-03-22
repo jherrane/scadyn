@@ -5,7 +5,7 @@ use bessel
 implicit none
 contains
 
-!*******************************************************************************
+!******************************************************************************
 ! The routine computes the SVWF expansion coefficients 
 ! for a time harmonic x-polarized planewave
 ! propagating +z-direction  with the wave number k
@@ -35,7 +35,7 @@ end do
 
 end subroutine pw
 
-!*******************************************************************************
+!******************************************************************************
 ! The routine computes the SVWF expansion coefficients 
 ! for a time harmonic x-and y-polarized planewave
 ! propagating +z-direction  with the wave number k
@@ -63,7 +63,7 @@ b_nm2 = sparse_matmul(rotD,indD,b_nm,nm_in)
 
 end subroutine pw2
 
-!*******************************************************************************
+!******************************************************************************
 ! The routine computes the SVWF expansion coefficients 
 ! for a time harmonic spherically polarized planewave (x+iy)
 ! propagating +z-direction  with the wave number k (Moreira et al 2016)
@@ -93,7 +93,7 @@ end do
 
 end subroutine pw_sph
 
-!*******************************************************************************
+!******************************************************************************
 ! The Gaussian amplitude profile in localized approximation (kw0>=5) a'la
 ! MSTM 3.0 (Mackowski et al 2013)
 subroutine gaussian_beams(matrices,mesh)
@@ -102,7 +102,7 @@ type (data) :: matrices
 real(dp) :: width
 integer :: i 
 
-width = 5d0/(minval(mesh%ki))
+width = 5d0/(maxval(mesh%ki))
 
 do i = 1,matrices%bars
     call gaussian_beam_shape(matrices,mesh,i,matrices%Nmaxs(i),width)
@@ -110,7 +110,7 @@ end do
 
 end subroutine gaussian_beams
 
-!*******************************************************************************
+!******************************************************************************
 ! The Gaussian amplitude profile in localized approximation (kw0>=5) a'la
 ! MSTM 3.0 (Mackowski et al 2013)
 subroutine gaussian_beam_shape(matrices, mesh, i, Nmax, width)
@@ -146,15 +146,106 @@ type (data) :: matrices
 real(dp) :: width
 integer :: i , p, l
 
-width = 5d0/(minval(mesh%ki))
+width = 5d0/(maxval(mesh%ki))
 
 do i = 1,matrices%bars
-    call laguerre_gauss_farfield(matrices, mesh, i, p, l, width)
+    call laguerre_gauss_num(matrices, mesh, i, p, l, width)
 end do
 
 end subroutine laguerre_gaussian_beams
 
-!*******************************************************************************
+!******************************************************************************
+! Axisymmetric LG-beam. In here, instead of some other routines, n -> p, m -> l.
+subroutine laguerre_gauss_num(matrices, mesh, whichWL, n, m, w0)
+type (data) :: matrices
+type (mesh_struct) :: mesh
+integer :: whichWL, nmax, iii, jjj, kkk, ntheta, nphi, n, m, ind
+real(dp) :: k, w0, kw0, r(3), theta, phi, x, f
+complex(dp), dimension(:), allocatable :: a_jm, b_jm
+complex(dp) :: Enm, dEnm, BCP(9), Yjm
+
+k = mesh%ki(whichWL)
+kw0 = k*w0
+nmax = matrices%Nmaxs(whichWL)
+allocate(a_jm((nmax+1)**2-1), b_jm((nmax+1)**2-1))
+
+a_jm = dcmplx(0d0)
+b_jm = dcmplx(0d0)
+
+ind = 0
+do jjj = 1,nmax
+   do kkk = -jjj,jjj
+      ind = ind + 1
+
+      ! Theta-phi-integration is done using Gaussian quadratures in the iii-loop
+      do iii = 1, size(mesh%P,2)
+         r = cart2sph(mesh%P(:,iii))
+         theta = r(2)
+         phi = r(3)
+
+         BCP = vsh(jjj, kkk, theta, phi)
+         Yjm = BCP(7)
+
+         x = sin(theta)*kw0/sqrt(2d0)
+         f = 1d0/kw0
+         Enm = get_Enm(x,f,n,kkk)
+         dEnm = get_dEnm(theta,f,n,kkk)
+
+         a_jm(ind) = a_jm(ind) + 2d0*i1**jjj/(sqrt(dble(jjj*(jjj+1)))) *&
+         dconjg(Yjm)*( (sin(phi)*sin(theta)**2 - sin(phi)*cos(theta)**2 + &
+            sin(phi) - i1*m*cos(phi))*&
+            Enm -cos(theta)*sin(theta)*sin(phi)*&
+            dEnm )*exp(i1*m*phi)*mesh%w(iii)
+         
+         b_jm(ind) = b_jm(ind) - 2d0*i1**jjj/(sqrt(dble(jjj*(jjj+1)))) *&
+         dconjg(Yjm)*( sin(theta)*cos(theta)*dEnm - i1*m*cos(theta)*sin(phi)*&
+         Enm )*exp(i1*m*phi)*mesh%w(iii)
+      end do 
+   end do
+end do
+
+matrices%as(1:(nmax+1)**2-1,whichWL) = a_jm
+matrices%bs(1:(nmax+1)**2-1,whichWL) = b_jm
+
+end subroutine laguerre_gauss_num
+
+!******************************************************************************
+
+function get_Enm(xx, f, n, m) result(Enm)
+integer :: n, m
+real(dp) :: xx, f
+real(dp), dimension(:), allocatable :: x
+real(dp), dimension(1) :: LL
+complex(dp) :: Enm
+
+allocate(x(1))
+x(1) = xx**2
+LL = laguerre(n, m, x)
+Enm = (xx**m/(i1**(2*n+m+1)*2*f**2))*LL(1)*exp(-0.5d0*xx**2)
+
+end function get_Enm
+
+!******************************************************************************
+
+function get_dEnm(theta, f, n, m) result(dEnm)
+integer :: n, m
+real(dp) :: theta, f, x
+real(dp), dimension(:), allocatable :: xx
+real(dp), dimension(1) :: LL
+complex(dp) :: dEnm
+
+x = sin(theta)/sqrt(2d0)/f
+allocate(xx(1))
+xx(1) = x**2
+
+dEnm = (m/tan(theta) - sin(theta)*cos(theta)/(2*f**2))*get_Enm(x,f,n,m)
+if(n>0)then
+   dEnm = dEnm - sin(theta)*cos(theta)/(f**2)*get_Enm(x,f,n-1,m+1)
+end if
+
+end function get_dEnm
+
+!******************************************************************************
 ! Axisymmetric LG-beam
 subroutine laguerre_gauss_farfield(matrices, mesh, i, p, l, w0)
 type (data) :: matrices
@@ -254,7 +345,7 @@ matrices%bs(1:(nmax+1)**2-1,i) = b_nm
 
 end subroutine laguerre_gauss_farfield
 
-!*******************************************************************************
+!******************************************************************************
 
 function LG_mode(p, l, r, phi) result(res)
 integer :: p, l, fp, fpl
@@ -274,7 +365,7 @@ res = LG(1)
 
 end function LG_mode
 
-!*******************************************************************************
+!******************************************************************************
 
 subroutine fields_out(matrices,mesh,which,n)
 type (mesh_struct) :: mesh
@@ -302,7 +393,7 @@ matrices%E_field = E
 
 end subroutine fields_out
    
-!*******************************************************************************
+!******************************************************************************
 
 subroutine scat_fields_out(matrices, mesh, which, n)
 type (mesh_struct) :: mesh
@@ -336,7 +427,7 @@ matrices%E_field = E
 
 end subroutine scat_fields_out
 
-!*******************************************************************************
+!******************************************************************************
 
 function field_grid(matrices,mesh) result(grid)
 type (mesh_struct) :: mesh
@@ -365,7 +456,7 @@ end do
 
 end function field_grid
 
-!*******************************************************************************
+!******************************************************************************
 
 subroutine write_fields(matrices,mesh)
 type (mesh_struct) :: mesh
