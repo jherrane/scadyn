@@ -163,6 +163,10 @@ integer :: whichWL, nmax, iii, jjj, kkk, ntheta, nphi, n, m, ind
 real(dp) :: k, w0, kw0, r(3), theta, phi, x, f
 complex(dp), dimension(:), allocatable :: a_jm, b_jm
 complex(dp) :: Enm, dEnm, BCP(9), Yjm
+double precision, dimension(:,:), allocatable :: PP
+double precision, dimension(:), allocatable :: w
+
+call sample_points(PP,w,20,20)
 
 k = mesh%ki(whichWL)
 kw0 = k*w0
@@ -178,12 +182,12 @@ do jjj = 1,nmax
       ind = ind + 1
 
       ! Theta-phi-integration is done using Gaussian quadratures in the iii-loop
-      do iii = 1, size(mesh%P,2)
-         r = cart2sph(mesh%P(:,iii))
+      do iii = 1, size(PP,2)
+         r = cart2sph(PP(:,iii))
          theta = r(2)
          phi = r(3)
 
-         BCP = vsh(jjj, kkk, theta, phi)
+         BCP = vsh(jjj, m, theta, phi)
          Yjm = BCP(7)
 
          x = sin(theta)*kw0/sqrt(2d0)
@@ -193,13 +197,13 @@ do jjj = 1,nmax
 
          a_jm(ind) = a_jm(ind) + 2d0*i1**jjj/(sqrt(dble(jjj*(jjj+1)))) *&
          dconjg(Yjm)*( (sin(phi)*sin(theta)**2 - sin(phi)*cos(theta)**2 + &
-            sin(phi) - i1*m*cos(phi))*&
+            sin(phi) - i1*kkk*cos(phi))*&
             Enm -cos(theta)*sin(theta)*sin(phi)*&
-            dEnm )*exp(i1*m*phi)*mesh%w(iii)
+            dEnm )*exp(i1*kkk*phi)*w(iii)
          
          b_jm(ind) = b_jm(ind) - 2d0*i1**jjj/(sqrt(dble(jjj*(jjj+1)))) *&
-         dconjg(Yjm)*( sin(theta)*cos(theta)*dEnm - i1*m*cos(theta)*sin(phi)*&
-         Enm )*exp(i1*m*phi)*mesh%w(iii)
+         dconjg(Yjm)*( sin(theta)*cos(theta)*dEnm - i1*kkk*cos(theta)*sin(phi)*&
+         Enm )*exp(i1*kkk*phi)*w(iii)
       end do 
    end do
 end do
@@ -222,6 +226,7 @@ allocate(x(1))
 x(1) = xx**2
 LL = laguerre(n, m, x)
 Enm = (xx**m/(i1**(2*n+m+1)*2*f**2))*LL(1)*exp(-0.5d0*xx**2)
+! Enm = (1d0/(i1*2*f**2))*exp(-0.5d0*xx**2)
 
 end function get_Enm
 
@@ -238,10 +243,12 @@ x = sin(theta)/sqrt(2d0)/f
 allocate(xx(1))
 xx(1) = x**2
 
-dEnm = (m/tan(theta) - sin(theta)*cos(theta)/(2*f**2))*get_Enm(x,f,n,m)
+dEnm = (m*cos(theta)/sin(theta) - sin(theta)*cos(theta)/(2*f**2))*get_Enm(x,f,n,m)
 if(n>0)then
    dEnm = dEnm - sin(theta)*cos(theta)/(f**2)*get_Enm(x,f,n-1,m+1)
 end if
+
+! dEnm = (x*i1/(2*f**2))*exp(-0.5d0*x**2)*cos(theta)/sqrt(2d0)/f
 
 end function get_dEnm
 
