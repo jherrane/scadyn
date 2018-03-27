@@ -1,6 +1,7 @@
 module shapebeam
 use T_matrix
 use bessel
+use gaussquad
 
 implicit none
 contains
@@ -155,21 +156,23 @@ end do
 end subroutine laguerre_gaussian_beams
 
 !******************************************************************************
-! Axisymmetric LG-beam. In here, instead of some other routines, n -> p, m -> l.
+! Axisymmetric LG-beam. In here, instead of some other routines.
 subroutine laguerre_gauss_num(matrices, mesh, whichWL, n, m, w0)
 type (data) :: matrices
 type (mesh_struct) :: mesh
-integer :: whichWL, nmax, iii, jjj, kkk, ntheta, nphi, n, m, ind
-real(dp) :: k, w0, kw0, r(3), theta, phi, x, f
+integer :: whichWL, nmax, i, j, m, mm, n, ind
+real(dp) :: k, w0, kw0, r(3), theta, phi, x, f, n_j
 complex(dp), dimension(:), allocatable :: a_jm, b_jm
 complex(dp) :: Enm, dEnm, BCP(9), Yjm
-double precision, dimension(:,:), allocatable :: PP
-double precision, dimension(:), allocatable :: w
+real(dp), dimension(:,:), allocatable :: PP
+real(dp), dimension(:), allocatable :: w
+real(dp), dimension(:), allocatable :: L
 
-call sample_points(PP,w,20,20)
+call integ_points(PP,w,100)
 
 k = mesh%ki(whichWL)
 kw0 = k*w0
+f = 1d0/kw0
 nmax = matrices%Nmaxs(whichWL)
 allocate(a_jm((nmax+1)**2-1), b_jm((nmax+1)**2-1))
 
@@ -177,37 +180,38 @@ a_jm = dcmplx(0d0)
 b_jm = dcmplx(0d0)
 
 ind = 0
-do jjj = 1,nmax
-   do kkk = -jjj,jjj
-      ind = ind + 1
+do j = 1,nmax
+   allocate(L(j+1))
+   ind = j*(j+1)+m
 
-      ! Theta-phi-integration is done using Gaussian quadratures in the iii-loop
-      do iii = 1, size(PP,2)
-         r = cart2sph(PP(:,iii))
-         theta = r(2)
-         phi = r(3)
+   ! Theta-phi-integration is done using Gaussian quadratures in the i-loop
+   do i = 1, size(PP,2)
+      theta = PP(2,i)
+      phi = PP(3,i)
 
-         BCP = vsh(jjj, m, theta, phi)
-         Yjm = BCP(7)
+      call legendre2(j,cos(theta),L) 
+      mm = abs(m)
+      Yjm = L(mm+1)*exp(i1*mm*phi)*sqrt((2d0*j+1)*factorial(j-mm)/factorial(j+mm))
+      if(m<0) Yjm = dconjg((-1)**m*Yjm)
 
-         x = sin(theta)*kw0/sqrt(2d0)
-         f = 1d0/kw0
-         Enm = get_Enm(x,f,n,kkk)
-         dEnm = get_dEnm(theta,f,n,kkk)
+      n_j = 1/(sqrt(dble(j*(j+1))))
 
-         a_jm(ind) = a_jm(ind) + 2d0*i1**jjj/(sqrt(dble(jjj*(jjj+1)))) *&
-         dconjg(Yjm)*( (sin(phi)*sin(theta)**2 - sin(phi)*cos(theta)**2 + &
-            sin(phi) - i1*kkk*cos(phi))*&
-            Enm -cos(theta)*sin(theta)*sin(phi)*&
-            dEnm )*exp(i1*kkk*phi)*w(iii)
-         
-         b_jm(ind) = b_jm(ind) - 2d0*i1**jjj/(sqrt(dble(jjj*(jjj+1)))) *&
-         dconjg(Yjm)*( sin(theta)*cos(theta)*dEnm - i1*kkk*cos(theta)*sin(phi)*&
-         Enm )*exp(i1*kkk*phi)*w(iii)
-      end do 
+      x = sin(theta)*kw0/sqrt(2d0)
+      Enm = get_Enm(x,f,n,m)
+      dEnm = get_dEnm(theta,f,n,m)
+
+      a_jm(ind) = a_jm(ind) + 2d0*n_j*i1**j* &
+      dconjg(Yjm)*exp(i1*m*phi)* &
+      ((2d0*sin(phi)*sin(theta)**2 -(i1*m)*cos(phi))*Enm &
+       -sin(phi)*sin(theta)*cos(theta)*dEnm)*w(i)
+
+      b_jm(ind) = b_jm(ind) - 2d0*n_j*i1**j *&
+      dconjg(Yjm)*exp(i1*m*phi)* &
+      (sin(theta)*cos(phi)*dEnm - i1*m*cos(theta)*sin(phi)*Enm)*w(i)
    end do
+   deallocate(L)
 end do
-
+print*, a_jm
 matrices%as(1:(nmax+1)**2-1,whichWL) = a_jm
 matrices%bs(1:(nmax+1)**2-1,whichWL) = b_jm
 
@@ -215,18 +219,65 @@ end subroutine laguerre_gauss_num
 
 !******************************************************************************
 
-function get_Enm(xx, f, n, m) result(Enm)
-integer :: n, m
-real(dp) :: xx, f
-real(dp), dimension(:), allocatable :: x
-real(dp), dimension(1) :: LL
+subroutine gaussi(P, w, order)
+real(dp), dimension(:), allocatable :: P
+real(dp), dimension(:), allocatable :: w
+integer, intent(in) :: order
+
+allocate(P(order), w(order))
+
+call cpquad(order,dble(0.0),"Laguerre",w,P)
+
+P = P/2.0d0+0.5d0
+w = w/2.0d0
+
+end subroutine gaussi
+
+!******************************************************************************
+
+subroutine integ_points(P,w,M)
+real(dp), dimension(:,:), allocatable :: P
+real(dp), dimension(:), allocatable :: w
+integer :: M, N
+real(dp), dimension(:), allocatable :: P_theta, w_theta 
+integer :: i1, i2, j1
+real(dp) :: phi
+N = 2*M
+call gaussi(P_theta, w_theta, M)
+
+allocate(P(3,M*N),w(M*N))
+P_theta = pi * P_theta
+w_theta = pi * w_theta
+
+j1 = 1
+do i1 = 1,N
+   phi = dble(i1-1) * 2*pi / dble(N)
+   do i2 = 1,M
+      P(1,j1) = 1d0
+      P(2,j1) = P_theta(i2)
+      P(3,j1) = phi
+      w(j1) = W_theta(i2) / dble(N) * sin(P_theta(i2)) * 2 * pi
+      
+      j1 = j1 + 1
+   end do
+end do
+
+end subroutine integ_points
+
+!******************************************************************************
+
+function get_Enm(x, f, n, m) result(Enm)
+integer :: n, m, nn, mm
+real(dp) :: x, xx, f
+real(dp) :: LL
 complex(dp) :: Enm
 
-allocate(x(1))
-x(1) = xx**2
-LL = laguerre(n, m, x)
-Enm = (xx**m/(i1**(2*n+m+1)*2*f**2))*LL(1)*exp(-0.5d0*xx**2)
-! Enm = (1d0/(i1*2*f**2))*exp(-0.5d0*xx**2)
+xx = x
+nn = n
+mm = m
+
+LL = laguerre_lm(nn, mm, xx)
+Enm = (x**m/(i1**(2*n+m+1)*2*f**2))*LL*exp(-0.5d0*x**2)
 
 end function get_Enm
 
@@ -243,14 +294,24 @@ x = sin(theta)/sqrt(2d0)/f
 allocate(xx(1))
 xx(1) = x**2
 
-dEnm = (m*cos(theta)/sin(theta) - sin(theta)*cos(theta)/(2*f**2))*get_Enm(x,f,n,m)
+dEnm = (m/tan(theta) - sin(theta)*cos(theta)/(2*f**2))*get_Enm(x,f,n,m)
 if(n>0)then
-   dEnm = dEnm - sin(theta)*cos(theta)/(f**2)*get_Enm(x,f,n-1,m+1)
+   dEnm = dEnm + i1*cos(theta)/(sqrt(2d0)*f)*get_Enm(x,f,n-1,m+1)
 end if
 
 ! dEnm = (x*i1/(2*f**2))*exp(-0.5d0*x**2)*cos(theta)/sqrt(2d0)/f
 
 end function get_dEnm
+
+!******************************************************************************
+
+function laguerre_lm(n,m,x) result(L)
+integer :: n, m, ndata
+real(dp) :: x, L
+
+ndata = 0
+call lm_polynomial_values(ndata,n,m,x,L)
+end function laguerre_lm
 
 !******************************************************************************
 ! Axisymmetric LG-beam

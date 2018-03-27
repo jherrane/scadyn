@@ -31,7 +31,9 @@ INCS = -I/usr/include -I/usr/local/include/ -I/usr/include/hdf5/serial/ -J${BIND
 OBJECTS = ${BINDIR}/common.o \
 ${BINDIR}/sfunctions.o \
 ${BINDIR}/io.o \
+${BINDIR}/gaussquad.o \
 ${BINDIR}/integration_points.o \
+${BINDIR}/laguerre_polynomial.o \
 ${BINDIR}/translations.o \
 ${BINDIR}/mie.o \
 ${BINDIR}/possu.o \
