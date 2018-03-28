@@ -103,7 +103,7 @@ type (data) :: matrices
 real(dp) :: width
 integer :: i 
 
-width = 5d0/(maxval(mesh%ki))
+width = 5d0/(maxval(mesh%ki))/sqrt(2d0)
 
 do i = 1,matrices%bars
     call gaussian_beam_shape(matrices,mesh,i,matrices%Nmaxs(i),width)
@@ -161,19 +161,24 @@ subroutine laguerre_gauss_num(matrices, mesh, whichWL, n, m, w0)
 type (data) :: matrices
 type (mesh_struct) :: mesh
 integer :: whichWL, nmax, i, j, m, mm, n, ind
-real(dp) :: k, w0, kw0, r(3), theta, phi, x, f, n_j
+real(dp) :: k, w0, kw0, r(3), theta, phi, x, f, n_j, norm, L
 complex(dp), dimension(:), allocatable :: a_jm, b_jm
 complex(dp) :: Enm, dEnm, BCP(9), Yjm
 real(dp), dimension(:,:), allocatable :: PP
 real(dp), dimension(:), allocatable :: w
-real(dp), dimension(:), allocatable :: L
+real(dp), dimension(:), allocatable :: LL
 
-call integ_points(PP,w,100)
+call sample_points(PP,w,20,20)
+! call integ_points(PP,w,100)
+! do i = 1,size(PP, 2)
+!  if(whichWL==1) write(*,'(3ES11.3)') PP(1,i), PP(2,i), PP(3,i)
+! end do
 
 k = mesh%ki(whichWL)
 kw0 = k*w0
 f = 1d0/kw0
 nmax = matrices%Nmaxs(whichWL)
+
 allocate(a_jm((nmax+1)**2-1), b_jm((nmax+1)**2-1))
 
 a_jm = dcmplx(0d0)
@@ -181,17 +186,22 @@ b_jm = dcmplx(0d0)
 
 ind = 0
 do j = 1,nmax
-   allocate(L(j+1))
+   allocate(LL(j+1))
    ind = j*(j+1)+m
 
    ! Theta-phi-integration is done using Gaussian quadratures in the i-loop
    do i = 1, size(PP,2)
-      theta = PP(2,i)
-      phi = PP(3,i)
+      r = cart2sph(PP(:,i))
+      theta = r(2)
+      phi = r(3)
+      ! theta = PP(2,i)
+      ! phi = PP(3,i)
 
-      call legendre2(j,cos(theta),L) 
+      call legendre2(j,cos(theta),LL) 
       mm = abs(m)
-      Yjm = L(mm+1)*exp(i1*mm*phi)*sqrt((2d0*j+1)*factorial(j-mm)/factorial(j+mm))
+      L = LL(mm+1)
+
+      Yjm = L*exp(i1*mm*phi)*sqrt((2d0*j+1)*factorial(j-mm)/factorial(j+mm))
       if(m<0) Yjm = dconjg((-1)**m*Yjm)
 
       n_j = 1/(sqrt(dble(j*(j+1))))
@@ -209,11 +219,22 @@ do j = 1,nmax
       dconjg(Yjm)*exp(i1*m*phi)* &
       (sin(theta)*cos(phi)*dEnm - i1*m*cos(theta)*sin(phi)*Enm)*w(i)
    end do
-   deallocate(L)
+   deallocate(LL)
 end do
-print*, a_jm
-matrices%as(1:(nmax+1)**2-1,whichWL) = a_jm
-matrices%bs(1:(nmax+1)**2-1,whichWL) = b_jm
+
+norm = 0d0
+do i = 1,size(a_jm)
+ norm = norm + abs(a_jm(i))
+end do
+
+! if(whichWL==1) then
+!   do i = 1,size(a_jm)
+!     write(*,'(ES11.3,SP,ES11.3,"i")') a_jm(i)/norm
+!   end do
+! end if
+
+matrices%as(1:(nmax+1)**2-1,whichWL) = a_jm/norm
+matrices%bs(1:(nmax+1)**2-1,whichWL) = b_jm/norm
 
 end subroutine laguerre_gauss_num
 
@@ -267,17 +288,13 @@ end subroutine integ_points
 !******************************************************************************
 
 function get_Enm(x, f, n, m) result(Enm)
-integer :: n, m, nn, mm
-real(dp) :: x, xx, f
-real(dp) :: LL
+integer :: n, m
+real(dp) :: x, f
+real(dp) :: L
 complex(dp) :: Enm
 
-xx = x
-nn = n
-mm = m
-
-LL = laguerre_lm(nn, mm, xx)
-Enm = (x**m/(i1**(2*n+m+1)*2*f**2))*LL*exp(-0.5d0*x**2)
+L = lg_pl(n, m, x)
+Enm = (x**m/(i1**(2*n+m+1)*2*f**2))*L*exp(-0.5d0*x**2)
 
 end function get_Enm
 
@@ -286,32 +303,32 @@ end function get_Enm
 function get_dEnm(theta, f, n, m) result(dEnm)
 integer :: n, m
 real(dp) :: theta, f, x
-real(dp), dimension(:), allocatable :: xx
 real(dp), dimension(1) :: LL
 complex(dp) :: dEnm
 
 x = sin(theta)/sqrt(2d0)/f
-allocate(xx(1))
-xx(1) = x**2
 
-dEnm = (m/tan(theta) - sin(theta)*cos(theta)/(2*f**2))*get_Enm(x,f,n,m)
+dEnm = ((m+x**2)/tan(theta))*get_Enm(x,f,n,m)
 if(n>0)then
-   dEnm = dEnm + i1*cos(theta)/(sqrt(2d0)*f)*get_Enm(x,f,n-1,m+1)
+   dEnm = dEnm - i1*(2*x**2/tan(theta))*get_Enm(x,f,n-1,m+1)
 end if
-
-! dEnm = (x*i1/(2*f**2))*exp(-0.5d0*x**2)*cos(theta)/sqrt(2d0)/f
 
 end function get_dEnm
 
 !******************************************************************************
 
-function laguerre_lm(n,m,x) result(L)
-integer :: n, m, ndata
-real(dp) :: x, L
+function lg_pl(p,l,x) result(Lpl)
+real(dp) :: x, Lpl
+integer :: n, m, p, l, j
 
-ndata = 0
-call lm_polynomial_values(ndata,n,m,x,L)
-end function laguerre_lm
+Lpl = 1d0
+Lpl = Lpl*choose(p+l,p)
+
+do m = 1,p
+  Lpl = Lpl + (-1)**m/factorial(m)*choose(p+l,p-m)*x**m
+enddo
+
+end function lg_pl
 
 !******************************************************************************
 ! Axisymmetric LG-beam
@@ -521,6 +538,10 @@ do i = 1,n
         grid(2,ind) = y(j)*mesh%a
     end do
 end do
+
+! do i = 1,size(grid,2)
+!   write(*, '(3ES11.3)') grid(:,i)
+! end do
 
 end function field_grid
 

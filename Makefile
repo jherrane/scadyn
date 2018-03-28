@@ -33,7 +33,6 @@ ${BINDIR}/sfunctions.o \
 ${BINDIR}/io.o \
 ${BINDIR}/gaussquad.o \
 ${BINDIR}/integration_points.o \
-${BINDIR}/laguerre_polynomial.o \
 ${BINDIR}/translations.o \
 ${BINDIR}/mie.o \
 ${BINDIR}/possu.o \

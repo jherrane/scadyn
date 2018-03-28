@@ -409,7 +409,7 @@ do n = 1, Nmax
       ! Spherical vector wave functions
       M_nm = ccc * alpha * C
       N_nm = ccc * (beta*P + gamma * B)
-      
+
       F = F + a_nm(ind) * M_nm + b_nm(ind) * N_nm 
       G = G + k * (a_nm(ind) * N_nm + b_nm(ind) * M_nm)  
      
