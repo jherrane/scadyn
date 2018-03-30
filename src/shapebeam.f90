@@ -160,78 +160,63 @@ end subroutine laguerre_gaussian_beams
 subroutine laguerre_gauss_num(matrices, mesh, whichWL, n, m, w0)
 type (data) :: matrices
 type (mesh_struct) :: mesh
-integer :: whichWL, nmax, i, j, m, mm, n, ind
-real(dp) :: k, w0, kw0, r(3), theta, phi, x, f, n_j, norm, L
+integer :: whichWL, nmax, i, j, m, n, ind
+real(dp) :: w0, r(3), theta, phi, x, f, n_j, norm
 complex(dp), dimension(:), allocatable :: a_jm, b_jm
-complex(dp) :: Enm, dEnm, BCP(9), Yjm
+complex(dp) :: Enm, dEnm, Yjm
 real(dp), dimension(:,:), allocatable :: PP
 real(dp), dimension(:), allocatable :: w
-real(dp), dimension(:), allocatable :: LL
+real(dp), dimension(:), allocatable :: Pjm
 
-call sample_points(PP,w,20,20)
-! call integ_points(PP,w,100)
-! do i = 1,size(PP, 2)
-!  if(whichWL==1) write(*,'(3ES11.3)') PP(1,i), PP(2,i), PP(3,i)
-! end do
+call integ_points(PP,w,300)
 
-k = mesh%ki(whichWL)
-kw0 = k*w0
-f = 1d0/kw0
+f = 1d0/(mesh%ki(whichWL)*w0)
 nmax = matrices%Nmaxs(whichWL)
 
 allocate(a_jm((nmax+1)**2-1), b_jm((nmax+1)**2-1))
-
 a_jm = dcmplx(0d0)
 b_jm = dcmplx(0d0)
 
+! 
 ind = 0
 do j = 1,nmax
-   allocate(LL(j+1))
+   if(allocated(Pjm)) then 
+      deallocate(Pjm)
+   end if
+   allocate(Pjm(j+1))
+
    ind = j*(j+1)+m
 
    ! Theta-phi-integration is done using Gaussian quadratures in the i-loop
    do i = 1, size(PP,2)
-      r = cart2sph(PP(:,i))
-      theta = r(2)
-      phi = r(3)
-      ! theta = PP(2,i)
-      ! phi = PP(3,i)
+      theta = PP(2,i)
+      phi = PP(3,i)
 
-      call legendre2(j,cos(theta),LL) 
-      mm = abs(m)
-      L = LL(mm+1)
-
-      Yjm = L*exp(i1*mm*phi)*sqrt((2d0*j+1)*factorial(j-mm)/factorial(j+mm))
-      if(m<0) Yjm = dconjg((-1)**m*Yjm)
+      ! Calculate the normalized spherical harmonics
+      call legendre2(j,cos(theta),Pjm) ! The same as legendre of MATLAB
+      Yjm = Pjm(m+1)*exp(i1*m*phi)* &
+         sqrt((2d0*j+1)/(4d0*pi)*factorial(j-m)/factorial(j+m))
 
       n_j = 1/(sqrt(dble(j*(j+1))))
 
-      x = sin(theta)*kw0/sqrt(2d0)
-      Enm = get_Enm(x,f,n,m)
-      dEnm = get_dEnm(theta,f,n,m)
+      x = sin(theta)/f/sqrt(2d0)
+      Enm = E_nm(x,f,n,m)
+      dEnm = dE_nm(theta,f,n,m)
 
-      a_jm(ind) = a_jm(ind) + 2d0*n_j*i1**j* &
-      dconjg(Yjm)*exp(i1*m*phi)* &
-      ((2d0*sin(phi)*sin(theta)**2 -(i1*m)*cos(phi))*Enm &
-       -sin(phi)*sin(theta)*cos(theta)*dEnm)*w(i)
+      a_jm(ind) = a_jm(ind) + 2d0*n_j*i1**j*dconjg(Yjm)*exp(i1*m*phi)* &
+         ((2d0*sin(phi)*sin(theta)**2 -(i1*m)*cos(phi))*Enm &
+         -sin(phi)*sin(theta)*cos(theta)*dEnm)*w(i)
 
-      b_jm(ind) = b_jm(ind) - 2d0*n_j*i1**j *&
-      dconjg(Yjm)*exp(i1*m*phi)* &
-      (sin(theta)*cos(phi)*dEnm - i1*m*cos(theta)*sin(phi)*Enm)*w(i)
+      b_jm(ind) = b_jm(ind) - 2d0*n_j*i1**j *dconjg(Yjm)*exp(i1*m*phi)* &
+         (sin(theta)*cos(phi)*dEnm - i1*m*cos(theta)*sin(phi)*Enm)*w(i)
    end do
-   deallocate(LL)
 end do
 
+! Normalization so that sum_jm(a_jm + b_jm) = 1
 norm = 0d0
 do i = 1,size(a_jm)
- norm = norm + abs(a_jm(i))
+ norm = norm + abs(a_jm(i)) + abs(b_jm(i))
 end do
-
-! if(whichWL==1) then
-!   do i = 1,size(a_jm)
-!     write(*,'(ES11.3,SP,ES11.3,"i")') a_jm(i)/norm
-!   end do
-! end if
 
 matrices%as(1:(nmax+1)**2-1,whichWL) = a_jm/norm
 matrices%bs(1:(nmax+1)**2-1,whichWL) = b_jm/norm
@@ -287,20 +272,24 @@ end subroutine integ_points
 
 !******************************************************************************
 
-function get_Enm(x, f, n, m) result(Enm)
+function E_nm(x, f, n, m) result(Enm)
 integer :: n, m
 real(dp) :: x, f
 real(dp) :: L
 complex(dp) :: Enm
 
-L = lg_pl(n, m, x)
-Enm = (x**m/(i1**(2*n+m+1)*2*f**2))*L*exp(-0.5d0*x**2)
+L = L_pl(n, m, x**2)
+if(n<0) then
+   Enm = 0
+else
+   Enm = (x**m/(i1**(2*n+m+1)*2*f**2))*L*exp(-0.5d0*x**2)
+end if
 
-end function get_Enm
+end function E_nm
 
 !******************************************************************************
 
-function get_dEnm(theta, f, n, m) result(dEnm)
+function dE_nm(theta, f, n, m) result(dEnm)
 integer :: n, m
 real(dp) :: theta, f, x
 real(dp), dimension(1) :: LL
@@ -308,16 +297,14 @@ complex(dp) :: dEnm
 
 x = sin(theta)/sqrt(2d0)/f
 
-dEnm = ((m+x**2)/tan(theta))*get_Enm(x,f,n,m)
-if(n>0)then
-   dEnm = dEnm - i1*(2*x**2/tan(theta))*get_Enm(x,f,n-1,m+1)
-end if
+dEnm = ((m+x**2)/tan(theta))*E_nm(x,f,n,m) &
+       - i1*(2*x**2/tan(theta))*E_nm(x,f,n-1,m+1)
 
-end function get_dEnm
+end function dE_nm
 
 !******************************************************************************
-
-function lg_pl(p,l,x) result(Lpl)
+! The generalized Laguerre polynomial as a summation, same as in MATLAB
+function L_pl(p,l,x) result(Lpl)
 real(dp) :: x, Lpl
 integer :: n, m, p, l, j
 
@@ -328,7 +315,7 @@ do m = 1,p
   Lpl = Lpl + (-1)**m/factorial(m)*choose(p+l,p-m)*x**m
 enddo
 
-end function lg_pl
+end function L_pl
 
 !******************************************************************************
 ! Axisymmetric LG-beam
@@ -466,7 +453,6 @@ nn = n*n
 grid = field_grid(matrices,mesh)
 
 allocate(E(3,nn))
-
 matrices%field_points = grid
 do i = 1,nn
     call calc_fields(matrices%as(:,which),matrices%bs(:,which),&
