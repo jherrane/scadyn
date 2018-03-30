@@ -194,9 +194,12 @@ do j = 1,nmax
 
       ! Calculate the normalized spherical harmonics
       call legendre2(j,cos(theta),Pjm) ! The same as legendre of MATLAB
-      Yjm = Pjm(m+1)*exp(i1*m*phi)* &
+      if(m+1>j)then
+         Yjm=dcmplx(0d0)
+      else
+         Yjm = Pjm(m+1)*exp(i1*m*phi)* &
          sqrt((2d0*j+1)/(4d0*pi)*factorial(j-m)/factorial(j+m))
-
+      end if
       n_j = 1/(sqrt(dble(j*(j+1))))
 
       x = sin(theta)/f/sqrt(2d0)
