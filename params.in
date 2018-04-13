@@ -1,4 +1,4 @@
-#####   Physical setup  #####################################
+#####   Physical setup  #######################################################
 v0 0 0 0                # Initial velocity
 w0 0 0 0                # Initial angular velocity
 R0 i                    # r = random matrix, i = identity matrix
@@ -14,7 +14,7 @@ refr 0.0                # Refractive index (set to zero to ignore)
 refi 0.0
 E 1d0                   # Amplitude of E at its maximum
 
-#####  Run parameters   #####################################
+#####  Run parameters   #######################################################
 waves bnd               # Wavelength band options lin, inv, log, bnd
 mueller_mode none       # Mueller matrix type, none, ave, ori, perf_ori
 test_forces 4           # 0 = integrate, 1 = test methods, 2 = calc Qt, 
@@ -30,11 +30,11 @@ lambda1 200
 lambda2 2000
 whichbar 1              # 0 = use all
 beam_shape 2            # 0 = plane wave, 1 = Gaussian, 2 = LG, 3 = Bessel
-pl 1 2                  # Laguerre-Gaussian beam mode
+pl 0 0                  # Laguerre-Gaussian beam mode
 
 choose_integrator 2     # 1 = RK4, 2 = VLV, 3 = PCDM
-it_max 50000
-it_log 0             # From end backwards, 0 = log every step
+it_max 10000
+it_log 0                # From end backwards, 0 = log every step
 dt 1d0
 rot_max 1d-3
 
@@ -43,7 +43,7 @@ tol_m 1d-1              # Tolerance to when state is declared aligned
 
 is_aggr 0               # 0 = no
 
-#####    T-VIE setup	   ####################################
+#####    T-VIE setup	   # (Most of the time can be left as is) ################
 tol 1d-5                # GMRES tolerance
 maxit 50                # Maximum number of GMRES iterations
 restart 4               # GMRES restart

@@ -656,7 +656,6 @@ real(dp) :: ka,lim
 integer :: Nmax
 
 lim = 4d0
-
 if(ka > 1) then
  Nmax = floor(ka + lim* (ka)**(1.0d0/3.0d0))
 else

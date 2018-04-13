@@ -41,3 +41,4 @@
 scadyn
 */bin/**
 /bin/
+*log*

@@ -145,9 +145,9 @@ subroutine laguerre_gaussian_beams(matrices, mesh, p, l)
 type (mesh_struct) :: mesh
 type (data) :: matrices
 real(dp) :: width
-integer :: i , p, l
+integer :: i, p, l
 
-width = 5d0/(maxval(mesh%ki))
+width = 0.3d0/(maxval(mesh%ki))
 
 do i = 1,matrices%bars
     call laguerre_gauss_num(matrices, mesh, i, p, l, width)
@@ -167,8 +167,11 @@ complex(dp) :: Enm, dEnm, Yjm
 real(dp), dimension(:,:), allocatable :: PP
 real(dp), dimension(:), allocatable :: w
 real(dp), dimension(:), allocatable :: Pjm
+CHARACTER(LEN=80) :: fname = 'points.h5'
 
-call integ_points(PP,w,300)
+call integ_points(PP,w,20,20)
+! call sample_points(PP,w,20,20)
+! call write2file(dcmplx(PP),fname)
 
 f = 1d0/(mesh%ki(whichWL)*w0)
 nmax = matrices%Nmaxs(whichWL)
@@ -177,7 +180,6 @@ allocate(a_jm((nmax+1)**2-1), b_jm((nmax+1)**2-1))
 a_jm = dcmplx(0d0)
 b_jm = dcmplx(0d0)
 
-! 
 ind = 0
 do j = 1,nmax
    if(allocated(Pjm)) then 
@@ -235,7 +237,7 @@ integer, intent(in) :: order
 
 allocate(P(order), w(order))
 
-call cpquad(order,dble(0.0),"Laguerre",w,P)
+call cpquad(order,dble(0),"Legendre",w,P)
 
 P = P/2.0d0+0.5d0
 w = w/2.0d0
@@ -244,14 +246,13 @@ end subroutine gaussi
 
 !******************************************************************************
 
-subroutine integ_points(P,w,M)
+subroutine integ_points(P,w,M,N)
 real(dp), dimension(:,:), allocatable :: P
 real(dp), dimension(:), allocatable :: w
 integer :: M, N
 real(dp), dimension(:), allocatable :: P_theta, w_theta 
 integer :: i1, i2, j1
 real(dp) :: phi
-N = 2*M
 call gaussi(P_theta, w_theta, M)
 
 allocate(P(3,M*N),w(M*N))
@@ -262,14 +263,15 @@ j1 = 1
 do i1 = 1,N
    phi = dble(i1-1) * 2*pi / dble(N)
    do i2 = 1,M
-      P(1,j1) = 1d0
-      P(2,j1) = P_theta(i2)
-      P(3,j1) = phi
+      P(1,j1) = cos(phi) * sin(P_theta(i2))
+      P(2,j1) = sin(phi) * sin(P_theta(i2))
+      P(3,j1) = cos(P_theta(i2))
       w(j1) = W_theta(i2) / dble(N) * sin(P_theta(i2)) * 2 * pi
       
       j1 = j1 + 1
    end do
 end do
+
 
 end subroutine integ_points
 
@@ -302,6 +304,7 @@ x = sin(theta)/sqrt(2d0)/f
 
 dEnm = ((m+x**2)/tan(theta))*E_nm(x,f,n,m) &
        - i1*(2*x**2/tan(theta))*E_nm(x,f,n-1,m+1)
+if(theta < 1d-9) dEnm = dcmplx(0d0)
 
 end function dE_nm
 

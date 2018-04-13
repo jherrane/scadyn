@@ -51,7 +51,7 @@ if(beam_shape == 1) call gaussian_beams(matrices,mesh)
 if(beam_shape == 2) call laguerre_gaussian_beams(matrices,mesh,p,l)
 if(beam_shape == 3) call bessel_beams(matrices,mesh)
 
-! Iteration of optical force calculation -------------------------------------
+! Iteration of optical force calculation
 do i = 1, matrices%it_max
  if(i >= matrices%it_stop) exit
 
@@ -70,7 +70,7 @@ call update_values(matrices, mesh)
 call append_log(lg, i, matrices)
 call print_bar(i, matrices%it_max)
 
-end do ! i = 1, matrices%it_max ---------------------------------------------
+end do ! i = 1, matrices%it_max 
 print*, ''
 
 end subroutine solve_eoms
@@ -397,49 +397,49 @@ integer :: i, imin, imax, imid, negs
 ! Test if I is "almost diagonal", which causes diasym to do funny stuff
 if(dabs(mesh%I(1,1)*mesh%I(2,2)*mesh%I(3,3))>1d6*dabs(mesh%I(1,2)*mesh%I(1,3)*mesh%I(2,3)))then
 	if(use_mie .NE. 1) then
-		print*, 'FALLBACK MODE IN DIAGONALIZATION OF INERTIA TENSOR'
-		matrices%Ip = 0d0
-		imin = minloc([mesh%I(1,1),mesh%I(2,2),mesh%I(3,3)],1)
-		imax = maxloc([mesh%I(1,1),mesh%I(2,2),mesh%I(3,3)],1)
+      print*, 'FALLBACK MODE IN DIAGONALIZATION OF INERTIA TENSOR'
+      matrices%Ip = 0d0
+      imin = minloc([mesh%I(1,1),mesh%I(2,2),mesh%I(3,3)],1)
+      imax = maxloc([mesh%I(1,1),mesh%I(2,2),mesh%I(3,3)],1)
 		if(imin==1)then
 			if(imax==2) then
-				imid = 3
-				matrices%P = reshape([1d0, 0d0, 0d0, 0d0, 0d0, 1d0, 0d0, 1d0, 0d0],[3,3])
+            imid = 3
+            matrices%P = reshape([1d0, 0d0, 0d0, 0d0, 0d0, 1d0, 0d0, 1d0, 0d0],[3,3])
 			end if
 			if(imax==3) then
-				imid = 2
-				matrices%P = eye(3)
+            imid = 2
+            matrices%P = eye(3)
 			end if
 			else if(imin==2) then
 			if(imax==1) then
-				imid = 3
-				matrices%P = reshape([0d0, 1d0, 0d0, 0d0, 0d0, 1d0, 1d0, 0d0, 0d0],[3,3])
+            imid = 3
+            matrices%P = reshape([0d0, 1d0, 0d0, 0d0, 0d0, 1d0, 1d0, 0d0, 0d0],[3,3])
 			end if
 			if(imax==3) then
-				imid = 1
-				matrices%P = reshape([0d0, 1d0, 0d0, 1d0, 0d0, 0d0, 0d0, 0d0, 1d0],[3,3])
+            imid = 1
+            matrices%P = reshape([0d0, 1d0, 0d0, 1d0, 0d0, 0d0, 0d0, 0d0, 1d0],[3,3])
 			end if
 			else
 			if(imax==1) then
-				imid = 2
-				matrices%P = reshape([0d0, 0d0, 1d0, 0d0, 1d0, 1d0, 1d0, 0d0, 0d0],[3,3])
+            imid = 2
+            matrices%P = reshape([0d0, 0d0, 1d0, 0d0, 1d0, 1d0, 1d0, 0d0, 0d0],[3,3])
 			end if
 			if(imax==2) then
-				imid = 1
-				matrices%P = reshape([0d0, 0d0, 1d0, 1d0, 0d0, 0d0, 0d0, 1d0, 0d0],[3,3])
+            imid = 1
+            matrices%P = reshape([0d0, 0d0, 1d0, 1d0, 0d0, 0d0, 0d0, 1d0, 0d0],[3,3])
 			end if
 		end if
-		matrices%Ip(1) = minval([mesh%I(1,1),mesh%I(2,2),mesh%I(3,3)])
-		matrices%Ip(3) = maxval([mesh%I(1,1),mesh%I(2,2),mesh%I(3,3)])
-		matrices%Ip(2) = mesh%I(imid,imid)
+      matrices%Ip(1) = minval([mesh%I(1,1),mesh%I(2,2),mesh%I(3,3)])
+      matrices%Ip(3) = maxval([mesh%I(1,1),mesh%I(2,2),mesh%I(3,3)])
+      matrices%Ip(2) = mesh%I(imid,imid)
 	else
-		matrices%Ip = [mesh%I(1,1),mesh%I(2,2),mesh%I(3,3)]
+      matrices%Ip = [mesh%I(1,1),mesh%I(2,2),mesh%I(3,3)]
 	end if
 else
-	! P will be the rotation matrix between principal axes and laboratory
-	! axes, so that diag(Ip) = P'*I*P
-	matrices%P = mesh%I
-	call diasym(matrices%P, matrices%Ip)
+   ! P will be the rotation matrix between principal axes and laboratory
+   ! axes, so that diag(Ip) = P'*I*P
+   matrices%P = mesh%I
+   call diasym(matrices%P, matrices%Ip)
 end if
 
 ! Probably the choice in DDSCAT: force eigenvectors to have mostly positive
