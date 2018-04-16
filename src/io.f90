@@ -994,7 +994,7 @@ if(exists)then
 !     if(real(Taai(j,1,i))/=0d0) num = num + 1
 !   end do
 !   matrices%Nmaxs(i) = int(dsqrt(real(num)+1d0)-1d0)
-    matrices%Nmaxs( i ) = truncation_order( mesh%ki(i) * mesh%a, 4d0 )
+    matrices%Nmaxs( i ) = truncation_order( mesh%ki(i) * mesh%a )
   end do
   !******************************************************************
 end if
