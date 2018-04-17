@@ -588,19 +588,19 @@ open(unit=1, file=fname, ACTION="write", STATUS="replace")
 
 write(1,'(A, A)')        'meshname =   ', mesh%meshname
 write(1,'(A, 3f7.3)')    'k_hat    = ', matrices%khat
-write(1,'(A, 3ES11.3)')    'dt       = ', matrices%dt
+write(1,'(A, 3ES11.3)')  'dt       = ', matrices%dt
 write(1,'(A,I20)')       'Nmax     = ', matrices%it_max
-write(1,'(A, 3ES11.3)')    'w0       = ', matmul(matmul(matrices%P,matrices%R),&
+write(1,'(A, 3ES11.3)')  'w0       = ', matmul(matmul(matrices%P,matrices%R),&
 matrices%w)
 write(1,'(A, 9f7.3)')    'R0       = ', matrices%R
-write(1,'(A, 3ES11.3)')    'rho      = ', mesh%rho
+write(1,'(A, 3ES11.3)')  'rho      = ', mesh%rho
 write(1,'(A, 3ES11.3)')  'CM       = ', matrices%CM
 write(1,'(A, 3ES11.3)')  'a        = ', mesh%a
 write(1,'(A, 80ES11.3)') 'ki       = ', mesh%ki
 write(1,'(A, 2f8.2)')    'range nm = ', matrices%lambda1*1d9,matrices%lambda2*1d9
 write(1,'(A, 3ES11.3)')  'mass     = ', mesh%mass
 write(1,'(A, 3ES11.3)')  'V        = ', mesh%V
-write(1,'(A, 3ES11.3)')    'rot_max  = ', matrices%rot_max
+write(1,'(A, 3ES11.3)')  'rot_max  = ', matrices%rot_max
 write(1,'(A)')           'Ip       = '
 write(1,'(9ES11.3)') matrices%Ip(:)
 write(1,'(A)')           'Q        = '
@@ -699,7 +699,7 @@ file = mesh%meshname
 call h5open_f(error)
 call h5fopen_f(file, H5F_ACC_RDWR_F, file_id, error) 
 
-!******************************************************************
+!******************************************************************************
 
 call h5dopen_f(file_id, coord_dataset, coord_dataset_id, error) 
 call h5dget_space_f(coord_dataset_id, coord_dataspace_id, error) 
@@ -708,7 +708,7 @@ allocate(coord(coord_dims(1), coord_dims(2)))
 call h5dread_f(coord_dataset_id, H5T_NATIVE_DOUBLE, coord, coord_dims, error)
 call h5dclose_f(coord_dataset_id, error) 
 
-!******************************************************************
+!******************************************************************************
 
 call h5dopen_f(file_id, etopol_dataset, etopol_dataset_id, error)
 call h5dget_space_f(etopol_dataset_id, etopol_dataspace_id, error) 
@@ -717,7 +717,7 @@ allocate(etopol(etopol_dims(1), etopol_dims(2)))
 call h5dread_f(etopol_dataset_id, H5T_NATIVE_INTEGER, etopol, etopol_dims, error)
 call h5dclose_f(etopol_dataset_id, error)
 
-!******************************************************************
+!******************************************************************************
 
 call h5dopen_f(file_id, param_r_dataset, param_r_dataset_id, error) 
 call h5dget_space_f(param_r_dataset_id, param_r_dataspace_id, error) 
@@ -730,7 +730,7 @@ end if
 call h5dread_f(param_r_dataset_id, H5T_NATIVE_DOUBLE, param_r, param_r_dims, error)
 call h5dclose_f(param_r_dataset_id, error)
 
-!******************************************************************
+!******************************************************************************
 
 call h5dopen_f(file_id, param_i_dataset, param_i_dataset_id, error) 
 call h5dget_space_f(param_i_dataset_id, param_i_dataspace_id, error) 
@@ -743,7 +743,7 @@ end if
 call h5dread_f(param_i_dataset_id, H5T_NATIVE_DOUBLE, param_i, param_i_dims, error)
 call h5dclose_f(param_i_dataset_id, error)
 
-!******************************************************************
+!******************************************************************************
 
 call h5fclose_f(file_id, error) 
 call h5close_f(error) 
@@ -802,7 +802,7 @@ real(dp), dimension(:), allocatable :: radius
 call h5open_f(error) ! initialize interface
 call h5fopen_f(mesh%meshname, H5F_ACC_RDWR_F, file_id, error) ! open file
 
-!* COORD **********************************************************
+!* COORD **********************************************************************
 
 call h5dopen_f(file_id, dataset1, dataset1_id, error)
 call h5dget_space_f(dataset1_id, dataspace1_id, error) 
@@ -811,7 +811,7 @@ allocate(coord(coord_dims(1), coord_dims(2)))
 call h5dread_f(dataset1_id, H5T_NATIVE_DOUBLE, coord, coord_dims, error)
 call h5dclose_f(dataset1_id, error)
 
-!* RADIUS *********************************************************
+!* RADIUS *********************************************************************
 
 call h5dopen_f(file_id, dataset2, dataset2_id, error)
 call h5dget_space_f(dataset2_id, dataspace2_id, error) 
@@ -820,7 +820,7 @@ allocate(radius(coord_dims(2)))
 call h5dread_f(dataset2_id, H5T_NATIVE_DOUBLE, radius, coord_dims, error)
 call h5dclose_f(dataset2_id, error)
 
-!******************************************************************
+!******************************************************************************
 
 call h5fclose_f(file_id, error) ! close file
 call h5close_f(error) ! close inteface
@@ -878,7 +878,7 @@ file = matrices%tname
 call h5open_f(error)
 call h5fopen_f(file, H5F_ACC_RDWR_F, file_id, error) 
 
-!******************************************************************
+!******************************************************************************
 
 call h5dopen_f(file_id, dataset1, dataset1_id, error) 
 call h5dget_space_f(dataset1_id, dataspace_id, error) 
@@ -897,7 +897,7 @@ call h5dclose_f(dataset2_id, error)
 allocate(Taai(size(Taai_r,1),size(Taai_r,1), dims(3)))
 Taai = dcmplx(Taai_r, Taai_i)
 
-!******************************************************************
+!******************************************************************************
 
 call h5dopen_f(file_id, dataset3, dataset3_id, error)
 call h5dget_space_f(dataset3_id, dataspace_id, error) 
@@ -916,7 +916,7 @@ call h5dclose_f(dataset4_id, error)
 allocate(Tabi(size(Tabi_r,1),size(Tabi_r,1), dims(3)))
 Tabi = dcmplx(Tabi_r, Tabi_i)
 
-!******************************************************************
+!******************************************************************************
 
 call h5dopen_f(file_id, dataset5, dataset5_id, error)
 call h5dget_space_f(dataset5_id, dataspace_id, error) 
@@ -935,7 +935,7 @@ call h5dclose_f(dataset6_id, error)
 allocate(Tbai(size(Tbai_r,1),size(Tbai_r,1), dims(3)))
 Tbai = dcmplx(Tbai_r, Tbai_i)
 
-!******************************************************************
+!******************************************************************************
 
 call h5dopen_f(file_id, dataset7, dataset7_id, error) 
 call h5dget_space_f(dataset7_id, dataspace_id, error) 
@@ -954,7 +954,7 @@ call h5dclose_f(dataset8_id, error)
 allocate(Tbbi(size(Tbbi_r,1),size(Tbbi_r,1), dims(3)))
 Tbbi = dcmplx(Tbbi_r, Tbbi_i)
 
-!******************************************************************
+!******************************************************************************
 
 call h5lexists_f(file_id, dataset9, exists, error)
 if(exists)then
@@ -978,7 +978,7 @@ if(exists)then
     matrices%refi = imag(ref)
   end if
 
-  !******************************************************************
+  !****************************************************************************
 
   call h5dopen_f(file_id, dataset10, dataset10_id, error)
   call h5dget_space_f(dataset10_id, dataspace_id, error) 
@@ -996,7 +996,7 @@ if(exists)then
 !   matrices%Nmaxs(i) = int(dsqrt(real(num)+1d0)-1d0)
     matrices%Nmaxs( i ) = truncation_order( mesh%ki(i) * mesh%a )
   end do
-  !******************************************************************
+  !****************************************************************************
 end if
 
 call h5fclose_f(file_id, error) 
