@@ -349,19 +349,20 @@ end function barnett_torque
 function DG_torque(matrices, mesh) result(N)
 type(data) :: matrices
 type(mesh_struct) :: mesh
-real(dp) :: a,psi,xi,phi,Kw, V, tau
+real(dp) :: a,psi,xi,phi,Kw, V, tau, mag_B
 real(dp), dimension(3, 3) :: RT, R_k, R_k90
 complex(dp), dimension(3) :: F, N 
 real(dp), dimension(3)    :: a3, tmp, w, mu_Bar, B, B_perp, proj_Bperp_a3, psi_vec
 integer :: i
 
+mag_B = vlen(matrices%B)
 Kw = 10d0**(-13)
 
 a3 = matrices%P(:,3)
 V = mesh%V
 w = matrices%w
-tau = matrices%Ip(3)/(Kw*V*vlen(matrices%B)**2)
-B = matrices%B/vlen(matrices%B)
+tau = matrices%Ip(3)/(Kw*V*mag_B**2)
+B = matrices%B/mag_B
 B_perp = crossRR([0d0,1d0,0d0],B)
 proj_Bperp_a3 = a3-dot_product(a3,B_perp)*a3
 proj_Bperp_a3 = proj_Bperp_a3/vlen(proj_Bperp_a3)
@@ -381,6 +382,8 @@ dcos(xi)*dsin(phi), -dsin(psi)*dcos(xi)*dcos(phi) - dcos(psi)*dsin(xi) ]
 tmp = -(dsin(xi)*dcos(xi)*psi_vec + dsin(xi)*dsin(xi)*a3)*matrices%Ip(3)*vlen(w)/tau
 
 N = dcmplx(tmp,0d0)
+
+if(mag_B<1d-16) N = dcmplx(0d0)
 
 end function DG_torque
 

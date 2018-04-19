@@ -18,7 +18,8 @@ complex(dp), dimension(:,:), allocatable :: MM_nm, NN_nm
 ! Now, to comply with the properties of DDSCAT, the scattering happens
 ! with respect to the particle principal axes
 matrices%khat = matrices%P(:,3)
-matrices%B = vlen(matrices%B)*(0.5d0*matrices%P(:,1) + matrices%P(:,3))
+! matrices%B = vlen(matrices%B)*(0.5d0*matrices%P(:,1) + matrices%P(:,3))
+write(*,'(A, 3ES11.3)') ' B: ', matrices%B
 matrices%Rexp = find_Rexp( matrices )
 matrices%Rexp = transpose( matrices%Rexp )
 
