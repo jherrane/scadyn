@@ -518,6 +518,31 @@ end subroutine write_mueller
 
 !******************************************************************************
 
+subroutine write_mueller2(A,fname)
+real(dp), intent(in) :: A(:,:)
+CHARACTER(LEN=80), intent(in) :: fname
+INTEGER(HSIZE_T), DIMENSION(2) :: dims  ! Dataset dimensions
+
+INTEGER     :: i, j
+
+dims = (/size(A,1),size(A,2)/)
+
+open(unit=1, file=trim(fname), ACTION="write", STATUS="replace")
+write(1,'(19A)') ' N_size ','     N_ia ','    N_pts ','      S11  ','         S12  ',&
+'         S13  ','         S14  ','         S21  ','         S22  ','         S23  ',&
+'         S24  ','         S31  ','         S32  ','         S33  ','         S34  ',&
+'         S41  ','         S42  ','         S43  ','         S44  '
+
+do i = 1,dims(1)
+ write(1,'(3I8,16ES14.4)') int(A(i,1:3)), A(i,4:19)
+end do
+
+close(1)
+
+end subroutine write_mueller2
+
+!******************************************************************************
+
 subroutine init_values( matrices, mesh )
 
 type( data ) :: matrices

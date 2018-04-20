@@ -59,6 +59,7 @@ ${BINDIR}/forces.o \
 ${BINDIR}/bessel.o \
 ${BINDIR}/shapebeam.o \
 ${BINDIR}/integrator.o \
+${BINDIR}/mueller.o \
 ${BINDIR}/postprocessing.o \
 ${BINDIR}/main.o
 
