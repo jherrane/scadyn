@@ -326,8 +326,11 @@ do while (ios == 0)
          case('tol_m')
             read(buffer, *, iostat=ios) matrices%tol_m
          case('B')
-            read(buffer,*,iostat=ios) matrices%B
-            if(vlen(matrices%B)>1d-14) calc_extra_torques = 1
+            read(buffer,*,iostat=ios) matrices%B_len
+            if(matrices%B_len>1d-14) calc_extra_torques = 1
+         case('B_psi')
+            read(buffer,*,iostat=ios) matrices%B_psi
+            matrices%B_psi = matrices%B_psi*pi/180
          case('beam_shape')
             read(buffer, *, iostat=ios) beam_shape
          case('pl')
@@ -344,6 +347,7 @@ close(fh)
 if(temp > 1d-7) matrices%refi = tempii
 matrices%it_stop = matrices%it_max
 mesh%is_mesh = 1 - matrices%is_aggr
+matrices%B = matrices%B_len*(matmul(R_aa([0d0,1d0,0d0],matrices%B_psi),[0d0,0d0,1d0]))
 allocate(mesh%ki(matrices%bars))
 allocate(matrices%E_rel(matrices%bars))
 allocate(matrices%Nmaxs(matrices%bars))

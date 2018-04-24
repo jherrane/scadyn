@@ -73,8 +73,7 @@ if(run_test == 1) call test_methods(matrices, mesh)
 if(run_test == 2) call torque_efficiency(matrices, mesh)
 if(run_test == 3) call stability_analysis(matrices, mesh)
 if(run_test == 4) call write_fields(matrices,mesh)
-
-call test_mueller(matrices,mesh)
+if(run_test == 5) call test_mueller(matrices,mesh)
 
 end subroutine tests
 

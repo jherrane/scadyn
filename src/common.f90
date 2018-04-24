@@ -76,7 +76,7 @@ type data
    real(dp), dimension(3) :: khat, w, x_CM, v_CM, N, wn, xn, vn, J, F, Ip, CM,&
    dw, k_orig, E0_orig, E90_orig, Q_t, Q_f, B
    real(dp) ::  khi_0, rot_max, lambda1, lambda2, temp, dt0, dt, tt, &
-   E, refr, refi, tol_m, M1, M3
+   E, refr, refi, tol_m, M1, M3, B_psi
 
    integer, dimension(:,:,:), allocatable :: listindS, indDs, indD90s, indXs, indYs
    integer, dimension(:,:), allocatable :: indS, T_ind, indS_loc, sp_ind
@@ -91,6 +91,8 @@ type data
    character(LEN=80) :: out = 'log'
    character(LEN=80) :: mueller = 'mueller'
    character(len=8)  :: mueller_mode = 'none'
+
+   real(dp)          :: B_len = 0d0
 end type data
 
 type data_struct
