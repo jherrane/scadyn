@@ -161,56 +161,32 @@ Bang = 360 ! Angle of averaging over beta
 allocate(Q_coll(3,Nang))
 Q_coll(:,:) = 0d0
 
-! ! Torque efficiency calculations
-! write(*,'(A)') '  Starting the calculation of beta-averaged torque efficiency:'
-! ! Theta loop
-! do i=0,Nang-1
-!    theta = dble(i)*pi/180d0
-!    R_thta = R_theta(matrices, theta)
+! Torque efficiency calculations as in Lazarian2007b
+write(*,'(A)') '  Starting the calculation of beta-averaged torque efficiency:'
+! Theta loop
+do i=0,Nang-1
+   Q_t = 0d0
+   theta = dble(i)*pi/180d0
+   ! Beta averaging loop
+	do j = 0,Bang-1
+      ! Find rotation of angle beta around the rotated a_3-axis
+      beta = dble(j)*pi/Bang*2d0
+      
+      ! Flip the coordinate labels to match Lazarian2007b
+      Q_t = matmul(matrices%Rkt,Qt(matrices,mesh,theta,beta,0d0))
+      Q_t = [dot_product(Q_t,k0),dot_product(Q_t,E0),dot_product(Q_t,E90)]
+      Q_coll(:,i+1) = Q_coll(:,i+1) + Q_t/Bang
+	end do
+   call print_bar(i+1,Nang)
+end do
 
-!    ! Rotation axis for beta averaging for current theta
-!    nbeta = matmul(R_thta,a_3) ! Beta rotation about a_3
-!    nbeta = nbeta/vlen(nbeta) ! Ensure unit length of axis vector
-
-!    ! Beta averaging loop
-! 	do j = 0,Bang-1
-!       Q_t = 0d0
-
-!       ! Find rotation of angle beta around the rotated a_3-axis
-!       beta = dble(j)*pi/Bang*2d0
-!       R_beta = R_aa(nbeta,beta)
-
-!       ! The ultimate rotation matrices for scattering event
-!       matrices%R = matmul(R_beta,R_thta) ! First a_3 to theta, then beta about a_3
-!       call rot_setup(matrices)
-
-! 		if (matrices%whichbar == 0) then
-! 			do k = 1,matrices%bars
-!             call forcetorque(k, matrices, mesh)
-!             Q_t = Q_t + matrices%Q_t/matrices%bars
-! 			end do
-! 		else
-!          k = matrices%whichbar
-!          call forcetorque(k, matrices, mesh)
-!          Q_t = Q_t + matrices%Q_t
-! 		end if
-
-!       ! Flip the coordinate labels to match Lazarian2007b
-!       Q_t = matmul(matrices%Rkt,Q_t)
-!       Q_t = [dot_product(Q_t,k0),dot_product(Q_t,E0),dot_product(Q_t,E90)]
-!       Q_coll(:,i+1) = Q_coll(:,i+1) + Q_t/Bang
-! 	end do
-!    call print_bar(i+1,Nang)
-
-! end do
-
-! open(unit=1, file="out/Q.out", ACTION="write", STATUS="replace")
-! write(1,'(A)') 'cos(theta)  Q_{t,1} Q_{t,2} Q_{t,3}'
-! do i = 0,Nang-1
-! theta = dble(i)*pi/180d0
-! write(1,'(4E12.3)') dcos(theta), Q_coll(:,i+1)
-! end do
-! close(1)
+open(unit=1, file="out/Q.out", ACTION="write", STATUS="replace")
+write(1,'(A)') 'cos(theta)  Q_{t,1} Q_{t,2} Q_{t,3}'
+do i = 0,Nang-1
+theta = dble(i)*pi/180d0
+write(1,'(4E12.3)') dcos(theta), Q_coll(:,i+1)
+end do
+close(1)
 
 ! Radiative torque calculations, emulating work of Draine & Weingartner (1997), ApJ 480:633
 allocate(psis(5))

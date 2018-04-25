@@ -381,7 +381,7 @@ dcos(xi)*dsin(phi), -dsin(psi)*dcos(xi)*dcos(phi) - dcos(psi)*dsin(xi) ]
 
 tmp = -(dsin(xi)*dcos(xi)*psi_vec + dsin(xi)*dsin(xi)*a3)*matrices%Ip(3)*vlen(w)/tau
 
-N = dcmplx(tmp,0d0)
+N = dcmplx(tmp, 0d0)
 
 if(mag_B<1d-16) N = dcmplx(0d0)
 
@@ -389,7 +389,7 @@ end function DG_torque
 
 !******************************************************************************
 ! The radiative alignment torque, from Weingartner & Draine (2003)
-function F_align(Qt,xi,phi,psi) result(F)
+function F_align(Qt, xi, phi, psi) result(F)
 real(dp) :: e_1(3), e_2(3), e_3(3), Qt(3), xi, phi, psi, F
 e_1 = [1d0, 0d0, 0d0]
 e_2 = [0d0, 1d0, 0d0]
@@ -402,7 +402,7 @@ end function F_align
 
 !******************************************************************************
 ! The radiative spin-up torque, from Weingartner & Draine (2003)
-function H_align(Qt,xi,phi,psi) result(H)
+function H_align(Qt, xi, phi, psi) result(H)
 real(dp) :: e_1(3), e_2(3), e_3(3), Qt(3), xi, phi, psi, H
 e_1 = [1d0, 0d0, 0d0]
 e_2 = [0d0, 1d0, 0d0]
@@ -415,7 +415,7 @@ end function H_align
 
 !******************************************************************************
 ! The radiative precession torque, from Weingartner & Draine (2003)
-function G_align(Qt,xi,phi,psi) result(G)
+function G_align(Qt, xi, phi, psi) result(G)
 real(dp) :: e_1(3), e_2(3), e_3(3), Qt(3), xi, phi, psi, G
 e_1 = [1d0, 0d0, 0d0]
 e_2 = [0d0, 1d0, 0d0]
@@ -424,5 +424,44 @@ G = dot_product(Qt,e_3)*sin(psi)*sin(phi) - dot_product(Qt,e_2)*cos(psi)*sin(phi
 + dot_product(Qt,e_1)*cos(phi)
 
 end function G_align
+
+!******************************************************************************
+! Torque efficiency as a function of capital theta and phi (as in the works of
+! Draine and Weingartner)
+function Qt(matrices, mesh, theta, beta, phi) result(Q)
+type(data) :: matrices
+type(mesh_struct) :: mesh
+real(dp) :: R_thta(3,3), nbeta(3), R_beta(3,3), Q(3), theta, beta, phi, &
+k0(3), E0(3), E90(3), a_3(3)
+integer :: k
+
+Q = 0d0
+
+a_3 = matrices%P(1:3,3)
+
+R_thta = R_theta(matrices, theta)
+
+! Rotation axis for beta averaging for current theta
+nbeta = matmul(R_thta,a_3) ! Beta rotation about a_3
+nbeta = nbeta/vlen(nbeta) ! Ensure unit length of axis vector
+
+R_beta = R_aa(nbeta,beta)
+
+! The ultimate rotation matrices for scattering event
+matrices%R = matmul(R_beta,R_thta) ! First a_3 to theta, then beta about a_3
+call rot_setup(matrices)
+
+if (matrices%whichbar == 0) then
+   do k = 1,matrices%bars
+      call forcetorque(k, matrices, mesh)
+      Q = Q + matrices%Q_t/matrices%bars
+   end do
+else
+   k = matrices%whichbar
+   call forcetorque(k, matrices, mesh)
+   Q = Q + matrices%Q_t
+end if
+
+end function Qt
 
 end module forces
