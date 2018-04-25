@@ -141,11 +141,11 @@ subroutine torque_efficiency( matrices, mesh )
 type(data) :: matrices
 type(mesh_struct) :: mesh
 integer :: i, j, k, Nang, Bang, psi_deg, ind
-real(dp), dimension(3, 3) ::  R_beta, R_thta, R_Jb, R_B, R_xi, R_phi
-real(dp), dimension(3) :: k0, E0, E90, Q_t, nbeta, a_3, Jb, x_B, y_lab
+real(dp), dimension(3, 3) ::  R_beta, R_phi, R_thta, R_Jb, R_B, R_xi
+real(dp), dimension(3) :: k0, E0, E90, Q_t, nbeta, nphi, a_3, Jb, x_B, y_lab
 real(dp) :: theta, beta, xi, phi, psi
 real(dp), dimension(:,:), allocatable :: Q_coll, F_coll
-
+real(dp), dimension(:), allocatable :: psis
 call rot_setup(matrices)
 
 k0 = matrices%khat
@@ -161,99 +161,99 @@ Bang = 360 ! Angle of averaging over beta
 allocate(Q_coll(3,Nang))
 Q_coll(:,:) = 0d0
 
-! Torque efficiency calculations
-write(*,'(A)') '  Starting the calculation of beta-averaged torque efficiency:'
-! Theta loop
-do i=0,Nang-1
-   theta = dble(i)*pi/180d0
-   R_thta = R_theta(matrices, theta)
+! ! Torque efficiency calculations
+! write(*,'(A)') '  Starting the calculation of beta-averaged torque efficiency:'
+! ! Theta loop
+! do i=0,Nang-1
+!    theta = dble(i)*pi/180d0
+!    R_thta = R_theta(matrices, theta)
 
-   ! Rotation axis for beta averaging for current theta
-   nbeta = matmul(R_thta,a_3) ! Beta rotation about a_3
-   nbeta = nbeta/vlen(nbeta) ! Ensure unit length of axis vector
+!    ! Rotation axis for beta averaging for current theta
+!    nbeta = matmul(R_thta,a_3) ! Beta rotation about a_3
+!    nbeta = nbeta/vlen(nbeta) ! Ensure unit length of axis vector
 
-   ! Beta averaging loop
-	do j = 0,Bang-1
-      Q_t = 0d0
+!    ! Beta averaging loop
+! 	do j = 0,Bang-1
+!       Q_t = 0d0
 
-      ! Find rotation of angle beta around the rotated a_3-axis
-      beta = dble(j)*pi/Bang*2d0
-      R_beta = R_aa(nbeta,beta)
+!       ! Find rotation of angle beta around the rotated a_3-axis
+!       beta = dble(j)*pi/Bang*2d0
+!       R_beta = R_aa(nbeta,beta)
 
-      ! The ultimate rotation matrices for scattering event
-      matrices%R = matmul(R_beta,R_thta) ! First a_3 to theta, then beta about a_3
-      call rot_setup(matrices)
+!       ! The ultimate rotation matrices for scattering event
+!       matrices%R = matmul(R_beta,R_thta) ! First a_3 to theta, then beta about a_3
+!       call rot_setup(matrices)
 
-		if (matrices%whichbar == 0) then
-			do k = 1,matrices%bars
-            call forcetorque(k, matrices, mesh)
-            Q_t = Q_t + matrices%Q_t
-			end do
-		else
-         k = matrices%whichbar
-         call forcetorque(k, matrices, mesh)
-         Q_t = Q_t + matrices%Q_t
-		end if
+! 		if (matrices%whichbar == 0) then
+! 			do k = 1,matrices%bars
+!             call forcetorque(k, matrices, mesh)
+!             Q_t = Q_t + matrices%Q_t/matrices%bars
+! 			end do
+! 		else
+!          k = matrices%whichbar
+!          call forcetorque(k, matrices, mesh)
+!          Q_t = Q_t + matrices%Q_t
+! 		end if
 
-      ! Flip the coordinate labels to match Lazarian2007b
-      Q_t = matmul(matrices%Rkt,Q_t)
-      Q_t = [dot_product(Q_t,k0),dot_product(Q_t,E0),dot_product(Q_t,E90)]
-      Q_coll(:,i+1) = Q_coll(:,i+1) + Q_t/Bang
-	end do
-   call print_bar(i+1,Nang)
+!       ! Flip the coordinate labels to match Lazarian2007b
+!       Q_t = matmul(matrices%Rkt,Q_t)
+!       Q_t = [dot_product(Q_t,k0),dot_product(Q_t,E0),dot_product(Q_t,E90)]
+!       Q_coll(:,i+1) = Q_coll(:,i+1) + Q_t/Bang
+! 	end do
+!    call print_bar(i+1,Nang)
 
-end do
-if(matrices%whichbar==0) Q_coll = Q_coll/matrices%bars
+! end do
 
-open(unit=1, file="out/Q.out", ACTION="write", STATUS="replace")
-write(1,'(A)') 'cos(theta)  Q_{t,1} Q_{t,2} Q_{t,3}'
-do i = 0,Nang-1
-theta = dble(i)*pi/180d0
-write(1,'(4E12.3)') dcos(theta), Q_coll(:,i+1)
-end do
-close(1)
+! open(unit=1, file="out/Q.out", ACTION="write", STATUS="replace")
+! write(1,'(A)') 'cos(theta)  Q_{t,1} Q_{t,2} Q_{t,3}'
+! do i = 0,Nang-1
+! theta = dble(i)*pi/180d0
+! write(1,'(4E12.3)') dcos(theta), Q_coll(:,i+1)
+! end do
+! close(1)
 
-! Radiative torque calculations
-allocate(F_coll(6,Nang*7))
+! Radiative torque calculations, emulating work of Draine & Weingartner (1997), ApJ 480:633
+allocate(psis(5))
+psis = [1d0, 30d0, 60d0, 80d0, 90d0]
+
+allocate(F_coll(6,Nang*size(psis,1)))
 F_coll(:,:) = 0d0
 ind = 0
 
 write(*,'(A)') '  Starting the calculation of beta-averaged radiative torques:'
-do psi_deg = 0,90,15
-   psi = dble(psi_deg)*pi/180
-   y_lab = [0d0, 1d0, 0d0]
-   x_B = matmul(R_aa(-y_lab,psi),[1d0,0d0,0d0])
+do psi_deg = 1,size(psis,1)
+   psi = dble(psis(psi_deg))*pi/180
+   ! y_lab = [0d0, 1d0, 0d0]
+   ! x_B = matmul(R_aa(y_lab,psi),[1d0,0d0,0d0])
+   x_B = [0d0,1d0,0d0]
    R_B = rotate_a_to_b(a_3,matrices%B)
    a_3 = matmul(R_B,a_3)
    Q_coll = 0d0
    ! Xi loop
-   phi = 0d0
+
    do i=0,Nang-1
       xi = dble(i)*pi/180d0
       
-      R_xi = R_aa(-x_B,xi)
-      R_phi = R_aa(matrices%B,phi)
+      R_xi = R_aa(x_B,xi)
 
-      ! Rotation axis for beta averaging for current xi
-      nbeta = matmul(R_xi,a_3)
-      nbeta = matmul(R_phi,nbeta)
-      nbeta = nbeta/vlen(nbeta) ! Ensure unit length of axis vector
+      ! Rotation axis for precession averaging for current xi
+      nphi = matrices%B/vlen(matrices%B) ! Ensure unit length of axis vector
       ! Beta averaging loop
       do j = 0,Bang-1
          Q_t = 0d0
 
          ! Find rotation of angle beta around the rotated a_3-axis
-         beta = dble(j)*pi/Bang*2d0
-         R_beta = R_aa(nbeta,beta)
+         phi = dble(j)*pi/Bang*2d0
+         R_phi = R_aa(nphi,phi)
 
          ! The ultimate rotation matrices for scattering event
-         matrices%R = matmul(R_beta,matmul(R_phi,R_xi)) ! First a_3 to xi, then beta about a_3
+         matrices%R = matmul(R_phi,R_xi) ! First a_3 to xi, then beta about a_3
          call rot_setup(matrices)
 
          if (matrices%whichbar == 0) then
             do k = 1,matrices%bars
                call forcetorque(k, matrices, mesh)
-               Q_t = Q_t + matrices%Q_t
+               Q_t = Q_t + matrices%Q_t/matrices%bars
             end do
          else
             k = matrices%whichbar
@@ -261,27 +261,23 @@ do psi_deg = 0,90,15
             Q_t = Q_t + matrices%Q_t
          end if
 
-         ! Flip the coordinate labels to match Lazarian2007b
-         Q_t = matmul(matrices%Rkt,Q_t)
+         Q_t = matmul(matrices%R,Q_t)
          Q_coll(:,i+1) = Q_coll(:,i+1) + Q_t/Bang
       end do
-      F_coll(1:3,ind+1) = [xi, phi, psi]
-      F_coll(4,ind+1) = F_align(Q_coll(:,i+1),xi,phi,psi)
-      F_coll(5,ind+1) = H_align(Q_coll(:,i+1),xi,phi,psi)
-      F_coll(6,ind+1) = G_align(Q_coll(:,i+1),xi,phi,psi)
+      F_coll(1:2,ind+1) = [xi, psi]
+      F_coll(3,ind+1) = F_align(Q_coll(:,i+1),xi,phi,psi)
+      F_coll(4,ind+1) = H_align(Q_coll(:,i+1),xi,phi,psi)
+      F_coll(5,ind+1) = G_align(Q_coll(:,i+1),xi,phi,psi)
       call print_bar(ind,size(F_coll,2))
       ind = ind + 1
 
    end do
-
 end do
-
-if(matrices%whichbar==0) F_coll(4:6,:) = F_coll(4:6,:)/matrices%bars
 
 open(unit=1, file="out/F.out", ACTION="write", STATUS="replace")
 write(1,'(A)') 'xi   phi   psi   F  H  G'
 do i = 0,size(F_coll,2)-1
-write(1,'(6E12.3)') dcos(F_coll(1:3,i+1)), F_coll(4:6,i+1)
+write(1,'(6E12.3)') dcos(F_coll(1:2,i+1)), F_coll(3:5,i+1)
 end do
 close(1)
 

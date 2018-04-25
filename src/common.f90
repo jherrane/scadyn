@@ -775,88 +775,30 @@ end function mat2euler
 
 !******************************************************************************
 
-function find_Rexp(matrices) result(R)
-type (data), intent(in) :: matrices
-real(dp), dimension(3,3) :: I, R, R_pol
-real(dp), dimension(3) :: k, knew, ax, xx, ei, E0, Ex
-real(dp) :: tolerance, theta, ax_norm, s, c, t, x, y, z, psi
-integer :: ii
-
-tolerance = 1.d-6
-
-k = matrices%khat
-E0 = real(matrices%E0hat)
-Ex = [1d0,0d0,0d0]
-knew = dble((/0.d0,0.d0,1.d0/))
-I = eye(3)
-
-theta = dot_product(k,knew)
-if(theta < 0.d0) then
- theta = dacos(max(theta,-1.d0))
-else
- theta = dacos(min(theta,1.d0))
-end if
-
-ax = crossRR(k, knew)
-ax_norm = vlen(ax)
-if(theta < tolerance) then
- R = eye(3)
- return
-else if(pi-theta < tolerance)then
- ei = 0.d0
- ei(minloc(abs(k))) = 1.d0
- xx = crossRR(k,ei)
- ax = xx/vlen(xx)
-! R = eye(3)
-! R(3,3) = -1.d0
- !return
-else
- ax = ax/ax_norm
-end if
-
-s = sin(theta)
-c = cos(theta)
-t = 1d0 - c
-
-x = ax(1)
-y = ax(2)
-z = ax(3)
-
-R = reshape([t*x*x + c, t*x*y + s*z, t*x*z - s*y, t*x*y - s*z, &
-t*y*y + c, t*y*z + s*x, t*x*z + s*y, t*y*z - s*x, t*z*z + c],[3,3])
-
-end function find_Rexp
-
-!******************************************************************************
-
 function rotate_a_to_b(a,b) result(R)
 real(dp), dimension(3), intent(in) :: a, b
-real(dp), dimension(3,3) :: I, R
-real(dp), dimension(3) :: k, knew, ax, xx, ei
+real(dp), dimension(3,3) :: R
+real(dp), dimension(3) :: ax, xx, ei
 real(dp) :: tolerance, theta, ax_norm, s, c, t, x, y, z
 
 tolerance = 1.d-6
 
-k = a
-knew = b
-I = eye(3)
-
-theta = dot_product(k,knew)
+theta = dot_product(a,b)
 if(theta < 0.d0) then
  theta = dacos(max(theta,-1.d0))
 else
  theta = dacos(min(theta,1.d0))
 end if
 
-ax = crossRR(k, knew)
+ax = crossRR(a, b)
 ax_norm = vlen(ax)
 if(theta < tolerance) then
  R = eye(3)
  return
 else if(pi-theta < tolerance)then
  ei = 0.d0
- ei(minloc(abs(k))) = 1.d0
- xx = crossRR(k,ei)
+ ei(minloc(abs(a))) = 1.d0
+ xx = crossRR(a,ei)
  ax = xx/vlen(xx)
 ! R = eye(3)
 ! R(3,3) = -1.d0
@@ -877,6 +819,20 @@ R = reshape([t*x*x + c, t*x*y + s*z, t*x*z - s*y, t*x*y - s*z, &
 t*y*y + c, t*y*z + s*x, t*x*z + s*y, t*y*z - s*x, t*z*z + c],[3,3])
 
 end function rotate_a_to_b
+
+!******************************************************************************
+
+function find_Rexp(matrices) result(R)
+type (data), intent(in) :: matrices
+real(dp), dimension(3,3) :: R
+real(dp), dimension(3) :: k, knew
+
+k = matrices%khat
+knew = dble((/0.d0,0.d0,1.d0/))
+
+R = rotate_a_to_b(k,knew)
+
+end function find_Rexp
 
 !******************************************************************************
 
