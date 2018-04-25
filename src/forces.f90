@@ -464,4 +464,14 @@ end if
 
 end function Qt
 
+!******************************************************************************
+! Calculates orientation angles in terms of alignment angles xi, psi and phi
+function thetaphi(xi,psi,phi) result(tp)
+real(dp) :: xi, psi, phi, tp(2)
+
+tp(1) = dacos(cos(psi)*cos(xi) - sin(psi)*sin(xi)*cos(phi))
+tp(2) = 2*datan2(sin(tp(1)) - sin(psi)*cos(xi) - cos(psi)*sin(xi)*cos(phi), sin(xi)*sin(phi))
+
+end function thetaphi
+
 end module forces
