@@ -145,20 +145,19 @@ real(dp), dimension(3, 3) ::  R_beta, R_phi, R_thta, R_Jb, R_B, R_xi
 real(dp), dimension(3) :: k0, E0, E90, Q_t, nbeta, nphi, a_3, Jb, x_B, y_lab
 real(dp) :: theta, beta, xi, phi, psi
 real(dp), dimension(:,:), allocatable :: Q_coll, F_coll
-real(dp), dimension(:), allocatable :: psis
+real(dp), dimension(:), allocatable :: psis, thetas
 call rot_setup(matrices)
 
 k0 = matrices%khat
 E0 = real(matrices%E0hat)
 E90 = real(matrices%E90hat)
-
 a_3 = matrices%P(1:3,3)
-!~ write(*,'(A,3F7.3)') '  a_3  =', a_3
 
-Nang = 180 ! Angle of rotation of a_3 about e_1 (when psi=0)
-Bang = 360 ! Angle of averaging over beta
+Nang = 60 ! Angle of rotation of a_3 about e_1 (when psi=0)
+Bang = 20 ! Angle of averaging over beta
 
-allocate(Q_coll(3,Nang))
+allocate(thetas(Nang), Q_coll(3,Nang))
+call linspace(0d0, pi, Nang, thetas)
 Q_coll(:,:) = 0d0
 
 ! Torque efficiency calculations as in Lazarian2007b
@@ -166,7 +165,7 @@ write(*,'(A)') '  Starting the calculation of beta-averaged torque efficiency:'
 ! Theta loop
 do i=0,Nang-1
    Q_t = 0d0
-   theta = dble(i)*pi/180d0
+   theta = thetas(i+1)
    ! Beta averaging loop
 	do j = 0,Bang-1
       ! Find rotation of angle beta around the rotated a_3-axis
@@ -183,14 +182,13 @@ end do
 open(unit=1, file="out/Q.out", ACTION="write", STATUS="replace")
 write(1,'(A)') 'cos(theta)  Q_{t,1} Q_{t,2} Q_{t,3}'
 do i = 0,Nang-1
-theta = dble(i)*pi/180d0
-write(1,'(4E12.3)') dcos(theta), Q_coll(:,i+1)
+write(1,'(4E12.3)') dcos(thetas(i+1)), Q_coll(:,i+1)
 end do
 close(1)
 
 ! Radiative torque calculations, emulating work of Draine & Weingartner (1997), ApJ 480:633
 allocate(psis(5))
-psis = [1d0, 30d0, 60d0, 80d0, 90d0]
+psis = [0d0, 30d0, 60d0, 80d0, 90d0]
 
 allocate(F_coll(6,Nang*size(psis,1)))
 F_coll(:,:) = 0d0
@@ -208,7 +206,7 @@ do psi_deg = 1,size(psis,1)
    ! Xi loop
 
    do i=0,Nang-1
-      xi = dble(i)*pi/180d0
+      xi = thetas(i+1)
       
       R_xi = R_aa(x_B,xi)
 
