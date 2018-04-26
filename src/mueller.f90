@@ -187,15 +187,18 @@ end subroutine scattering_extinction_matrices
 subroutine mueller_ave(SS, AA, matrices, mesh, points, ii)
 type(data) :: matrices
 type(mesh_struct) :: mesh
-integer :: i, ii, N_avgs, halton_init
-real(dp) :: E, vec(3)
+integer :: i, ii, N_avgs, halton_init, nm, Nmax
+real(dp) :: E, vec(3), Cext, Cabs, Csca, Cext90, Cabs90, Csca90
 real(dp), dimension(:,:), allocatable :: S, SS, AA, points
+complex(dp), dimension(:) , allocatable :: a, b, a90, b90
 complex(dp), dimension(:) , allocatable :: p, q, p90, q90
 
 matrices%R = eye(3)
 N_avgs = 720 ! Number of averaging directions
 halton_init = 0
 E = matrices%E_rel(ii)*matrices%E
+Nmax = matrices%Nmaxs(ii)
+nm = (Nmax + 1)**2 - 1
 
 do i = 1, N_avgs
    vec(1) = 1d0
@@ -208,10 +211,13 @@ do i = 1, N_avgs
    matrices%Rexp = transpose( matrices%Rexp )
 
    call rot_setup(matrices)
-   call scattered_fields(matrices,E,p,q,p90,q90,ii)
+   call scattered_fields2(matrices,E,a, b, a90, b90, p,q,p90,q90,ii)
    if(allocated(S)) deallocate(S)
    call scattering_matrix_coeff(p, q, p90, q90, dcmplx(mesh%k), N_avgs, points, S)
+   call cross_sections(p, q, a, b, dcmplx(mesh%k), Nmax, Cext, Csca, Cabs)
+   call cross_sections(p90, q90, a90, b90, dcmplx(mesh%k), Nmax, Cext90, Csca90, Cabs90)
    SS = SS + S/N_avgs
+   AA = AA + (Csca+Csca90)/(Cabs+Cabs90)/N_avgs
 end do
 
 end subroutine mueller_ave
@@ -221,9 +227,11 @@ end subroutine mueller_ave
 subroutine mueller_align(SS, AA, matrices, mesh, points, ii, al_direction)
 type(data) :: matrices
 type(mesh_struct) :: mesh
-integer :: i, ii, N_avgs, halton_init
-real(dp) :: E, omega(3), al_direction(3), theta, phi, RR(3,3), Qt(3,3), R0(3,3), aproj(3)
+integer :: i, ii, N_avgs, halton_init, nm, Nmax
+real(dp) :: E, omega(3), al_direction(3), theta, phi, RR(3,3), Qt(3,3), R0(3,3), aproj(3),&
+Cext, Cabs, Csca, Cext90, Cabs90, Csca90
 real(dp), dimension(:,:), allocatable :: S, SS, AA, points
+complex(dp), dimension(:) , allocatable :: a, b, a90, b90
 complex(dp), dimension(:) , allocatable :: p, q, p90, q90
 
 matrices%R = eye(3)
@@ -237,6 +245,8 @@ Qt = matmul(R0,matrices%P)
 aproj = [Qt(1,3),Qt(2,3),0d0]
 aproj = aproj/vlen(aproj)
 phi = dacos(aproj(1))
+Nmax = matrices%Nmaxs(ii)
+nm = (Nmax + 1)**2 - 1
 
 do i = 1, N_avgs
    theta = dble(i-1)*2*pi/(N_avgs-1)
@@ -250,10 +260,13 @@ do i = 1, N_avgs
    matrices%R = R_aa(matrices%khat, phi)
 
    call rot_setup(matrices)
-   call scattered_fields(matrices,E,p,q,p90,q90,ii)
+   call scattered_fields2(matrices,E,a, b, a90, b90, p,q,p90,q90,ii)
    if(allocated(S)) deallocate(S)
    call scattering_matrix_coeff(p, q, p90, q90, dcmplx(mesh%k), N_avgs, points, S)
+   call cross_sections(p, q, a, b, dcmplx(mesh%k), Nmax, Cext, Csca, Cabs)
+   call cross_sections(p90, q90, a90, b90, dcmplx(mesh%k), Nmax, Cext90, Csca90, Cabs90)
    SS = SS + S/N_avgs
+   AA = AA + (Csca+Csca90)/(Cabs+Cabs90)/N_avgs
 end do
 
 end subroutine mueller_align
