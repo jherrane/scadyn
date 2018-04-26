@@ -164,7 +164,7 @@ do N_size = 1, size(a_dist,1)
             call mueller_align(SS, AA, matrices, mesh, points, ii, al_direction)
          end if
       end do
-      
+
       SS = SS/size(a_dist,1)
       AA = AA/size(a_dist,1)
 
@@ -237,8 +237,6 @@ Qt = matmul(R0,matrices%P)
 aproj = [Qt(1,3),Qt(2,3),0d0]
 aproj = aproj/vlen(aproj)
 phi = dacos(aproj(1))
-
-allocate(SS(size(points,2),18))
 
 do i = 1, N_avgs
    theta = dble(i-1)*2*pi/(N_avgs-1)
