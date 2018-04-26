@@ -619,7 +619,6 @@ complex(dp) :: i
 
 i = dcmplx(0.0,1.0)
 RR = 1.0d6
-N_points = size(points,2)
 allocate(S_out(N_points,18))
 
 las = 0

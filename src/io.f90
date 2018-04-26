@@ -513,7 +513,7 @@ write(1,'(18A)') '   phi ','    theta ','      S11  ','         S12  ',&
 '         S41  ','         S42  ','         S43  ','         S44  '
 
 do i = 1,dims(1)
- write(1,'(2F8.4,16ES14.4)') A(i,:)
+ write(1,'(2F8.4,16ES14.6)') A(i,:)
 end do
 
 close(1)
@@ -535,10 +535,10 @@ open(unit=1, file=trim(fname), ACTION="write", STATUS="replace")
 write(1,'(19A)') ' N_size ','     N_ia ','    N_pts ','      S11  ','         S12  ',&
 '         S13  ','         S14  ','         S21  ','         S22  ','         S23  ',&
 '         S24  ','         S31  ','         S32  ','         S33  ','         S34  ',&
-'         S41  ','         S42  ','         S43  ','         S44  '
+'         S41  ','         S42  ','         S43  ','         S44  ','      Albedo  '
 
 do i = 1,dims(1)
- write(1,'(3I8,16ES14.4)') int(A(i,1:3)), A(i,4:19)
+ write(1,'(3I8,17ES14.6)') int(A(i,1:3)), A(i,4:20)
 end do
 
 close(1)

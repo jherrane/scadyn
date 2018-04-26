@@ -124,8 +124,8 @@ complex(dp), dimension(:) , allocatable :: p, q, p90, q90
 integer :: Nmax, ii, las, nm, N_points, halton_init, N_avgs, N_theta, N_phi, N_size, N_ia
 real(dp) :: E, vec(3), phi, R0(3,3), Qt(3,3), omega(3), aproj(3), RR(3,3), theta, & 
 al_direction(3), inc_angles(2)
-real(dp), dimension(:), allocatable :: a_dist
-real(dp), dimension(:,:), allocatable :: SS, SSS, points, AA, AAA
+real(dp), dimension(:), allocatable :: a_dist, AA
+real(dp), dimension(:,:), allocatable :: SS, SSS, points
 CHARACTER(LEN=80) :: mueller_out
 CHARACTER(LEN=8) :: mode
 
@@ -139,13 +139,11 @@ if(file_exists(mueller_out)) then
 end if
 
 inc_angles = [90, 180]
-allocate(SSS(N_points*size(a_dist,1)*size(inc_angles),19))
+allocate(SSS(N_points*size(a_dist,1)*size(inc_angles),20))
 SSS = 0d0
 allocate(SS(N_points,18))
 
-allocate(AAA(N_points*size(a_dist,1)*size(inc_angles),19))
-AAA = 0d0
-allocate(AA(N_points,18))
+allocate(AA(N_points))
 
 ind = 1
 do N_size = 1, size(a_dist,1)
@@ -173,6 +171,7 @@ do N_size = 1, size(a_dist,1)
          SSS(ind, 2) = N_ia
          SSS(ind, 3) = i
          SSS(ind, 4:19) = SS(i, 3:18)
+         SSS(ind, 20) = AA(i)
          ind = ind + 1
          call print_bar(ind,size(a_dist,1)*size(inc_angles)*N_points)
       end do
@@ -189,7 +188,8 @@ type(data) :: matrices
 type(mesh_struct) :: mesh
 integer :: i, ii, N_avgs, halton_init, nm, Nmax
 real(dp) :: E, vec(3), Cext, Cabs, Csca, Cext90, Cabs90, Csca90
-real(dp), dimension(:,:), allocatable :: S, SS, AA, points
+real(dp), dimension(:), allocatable :: AA
+real(dp), dimension(:,:), allocatable :: S, SS, points
 complex(dp), dimension(:) , allocatable :: a, b, a90, b90
 complex(dp), dimension(:) , allocatable :: p, q, p90, q90
 
@@ -213,7 +213,7 @@ do i = 1, N_avgs
    call rot_setup(matrices)
    call scattered_fields2(matrices,E,a, b, a90, b90, p,q,p90,q90,ii)
    if(allocated(S)) deallocate(S)
-   call scattering_matrix_coeff(p, q, p90, q90, dcmplx(mesh%k), N_avgs, points, S)
+   call scattering_matrix_coeff(p, q, p90, q90, dcmplx(mesh%k), size(points,1), points, S)
    call cross_sections(p, q, a, b, dcmplx(mesh%k), Nmax, Cext, Csca, Cabs)
    call cross_sections(p90, q90, a90, b90, dcmplx(mesh%k), Nmax, Cext90, Csca90, Cabs90)
    SS = SS + S/N_avgs
@@ -230,7 +230,8 @@ type(mesh_struct) :: mesh
 integer :: i, ii, N_avgs, halton_init, nm, Nmax
 real(dp) :: E, omega(3), al_direction(3), theta, phi, RR(3,3), Qt(3,3), R0(3,3), aproj(3),&
 Cext, Cabs, Csca, Cext90, Cabs90, Csca90
-real(dp), dimension(:,:), allocatable :: S, SS, AA, points
+real(dp), dimension(:), allocatable :: AA
+real(dp), dimension(:,:), allocatable :: S, SS, points
 complex(dp), dimension(:) , allocatable :: a, b, a90, b90
 complex(dp), dimension(:) , allocatable :: p, q, p90, q90
 
@@ -262,7 +263,7 @@ do i = 1, N_avgs
    call rot_setup(matrices)
    call scattered_fields2(matrices,E,a, b, a90, b90, p,q,p90,q90,ii)
    if(allocated(S)) deallocate(S)
-   call scattering_matrix_coeff(p, q, p90, q90, dcmplx(mesh%k), N_avgs, points, S)
+   call scattering_matrix_coeff(p, q, p90, q90, dcmplx(mesh%k), size(points,1), points, S)
    call cross_sections(p, q, a, b, dcmplx(mesh%k), Nmax, Cext, Csca, Cabs)
    call cross_sections(p90, q90, a90, b90, dcmplx(mesh%k), Nmax, Cext90, Csca90, Cabs90)
    SS = SS + S/N_avgs
