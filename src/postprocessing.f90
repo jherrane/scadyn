@@ -394,4 +394,30 @@ close(1)
 
 end subroutine stability_analysis
 
+!******************************************************************************
+
+subroutine test_mueller(matrices, mesh)
+type(data) :: matrices
+type(mesh_struct) :: mesh
+integer :: i, halton_init, N_points
+real(dp) :: al_direction(3), vec(3)
+real(dp), dimension(:), allocatable :: a_dist
+real(dp), dimension(:,:), allocatable :: points
+
+halton_init = 0
+N_points = 18*9
+allocate(points(2,N_points))
+
+do i = 1, N_points
+   points(1,i) = acos(2*halton_seq(halton_init+i, 2)-1)
+   points(2,i) = halton_seq(halton_init+i, 3)*2*pi
+end do
+
+a_dist = mesh%ki*mesh%a/mesh%ki(2)
+al_direction = [0d0,0d0,1d0]
+call scattering_extinction_matrices(matrices, mesh, a_dist, points, al_direction)
+
+end subroutine test_mueller
+
+
 end module postprocessing
