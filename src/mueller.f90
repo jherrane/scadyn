@@ -113,90 +113,87 @@ call write_mueller(SSS,mueller_out)
 
 end subroutine compute_mueller
 
-
 !******************************************************************************
 
 subroutine scattering_extinction_matrices(matrices, mesh, a_dist, points, al_direction)
 type(data) :: matrices
 type(mesh_struct) :: mesh
-integer :: i, ind, tot_ind
-complex(dp), dimension(:) , allocatable :: p, q, p90, q90
-integer :: Nmax, ii, las, nm, N_points, halton_init, N_avgs, N_theta, N_phi, N_size, N_ia
-real(dp) :: E, vec(3), phi, R0(3,3), Qt(3,3), omega(3), aproj(3), RR(3,3), theta, & 
-al_direction(3), inc_angles(2)
-real(dp), dimension(:), allocatable :: a_dist, AA
-real(dp), dimension(:,:), allocatable :: SS, SSS, points
-CHARACTER(LEN=80) :: mueller_out
-CHARACTER(LEN=8) :: mode
+integer :: i, ind, ii, N_points, N_size, N_ia
+real(dp) :: al_direction(3), inc_angles(2)
+real(dp), dimension(:), allocatable :: a_dist
+real(dp), dimension(:,:), allocatable :: SS, SSS, EE, EEE, points
+CHARACTER(LEN=80) :: mueller_out, extinction_out
 
 N_points = size(points,2) ! Number of points to calculate the perfect orientations
-N_avgs = 1     ! Used in randomly oriented (RO) averages
 
 mueller_out = trim(matrices%mueller)
+extinction_out = 'extinction_matrix'
 if(file_exists(mueller_out)) then
    print*, ' Mueller matrix already exists, quitting...'
    stop
 end if
 
 inc_angles = [90, 180]
-allocate(SSS(N_points*size(a_dist,1)*size(inc_angles),20))
+allocate(SSS(N_points*size(a_dist,1)*size(inc_angles),19))
+allocate(EEE(N_points*size(a_dist,1)*size(inc_angles),19))
 SSS = 0d0
-allocate(SS(N_points,18))
-
-allocate(AA(N_points))
+EEE = 0d0
+allocate(SS(N_points,18), EE(N_points,18))
 
 ind = 1
 do N_size = 1, size(a_dist,1)
    ! Choose wavelength
    mesh%k = mesh%ki(N_size)
-
-   Nmax = matrices%Nmaxs(N_size)
    do N_ia = 1,size(inc_angles,1)
       ! We take every N_size as the critical size, below which nothing is aligned
       SS = 0d0
-      AA = 0d0
+      EE = 0d0
       do ii = 1, size(a_dist,1)
          if(a_dist(ii)<=a_dist(N_size)) then
-            call mueller_ave(SS, AA, matrices, mesh, points, ii)
+            call mueller_ave(SS, EE, matrices, mesh, points, ii)
          else
-            call mueller_align(SS, AA, matrices, mesh, points, ii, al_direction)
+            call mueller_align(SS, EE, matrices, mesh, points, ii, al_direction)
          end if
       end do
 
       SS = SS/size(a_dist,1)
-      AA = AA/size(a_dist,1)
+      EE = EE/size(a_dist,1)
 
       do i = 1, N_points
          SSS(ind, 1) = N_size
          SSS(ind, 2) = N_ia
          SSS(ind, 3) = i
          SSS(ind, 4:19) = SS(i, 3:18)
-         SSS(ind, 20) = AA(i)
+
+         EEE(ind, 1) = N_size
+         EEE(ind, 2) = N_ia
+         EEE(ind, 3) = i
+         EEE(ind, 4:19) = EE(i, 3:18)
+
          ind = ind + 1
          call print_bar(ind,size(a_dist,1)*size(inc_angles)*N_points)
       end do
    end do
 end do
-call write_mueller2(SSS,mueller_out)
+call write_RT_matrix(SSS,mueller_out,1)
+call write_RT_matrix(EEE,extinction_out,2)
 
 end subroutine scattering_extinction_matrices
 
 !******************************************************************************
 
-subroutine mueller_ave(SS, AA, matrices, mesh, points, ii)
+subroutine mueller_ave(SS, EE, matrices, mesh, points, ii)
 type(data) :: matrices
 type(mesh_struct) :: mesh
 integer :: i, ii, N_avgs, halton_init, nm, Nmax
-real(dp) :: E, vec(3), Cext, Cabs, Csca, Cext90, Cabs90, Csca90
-real(dp), dimension(:), allocatable :: AA
-real(dp), dimension(:,:), allocatable :: S, SS, points
-complex(dp), dimension(:) , allocatable :: a, b, a90, b90
+real(dp) :: E_mag, vec(3)
+real(dp), dimension(:,:), allocatable :: S, SS, E, EE, points
 complex(dp), dimension(:) , allocatable :: p, q, p90, q90
 
 matrices%R = eye(3)
 N_avgs = 720 ! Number of averaging directions
 halton_init = 0
-E = matrices%E_rel(ii)*matrices%E
+E_mag = matrices%E_rel(ii)*matrices%E
 Nmax = matrices%Nmaxs(ii)
 nm = (Nmax + 1)**2 - 1
 
@@ -211,34 +208,30 @@ do i = 1, N_avgs
    matrices%Rexp = transpose( matrices%Rexp )
 
    call rot_setup(matrices)
-   call scattered_fields2(matrices,E,a, b, a90, b90, p,q,p90,q90,ii)
-   if(allocated(S)) deallocate(S)
-   call scattering_matrix_coeff(p, q, p90, q90, dcmplx(mesh%k), size(points,1), points, S)
-   call cross_sections(p, q, a, b, dcmplx(mesh%k), Nmax, Cext, Csca, Cabs)
-   call cross_sections(p90, q90, a90, b90, dcmplx(mesh%k), Nmax, Cext90, Csca90, Cabs90)
+   call scattered_fields(matrices, E_mag, p, q, p90, q90, ii)
+   if(allocated(S)) deallocate(S, E)
+   call scattering_matrix_coeff(p, q, p90, q90, dcmplx(mesh%k), size(points,2), points, S)
+   call extinction_matrix_coeff(p, q, p90, q90, dcmplx(mesh%k), size(points,2), points, E)
    SS = SS + S/N_avgs
-   AA = AA + (Csca+Csca90)/(Cabs+Cabs90)/N_avgs
+   EE = EE + E/N_avgs
 end do
 
 end subroutine mueller_ave
 
 !******************************************************************************
 
-subroutine mueller_align(SS, AA, matrices, mesh, points, ii, al_direction)
+subroutine mueller_align(SS, EE, matrices, mesh, points, ii, al_direction)
 type(data) :: matrices
 type(mesh_struct) :: mesh
 integer :: i, ii, N_avgs, halton_init, nm, Nmax
-real(dp) :: E, omega(3), al_direction(3), theta, phi, RR(3,3), Qt(3,3), R0(3,3), aproj(3),&
-Cext, Cabs, Csca, Cext90, Cabs90, Csca90
-real(dp), dimension(:), allocatable :: AA
-real(dp), dimension(:,:), allocatable :: S, SS, points
-complex(dp), dimension(:) , allocatable :: a, b, a90, b90
+real(dp) :: E_mag, omega(3), al_direction(3), theta, phi, RR(3,3), Qt(3,3), R0(3,3), aproj(3)
+real(dp), dimension(:,:), allocatable :: S, SS, E, EE, points
 complex(dp), dimension(:) , allocatable :: p, q, p90, q90
 
 matrices%R = eye(3)
 N_avgs = 720 ! Number of averaging directions
 
-E = matrices%E_rel(ii)*matrices%E
+E_mag = matrices%E_rel(ii)*matrices%E
 omega = al_direction
 omega = omega/vlen(omega) 
 R0 = rotate_a_to_b(matrices%P(:,3),omega)
@@ -261,13 +254,12 @@ do i = 1, N_avgs
    matrices%R = R_aa(matrices%khat, phi)
 
    call rot_setup(matrices)
-   call scattered_fields2(matrices,E,a, b, a90, b90, p,q,p90,q90,ii)
-   if(allocated(S)) deallocate(S)
-   call scattering_matrix_coeff(p, q, p90, q90, dcmplx(mesh%k), size(points,1), points, S)
-   call cross_sections(p, q, a, b, dcmplx(mesh%k), Nmax, Cext, Csca, Cabs)
-   call cross_sections(p90, q90, a90, b90, dcmplx(mesh%k), Nmax, Cext90, Csca90, Cabs90)
+   call scattered_fields(matrices, E_mag, p, q, p90, q90, ii)
+   if(allocated(S)) deallocate(S, E)
+   call scattering_matrix_coeff(p, q, p90, q90, dcmplx(mesh%k), size(points,2), points, S)
+   call extinction_matrix_coeff(p, q, p90, q90, dcmplx(mesh%k), size(points,2), points, E)
    SS = SS + S/N_avgs
-   AA = AA + (Csca+Csca90)/(Cabs+Cabs90)/N_avgs
+   EE = EE + E/N_avgs
 end do
 
 end subroutine mueller_align

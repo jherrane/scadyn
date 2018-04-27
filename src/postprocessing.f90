@@ -399,19 +399,32 @@ end subroutine stability_analysis
 subroutine test_mueller(matrices, mesh)
 type(data) :: matrices
 type(mesh_struct) :: mesh
-integer :: i, halton_init, N_points
+integer :: i, j, ind, halton_init, N_points, N_phi, N_theta
 real(dp) :: al_direction(3), vec(3)
 real(dp), dimension(:), allocatable :: a_dist
 real(dp), dimension(:,:), allocatable :: points
 
 halton_init = 0
-N_points = 18*9
+N_theta = 9
+N_phi = 18
+N_points = N_theta*N_phi
 allocate(points(2,N_points))
 
-do i = 1, N_points
-   points(1,i) = acos(2*halton_seq(halton_init+i, 2)-1)
-   points(2,i) = halton_seq(halton_init+i, 3)*2*pi
+ind = 1
+do i = 1, N_theta
+   do j = 1, N_phi
+      points(1,ind) = pi * (i-1) / (N_theta)  + pi/N_theta/2.0
+      points(2,ind) = 2*pi * (j-1) / N_phi
+      ind = ind + 1
+   end do
 end do
+
+open(unit=1, file='points', ACTION="write", STATUS="replace")
+write(1,'(A, A)')        ' theta    ',' phi'
+do i = 1, size(points,2)
+   write(1,'(2f7.3)')    points(:,i)
+end do
+close(1)
 
 a_dist = mesh%ki*mesh%a/mesh%ki(2)
 al_direction = [0d0,0d0,1d0]
