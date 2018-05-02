@@ -16,8 +16,8 @@ points = importdata('points');
 dat = importdata('mueller');
 
 S_places = [3,4,5,6]+1;
-N_phi = 18;
-N_theta = 9;
+N_phi = 90;
+N_theta = 45;
 
 range = [1:N_theta*N_phi];
 

@@ -677,76 +677,66 @@ end subroutine scattering_matrix_coeff
 
 !******************************************************************************
 
-subroutine extinction_matrix_coeff(a_nm, b_nm, a_nm2, b_nm2, k, N_points, points, S_out)
+subroutine extinction_matrix_coeff(a_nm, b_nm, a_nm2, b_nm2, k, theta, phi, S_out)
 complex(dp), dimension(:) :: a_nm, b_nm, a_nm2, b_nm2
 complex(dp) :: k
-real(dp), dimension(:,:), allocatable :: S_out, points
-integer :: N_points
+real(dp), dimension(:,:), allocatable :: S_out
 complex(dp), dimension(3) :: E_out, E_out2, H_out, H_out2
 
 integer :: i1, las
 real(dp) :: theta, phi, abcd(2,2), r(3), RR, unit_th(3), unit_phi(3)
-complex(dp), dimension(N_points) :: f11,f12,f21,f22
+complex(dp) :: f11,f12,f21,f22
 complex(dp) :: S11, S12, S21, S22
 complex(dp) :: i
 
 i = dcmplx(0.0,1.0)
 RR = 1.0d6
 
-allocate(S_out(N_points,18))
+allocate(S_out(1,18))
 
-las = 1
-do i1 = 1, N_points
+abcd(1,:) = [cos(phi), sin(phi)]
+abcd(2,:) = [sin(phi), -cos(phi)]
 
-   theta = points(1,i1)
-   phi = points(2,i1)
-  
-   abcd(1,:) = [cos(phi), sin(phi)]
-   abcd(2,:) = [sin(phi), -cos(phi)]
+r(1) = RR*sin(theta)*cos(phi)
+r(2) = RR*sin(theta)*sin(phi)
+r(3) = RR*cos(theta)
 
-   r(1) = RR*sin(theta)*cos(phi)
-   r(2) = RR*sin(theta)*sin(phi)
-   r(3) = RR*cos(theta)
+call calc_fields(a_nm, b_nm, k, r, E_out, H_out, 1)
+call calc_fields(a_nm2, b_nm2, k, r, E_out2, H_out2, 1)
 
-   call calc_fields(a_nm, b_nm, k, r, E_out, H_out, 1)
-   call calc_fields(a_nm2, b_nm2, k, r, E_out2, H_out2, 1)
+unit_th = [cos(theta) * cos(phi), sin(phi) * cos(theta), -sin(theta)]
+unit_phi = [-sin(phi), cos(phi),0.0d0];
 
-   unit_th = [cos(theta) * cos(phi), sin(phi) * cos(theta), -sin(theta)]
-   unit_phi = [-sin(phi), cos(phi),0.0d0];
+f11 = k*RR / exp(i*k*(RR)) * dot_product(E_out,unit_th);
+f21 = k*RR / exp(i*k*(RR)) * dot_product(E_out,unit_phi);    
+f12 = k*RR / exp(i*k*(RR)) * dot_product(E_out2,unit_th);
+f22 = k*RR / exp(i*k*(RR)) * dot_product(E_out2,unit_phi);
 
-   f11(las) = k*RR / exp(i*k*(RR)) * dot_product(E_out,unit_th);
-   f21(las) = k*RR / exp(i*k*(RR)) * dot_product(E_out,unit_phi);    
-   f12(las) = k*RR / exp(i*k*(RR)) * dot_product(E_out2,unit_th);
-   f22(las) = k*RR / exp(i*k*(RR)) * dot_product(E_out2,unit_phi);
+S22 = -i * (f21*abcd(1,2) + f22*abcd(2,2))
+S11 = -i * (f11*abcd(1,1) + f12*abcd(2,1))
+S12 = i * (f11*abcd(1,2) + f12*abcd(2,2))
+S21 = i * (f21*abcd(1,1) + f22*abcd(2,1))
 
-   S22 = -i * (f21(las)*abcd(1,2) + f22(las)*abcd(2,2))
-   S11 = -i * (f11(las)*abcd(1,1) + f12(las)*abcd(2,1))
-   S12 = i * (f11(las)*abcd(1,2) + f12(las)*abcd(2,2))
-   S21 = i * (f21(las)*abcd(1,1) + f22(las)*abcd(2,1))
+S_out(1,1) = phi*k/(2d0*pi)
+S_out(1,2) = theta*k/(2d0*pi)
 
-   S_out(las,1) = phi*k/(2d0*pi)
-   S_out(las,2) = theta*k/(2d0*pi)
-
-   ! Mueller matrix
-   S_out(las,3)  = imag(S11 + S22) !K11
-   S_out(las,4)  = imag(S11 - S22) !K12
-   S_out(las,5)  =-imag(S12 + S21) !K13
-   S_out(las,6)  = real(S21 - S12) !K14
-   S_out(las,7)  = imag(S11 - S22) !K21
-   S_out(las,8)  = imag(S11 + S22) !K22
-   S_out(las,9)  = imag(S21 - S12) !K23
-   S_out(las,10) =-real(S12 + S21) !K24
-   S_out(las,11) =-imag(S12 + S21) !K31
-   S_out(las,12) =-imag(S21 - S12) !K32
-   S_out(las,13) = imag(S11 + S22) !K33
-   S_out(las,14) = real(S22 - S11) ! K34 
-   S_out(las,15) = real(S21 - S12) ! K41 
-   S_out(las,16) = real(S12 + S21) ! K42 
-   S_out(las,17) =-real(S22 - S11) ! K43 
-   S_out(las,18) = imag(S11 + S22) ! K44
-
-   las = las + 1
-end do 
+! Mueller matrix
+S_out(1,3)  = imag(S11 + S22) !K11
+S_out(1,4)  = imag(S11 - S22) !K12
+S_out(1,5)  =-imag(S12 + S21) !K13
+S_out(1,6)  = real(S21 - S12) !K14
+S_out(1,7)  = imag(S11 - S22) !K21
+S_out(1,8)  = imag(S11 + S22) !K22
+S_out(1,9)  = imag(S21 - S12) !K23
+S_out(1,10) =-real(S12 + S21) !K24
+S_out(1,11) =-imag(S12 + S21) !K31
+S_out(1,12) =-imag(S21 - S12) !K32
+S_out(1,13) = imag(S11 + S22) !K33
+S_out(1,14) = real(S22 - S11) ! K34 
+S_out(1,15) = real(S21 - S12) ! K41 
+S_out(1,16) = real(S12 + S21) ! K42 
+S_out(1,17) =-real(S22 - S11) ! K43 
+S_out(1,18) = imag(S11 + S22) ! K44
 
 S_out = S_out*2d0*pi/k
 

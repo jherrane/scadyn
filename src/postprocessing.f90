@@ -405,8 +405,8 @@ real(dp), dimension(:), allocatable :: a_dist
 real(dp), dimension(:,:), allocatable :: points
 
 halton_init = 0
-N_theta = 9
-N_phi = 18
+N_theta = 45
+N_phi = 90
 N_points = N_theta*N_phi
 allocate(points(2,N_points))
 
