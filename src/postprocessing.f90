@@ -419,12 +419,12 @@ do i = 1, N_theta
    end do
 end do
 
-open(unit=1, file='points', ACTION="write", STATUS="replace")
-write(1,'(A, A)')        ' theta    ',' phi'
-do i = 1, size(points,2)
-   write(1,'(2f7.3)')    points(:,i)
-end do
-close(1)
+! open(unit=1, file='points', ACTION="write", STATUS="replace")
+! write(1,'(A, A)')        ' theta    ',' phi'
+! do i = 1, size(points,2)
+!    write(1,'(2f7.3)')    points(:,i)
+! end do
+! close(1)
 
 a_dist = mesh%ki*mesh%a/mesh%ki(2)
 al_direction = [0d0,0d0,1d0]

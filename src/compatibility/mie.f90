@@ -4,7 +4,6 @@ use common
 use io
 use translations
 
-
 implicit none
 
 contains
@@ -171,6 +170,8 @@ DO N=1,NSTOP
 END DO
 
 end subroutine bhmie
+
+!******************************************************************************
 
 subroutine mie_coeff_nm(N, x, mr, a_nm, b_nm, c_nm, d_nm)
 integer :: N 
@@ -524,6 +525,8 @@ do n = 1, Nmax
 end do
 
 end subroutine calc_MN
+
+!******************************************************************************
 
 subroutine mueller_matrix_coeff(a_nm, b_nm, a_nm2, b_nm2, k, N_theta, N_phi, Nmax, S_out)
 

@@ -1,4 +1,4 @@
-#####   Physical setup  #######################################################
+#####  Physical setup   #######################################################
 v0 0 0 0                # Initial velocity
 w0 0 1d3 1d4            # Initial angular velocity
 R0 i                    # r = random matrix, i = identity matrix
@@ -18,7 +18,7 @@ E 1d0                   # Amplitude of E at its maximum
 #####  Run parameters   #######################################################
 waves bnd               # Wavelength band options lin, inv, log, bnd
 mueller_mode none       # Mueller matrix type, none, ave, ori, perf_ori
-test_forces 1           # 0 = integrate, 1 = test methods, 2 = calc Qt, 
+test_forces 2           # 0 = integrate, 1 = test methods, 2 = calc Qt, 
                         # 3 = stability analysis, 4 = write fields to file
                         # 5 = SOCpol-averaging of Mueller matrices
 int_mode 0              # 0 = normal scattering dynamics integration,
@@ -45,7 +45,7 @@ tol_m 1d-1              # Tolerance to when state is declared aligned
 
 is_aggr 0               # 0 = no
 
-#####    T-VIE setup	   # (Most of the time can be left as is) ################
+#####  T-VIE setup      ##### (Most of the time can be left as is) ############
 tol 1d-5                # GMRES tolerance
 maxit 50                # Maximum number of GMRES iterations
 restart 4               # GMRES restart

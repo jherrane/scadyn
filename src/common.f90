@@ -10,38 +10,43 @@ implicit none
 ! PARAMETERS ******************************************************************
 !******************************************************************************
 
-integer, parameter     ::  dp        =  selected_real_kind(15, 307)
-real( dp ), parameter  ::  pi        =  3.141592653589793d0
-real( dp ), parameter  ::  epsilon   =  8.854187817d-12
-real( dp ), parameter  ::  mu        =  pi*4d-7
-real( dp ), parameter  ::  mu_B      =  9.2700968d-24
-real( dp ), parameter  ::  hbar      =  1.054572d-34
-real( dp ), parameter  ::  k_b       =  1.38064852d-23
-real( dp ), parameter  ::  cc        =  2.99792458d8
-real( dp ), parameter  ::  b         =  2.8977729d-3
-integer, parameter     ::  nthreads  =  24
-complex(dp), parameter ::  i1        =  dcmplx(0d0,1d0)
+integer, parameter   :: dp        = selected_real_kind(15, 307)
+integer, parameter   :: nthreads  = 24
 
-integer                ::  seedling           = 0
-integer                ::  use_mie            = 0
-integer                ::  run_test           = 0
-integer                ::  int_mode           = 0
-integer                ::  beam_shape         = 0
-integer                ::  calc_extra_torques = 0
-integer                ::  p                  = 0
-integer                ::  l                  = 0
+real(dp), parameter  :: pi        = 3.141592653589793d0
+real(dp), parameter  :: epsilon   = 8.854187817d-12
+real(dp), parameter  :: mu        = pi*4d-7
+real(dp), parameter  :: mu_B      = 9.2700968d-24
+real(dp), parameter  :: hbar      = 1.054572d-34
+real(dp), parameter  :: k_b       = 1.38064852d-23
+real(dp), parameter  :: cc        = 2.99792458d8
+real(dp), parameter  :: b         = 2.8977729d-3
+
+complex(dp), parameter              :: i1  = dcmplx(0d0,1d0)
+real(dp), dimension(3), parameter   :: e_1 = [1d0, 0d0, 0d0]
+real(dp), dimension(3), parameter   :: e_2 = [0d0, 1d0, 0d0]
+real(dp), dimension(3), parameter   :: e_3 = [0d0, 0d0, 1d0]
+
+integer :: seedling           = 0
+integer :: use_mie            = 0
+integer :: run_test           = 0
+integer :: int_mode           = 0
+integer :: beam_shape         = 0
+integer :: calc_extra_torques = 0
+integer :: p                  = 0
+integer :: l                  = 0
 
 ! TYPES ***********************************************************************
 !******************************************************************************
 
 type mesh_struct
-   complex( dp ), dimension( :, : ), allocatable :: params
-   complex( dp ), dimension( : ), allocatable :: param
+   complex(dp), dimension( :, : ), allocatable :: params
+   complex(dp), dimension( : ), allocatable :: param
 
-   real( dp ), dimension( :, : ), allocatable  ::  coord, nodes, P
-   real( dp ), dimension( : ), allocatable ::  ki, w, radius
-   real( dp ), dimension( 3 )  ::  min_coord
-   real( dp )  ::  delta, k, box_delta, tol, grid_size, rho, a, V, mass, CM(3), &
+   real(dp), dimension( :, : ), allocatable  ::  coord, nodes, P
+   real(dp), dimension( : ), allocatable ::  ki, w, radius
+   real(dp), dimension( 3 )  ::  min_coord
+   real(dp)  ::  delta, k, box_delta, tol, grid_size, rho, a, V, mass, CM(3), &
    I(3,3), maxrad
 
    integer, dimension(:,:), allocatable :: etopol, etopol_box, tetras, etopol_edges, edges

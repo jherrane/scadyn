@@ -390,10 +390,8 @@ end function DG_torque
 !******************************************************************************
 ! The radiative alignment torque, from Weingartner & Draine (2003)
 function F_align(Qt, xi, phi, psi) result(F)
-real(dp) :: e_1(3), e_2(3), e_3(3), Qt(3), xi, phi, psi, F
-e_1 = [1d0, 0d0, 0d0]
-e_2 = [0d0, 1d0, 0d0]
-e_3 = [0d0, 0d0, 1d0]
+real(dp) :: Qt(3), xi, phi, psi, F
+
 F = -dot_product(Qt,e_3)*(sin(psi)*cos(xi)*cos(phi)+cos(psi)*sin(xi)) &
 + dot_product(Qt,e_2)*(cos(psi)*cos(xi)*cos(phi) - sin(psi)*sin(xi)) &
 + dot_product(Qt,e_1)*cos(xi)*sin(phi)
@@ -403,10 +401,8 @@ end function F_align
 !******************************************************************************
 ! The radiative spin-up torque, from Weingartner & Draine (2003)
 function H_align(Qt, xi, phi, psi) result(H)
-real(dp) :: e_1(3), e_2(3), e_3(3), Qt(3), xi, phi, psi, H
-e_1 = [1d0, 0d0, 0d0]
-e_2 = [0d0, 1d0, 0d0]
-e_3 = [0d0, 0d0, 1d0]
+real(dp) :: Qt(3), xi, phi, psi, H
+
 H = dot_product(Qt,e_3)*(cos(psi)*cos(xi) - sin(psi)*sin(xi)*cos(phi)) &
 + dot_product(Qt,e_2)*(sin(psi)*cos(xi) + cos(psi)*sin(xi)*cos(phi)) &
 + dot_product(Qt,e_1)*sin(xi)*cos(phi)
@@ -416,10 +412,8 @@ end function H_align
 !******************************************************************************
 ! The radiative precession torque, from Weingartner & Draine (2003)
 function G_align(Qt, xi, phi, psi) result(G)
-real(dp) :: e_1(3), e_2(3), e_3(3), Qt(3), xi, phi, psi, G
-e_1 = [1d0, 0d0, 0d0]
-e_2 = [0d0, 1d0, 0d0]
-e_3 = [0d0, 0d0, 1d0]
+real(dp) :: Qt(3), xi, phi, psi, G
+
 G = dot_product(Qt,e_3)*sin(psi)*sin(phi) - dot_product(Qt,e_2)*cos(psi)*sin(phi) & 
 + dot_product(Qt,e_1)*cos(phi)
 
