@@ -1355,6 +1355,30 @@ contains
 
 !******************************************************************************
 
+   subroutine diagen(a, eig)
+!**************************************************************
+! Calls the LAPACK diagonalization subroutine DGEEV
+! input:  a(4,4) = real general matrix to be diagonalized
+! output: a(4,4) = orthonormal eigenvectors of a
+!         eig(4) = eigenvalues of a in descending order
+!**************************************************************
+      integer lwork, info
+      real(dp), intent(inout) :: a(4, 4)
+      complex(dp), intent(out) :: eig(4)
+      real(dp) :: eigr(4), eigi(4), V(4, 4), VR(4, 4)
+      real(dp) :: work(4*(4 + 4/2))
+
+      lwork = 4*(4 + 4/2)
+      call dgeev('V', 'N', 4, a, 4, eigr, eigi, V, 4, VR, 4, work, lwork, info)
+      if (info > 0) then
+         print *, "Something wrong with diagonalization! Regards, dgeev (Lapack)"
+      end if
+      eig = dcmplx(eigr,eigi)
+
+   end subroutine diagen
+
+!******************************************************************************
+
    subroutine linspace(d1, d2, n, grid)
 
       implicit none

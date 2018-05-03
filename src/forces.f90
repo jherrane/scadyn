@@ -390,9 +390,9 @@ contains
    function F_align(Qt, xi, phi, psi) result(F)
       real(dp) :: Qt(3), xi, phi, psi, F
 
-      F = -dot_product(Qt, e_3)*(sin(psi)*cos(xi)*cos(phi) + cos(psi)*sin(xi)) &
-          + dot_product(Qt, e_2)*(cos(psi)*cos(xi)*cos(phi) - sin(psi)*sin(xi)) &
-          + dot_product(Qt, e_1)*cos(xi)*sin(phi)
+      F = -Qt(3)*(sin(psi)*cos(xi)*cos(phi) + cos(psi)*sin(xi)) &
+          + Qt(2)*(cos(psi)*cos(xi)*cos(phi) - sin(psi)*sin(xi)) &
+          + Qt(1)*cos(xi)*sin(phi)
 
    end function F_align
 

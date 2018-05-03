@@ -195,11 +195,10 @@ contains
       do psi_deg = 1, size(psis, 1)
          psi = dble(psis(psi_deg))*pi/180d0
          ! y_lab = [0d0, 1d0, 0d0]
-         ! x_B = matmul(R_aa(y_lab,psi),[1d0,0d0,0d0])
+         ! x_B = matmul(R_aa(e_2,psi),e_1)
          x_B = [0d0, 1d0, 0d0]
          R_B = rotate_a_to_b(a_3, matrices%B)
          a_3 = matmul(R_B, a_3)
-         Q_coll = 0d0
          ! Xi loop
 
          do i = 0, Nang - 1
@@ -233,12 +232,13 @@ contains
                end if
 
                Q_t = matmul(matrices%R, Q_t)
-               Q_coll(:, i + 1) = Q_coll(:, i + 1) + Q_t/Bang
+
+               F_coll(3, ind + 1) = F_coll(3, ind + 1) + F_align(Q_t, xi, phi, psi)/Bang
+               F_coll(4, ind + 1) = F_coll(4, ind + 1) + H_align(Q_t, xi, phi, psi)/Bang
+               F_coll(5, ind + 1) = F_coll(5, ind + 1) + G_align(Q_t, phi, psi)/Bang
             end do
+
             F_coll(1:2, ind + 1) = [xi, psi]
-            F_coll(3, ind + 1) = F_align(Q_coll(:, i + 1), xi, phi, psi)
-            F_coll(4, ind + 1) = H_align(Q_coll(:, i + 1), xi, phi, psi)
-            F_coll(5, ind + 1) = G_align(Q_coll(:, i + 1), phi, psi)
             call print_bar(ind, size(F_coll, 2))
             ind = ind + 1
 
@@ -402,8 +402,8 @@ contains
       real(dp), dimension(:, :), allocatable :: points
 
       halton_init = 0
-      N_theta = 45
-      N_phi = 90
+      N_theta = 9
+      N_phi = 18
       N_points = N_theta*N_phi
       allocate (points(2, N_points))
 
