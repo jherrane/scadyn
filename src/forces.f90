@@ -401,9 +401,9 @@ contains
    function H_align(Qt, xi, phi, psi) result(H)
       real(dp) :: Qt(3), xi, phi, psi, H
 
-      H = dot_product(Qt, e_3)*(cos(psi)*cos(xi) - sin(psi)*sin(xi)*cos(phi)) &
-          + dot_product(Qt, e_2)*(sin(psi)*cos(xi) + cos(psi)*sin(xi)*cos(phi)) &
-          + dot_product(Qt, e_1)*sin(xi)*cos(phi)
+      H = Qt(3)*(cos(psi)*cos(xi) - sin(psi)*sin(xi)*cos(phi)) &
+          + Qt(2)*(sin(psi)*cos(xi) + cos(psi)*sin(xi)*cos(phi)) &
+          + Qt(1)*sin(xi)*cos(phi)
 
    end function H_align
 
@@ -412,8 +412,8 @@ contains
    function G_align(Qt, phi, psi) result(G)
       real(dp) :: Qt(3), phi, psi, G
 
-      G = dot_product(Qt, e_3)*sin(psi)*sin(phi) - dot_product(Qt, e_2)*cos(psi)*sin(phi) &
-          + dot_product(Qt, e_1)*cos(phi)
+      G = Qt(3)*sin(psi)*sin(phi) - Qt(2)*cos(psi)*sin(phi) &
+          + Qt(1)*cos(phi)
 
    end function G_align
 

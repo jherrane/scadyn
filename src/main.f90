@@ -40,6 +40,8 @@ program main
 
    if (trim(matrices%mueller_mode) /= 'none') call compute_mueller(matrices, mesh)
 
+   write(*, '(A)') '-------------------------------- All done! -------------------------------------'
+
 contains
 
 !******************************************************************************

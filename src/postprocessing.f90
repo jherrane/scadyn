@@ -141,7 +141,7 @@ contains
       real(dp), dimension(3, 3) :: R_phi, R_B, R_xi
       real(dp), dimension(3) :: k0, E0, E90, Q_t, nphi, a_3, x_B
       real(dp) :: theta, beta, xi, phi, psi
-      real(dp), dimension(:, :), allocatable :: Q_coll, F_coll
+      real(dp), dimension(:, :), allocatable :: Q_coll, F_coll, points
       real(dp), dimension(:), allocatable :: psis, thetas
       call rot_setup(matrices)
 
@@ -188,26 +188,30 @@ contains
       psis = [0d0, 30d0, 60d0, 80d0, 90d0]
 
       allocate (F_coll(6, Nang*size(psis, 1)))
+      allocate(points(3,Bang))
       F_coll(:, :) = 0d0
       ind = 0
 
-      write (*, '(A)') '  Starting the calculation of beta-averaged radiative torques:'
+      write (*, '(A)') '  Starting the calculation of phi-averaged radiative torques:'
       do psi_deg = 1, size(psis, 1)
+         ! First, set up B in the direction of psi
          psi = dble(psis(psi_deg))*pi/180d0
-         ! y_lab = [0d0, 1d0, 0d0]
-         ! x_B = matmul(R_aa(e_2,psi),e_1)
          x_B = [0d0, 1d0, 0d0]
-         R_B = rotate_a_to_b(a_3, matrices%B)
-         a_3 = matmul(R_B, a_3)
-         ! Xi loop
 
+         ! Rotation axis for precession averaging
+         nphi = matmul(R_aa(x_B,psi),[0d0,0d0,1d0]) ! Is actually B
+
+         ! Second, set up rotation from a_3 to new B
+         R_B = rotate_a_to_b(a_3, nphi)
+         a_3 = matmul(R_B, matrices%P(1:3, 3))
+         
+         ! Xi loop
          do i = 0, Nang - 1
             xi = thetas(i + 1)
 
-            R_xi = R_aa(x_B, xi)
+            ! Rotation to xi of a_3 is a combined rotation of angle psi+xi 
+            R_xi = matmul(R_aa(x_B, xi),R_B)
 
-            ! Rotation axis for precession averaging for current xi
-            nphi = matrices%B/vlen(matrices%B) ! Ensure unit length of axis vector
             ! Beta averaging loop
             do j = 0, Bang - 1
                Q_t = 0d0
@@ -218,6 +222,7 @@ contains
 
                ! The ultimate rotation matrices for scattering event
                matrices%R = matmul(R_phi, R_xi) ! First a_3 to xi, then beta about a_3
+               ! if(i == Nang-1)points(:,j+1) = matmul(matrices%R,matrices%P(1:3,3))
                call rot_setup(matrices)
 
                if (matrices%whichbar == 0) then
@@ -231,7 +236,7 @@ contains
                   Q_t = Q_t + matrices%Q_t
                end if
 
-               Q_t = matmul(matrices%R, Q_t)
+               ! Q_t = matmul(matrices%R, Q_t)
 
                F_coll(3, ind + 1) = F_coll(3, ind + 1) + F_align(Q_t, xi, phi, psi)/Bang
                F_coll(4, ind + 1) = F_coll(4, ind + 1) + H_align(Q_t, xi, phi, psi)/Bang
@@ -246,11 +251,18 @@ contains
       end do
 
       open (unit=1, file="out/F.out", ACTION="write", STATUS="replace")
-      write (1, '(A)') 'xi   phi   psi   F  H  G'
+      write (1, '(A)') 'xi   psi   F  H  G'
       do i = 0, size(F_coll, 2) - 1
-         write (1, '(6E12.3)') dcos(F_coll(1:2, i + 1)), F_coll(3:5, i + 1)
+         write (1, '(6ES12.3)') dcos(F_coll(1:2, i + 1)), F_coll(3:5, i + 1)
       end do
       close (1)
+
+      ! open (unit=1, file="out/points", ACTION="write", STATUS="replace")
+      ! write (1, '(A)') 'x y z'
+      ! do i = 1, size(points, 2)
+      !    write (1, '(3ES12.3)') points(:,i)
+      ! end do
+      ! close (1)
 
    end subroutine torque_efficiency
 

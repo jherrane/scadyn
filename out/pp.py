@@ -6,13 +6,9 @@ plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
 
 data = np.loadtxt('points', skiprows=1)
-theta = data[:, 0]
-phi = data[:, 1]
-r = theta*0+1
-
-x = r * np.sin(theta) * np.cos(phi)
-y = r * np.sin(theta) * np.sin(phi)
-z = r * np.cos(theta)
+x = data[:, 0]
+y = data[:, 1]
+z = data[:, 2]
 
 fig = plt.figure()
 ax = Axes3D(fig)
