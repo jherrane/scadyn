@@ -1355,26 +1355,37 @@ contains
 
 !******************************************************************************
 
-   subroutine diagen(a, eig)
+   subroutine diagen(a, eig, eigenvectors)
 !**************************************************************
 ! Calls the LAPACK diagonalization subroutine DGEEV
 ! input:  a(4,4) = real general matrix to be diagonalized
-! output: a(4,4) = orthonormal eigenvectors of a
+! output: a(4,4) = orthonormal eigenvectors of a, as given by DGEEV
 !         eig(4) = eigenvalues of a in descending order
+!         eigenvectors(4,4) = complex eigenvectors
 !**************************************************************
-      integer lwork, info
+      integer lwork, info, i
       real(dp), intent(inout) :: a(4, 4)
-      complex(dp), intent(out) :: eig(4)
+      complex(dp), intent(out) :: eig(4), eigenvectors(4,4)
       real(dp) :: eigr(4), eigi(4), V(4, 4), VR(4, 4)
-      real(dp) :: work(4*(4 + 4/2))
+      real(dp) :: work(136)
 
-      lwork = 4*(4 + 4/2)
-      call dgeev('V', 'N', 4, a, 4, eigr, eigi, V, 4, VR, 4, work, lwork, info)
-      if (info > 0) then
+      lwork = 136
+      call dgeev('N', 'V', 4, a, 4, eigr, eigi, V, 4, VR, 4, work, lwork, info)
+
+      if (info /= 0) then
          print *, "Something wrong with diagonalization! Regards, dgeev (Lapack)"
       end if
       eig = dcmplx(eigr,eigi)
+      eigenvectors = VR
 
+      ! If any consequent eigenvalues are complex conjugate, then eigenvectors 
+      ! must be adjusted
+      do i = 1,3
+         if (eig(i) == dconjg(eig(i+1))) then
+            eigenvectors(:,i) = VR(:,i) + i1*VR(:,i+1)
+            eigenvectors(:,i+1) = VR(:,i)
+         end if
+      end do
    end subroutine diagen
 
 !******************************************************************************

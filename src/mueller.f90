@@ -119,6 +119,7 @@ contains
       type(mesh_struct) :: mesh
       integer :: i, ind, ii, N_points, N_size, N_ia
       real(dp) :: al_direction(3), inc_angles(2), K(4,4)
+      complex(dp) :: Kevals(4), Kevecs(4,4)
       real(dp), dimension(:), allocatable :: a_dist
       real(dp), dimension(:, :), allocatable :: SS, SSS, KK, KKK, points
       CHARACTER(LEN=80) :: mueller_out, extinction_out
@@ -172,7 +173,12 @@ contains
             KKK(ind/N_points, 2) = N_ia
             KKK(ind/N_points, 3) = 1
             KKK(ind/N_points, 4:19) = KK(1, 3:18)
-            K = reshape(KK(1, 3:18),[4,4])
+            
+            ! K = reshape(KK(1, 3:18),[4,4])/KK(1,3)
+            ! call print_mat(K,'K')
+            ! call diagen(K,Kevals,Kevecs)
+            ! write(*, '(F8.3,SP,F8.3,"i")') Kevals
+            ! call print_cmat(Kevecs,'Kevecs')
          end do
       end do
       call write_RT_matrix(SSS, mueller_out, 1)

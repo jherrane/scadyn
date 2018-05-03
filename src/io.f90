@@ -81,6 +81,21 @@ contains
 
 !******************************************************************************
 
+   subroutine print_cmat(mat, matname)
+      complex(dp), dimension(:, :) :: mat
+      character(len=*) :: matname
+      integer :: i, m
+
+      write (*, '(2A)') trim(matname), ' = '
+      m = size(mat, 1)
+      do i = 1, m
+         write (*, '(10(F8.4,SP,F8.4,"i"))') mat(i, :)
+      end do
+
+   end subroutine print_cmat
+
+!******************************************************************************
+
    subroutine print_cvec(mat, matname)
       complex(dp), dimension(:) :: mat
       character(len=*) :: matname
