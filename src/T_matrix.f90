@@ -19,6 +19,10 @@ contains
       sz = size(mesh%ki)
       if (matrices%singleT == 1) sz = 1
 
+      ! Because the mesh reading is after initial band setup, the astrosilicate
+      ! fix "must" be done here
+      if (matrices%waves == 'sil') call band_astrosilicate(matrices, mesh)
+
       write (*, '(3(A,I0))') ' Construct matrices for ', sz, ' wavelengths...'
       if (use_mie == 1) then
          call mie_T_matrix(matrices, mesh)

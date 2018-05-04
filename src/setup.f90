@@ -530,6 +530,47 @@ contains
    end subroutine setup_band
 
 !******************************************************************************
+! Set the particle as Draine&Lee1984 astrosilicate
+   subroutine band_astrosilicate(matrices, mesh)
+      type(data), intent(inout):: matrices
+      type(mesh_struct), intent(inout) :: mesh
+      real(dp) :: lmax
+      real(dp), dimension(:), allocatable :: c, diff, absdif, w, epsr, epsi
+      integer :: i, n, size_param, ind
+
+      call find_k(matrices, mesh)
+      call calc_E_rel(matrices, mesh)
+      call read_mesh(matrices, mesh)
+
+      size_param = size(mesh%params,1)
+      if(allocated(mesh%params)) deallocate(mesh%params)
+      allocate (mesh%params(size_param, matrices%bars))
+      
+      ! Read the astrosilicate data
+      open (unit=15, file="examples/eps_Sil", status='old',    &
+            access='sequential', form='formatted', action='read' )
+
+      read(15, *)  n
+      read(15,*)
+      allocate(w(n),epsr(n),epsi(n))
+
+      do i = 1,n
+         read(15,*) w(i), epsr(i), epsi(i)
+         epsr(i) = epsr(i) + 1
+      end do
+
+      close(15)
+
+      ! Find the closest values for dielectric constant according to 
+      ! the wavelength band 
+      do i = 1, matrices%bars
+         ind = minloc(abs(w-2d0*pi/mesh%ki(i)/1d-6),1)
+         mesh%params(:,i) = dcmplx(epsr(ind), epsi(ind))
+      end do
+
+   end subroutine band_astrosilicate
+
+!******************************************************************************
 ! Setup the wavelength band and all matrices inv A in it
    subroutine band_no_blackbody(matrices, mesh)
       type(data), intent(inout):: matrices

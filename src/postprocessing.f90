@@ -236,7 +236,7 @@ contains
                   Q_t = Q_t + matrices%Q_t
                end if
 
-               ! Q_t = matmul(matrices%R, Q_t)
+               Q_t = matmul(matrices%R, Q_t)
 
                F_coll(3, ind + 1) = F_coll(3, ind + 1) + F_align(Q_t, xi, phi, psi)/Bang
                F_coll(4, ind + 1) = F_coll(4, ind + 1) + H_align(Q_t, xi, phi, psi)/Bang
