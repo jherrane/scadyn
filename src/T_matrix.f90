@@ -24,11 +24,15 @@ contains
       if (matrices%waves == 'sil') call band_astrosilicate(matrices, mesh)
 
       write (*, '(3(A,I0))') ' Construct matrices for ', sz, ' wavelengths...'
+      if(matrices%singleT == 1) then
+         write(*,'(2(A, F8.3))') ' Wavelength now is ', &
+         2d0*pi/mesh%ki(matrices%whichbar)/1d-6, ' um.'
+      end if
       if (use_mie == 1) then
          call mie_T_matrix(matrices, mesh)
       else
          do i = 1, sz
-            if (size(mesh%params, 2) > 1) mesh%param = mesh%params(:, i)
+            if (size(mesh%params, 2) > 1) mesh%param = mesh%params(:, matrices%whichbar)
             ii = i
             if (matrices%singleT == 1) ii = matrices%whichbar
             write (*, '(3(A,I0))') ' Step ', ii, '/', sz, ''
