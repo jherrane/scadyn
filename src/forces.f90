@@ -215,8 +215,8 @@ contains
       Tba = matrices%Tbai(1:nm, 1:nm, i)
       Tbb = matrices%Tbbi(1:nm, 1:nm, i)
 
-      a_in = E*matrices%as(1:nm, i)/dcmplx(sqrt(2d0*sqrt(mu/epsilon)*mesh%k**2)/2d0)
-      b_in = E*matrices%bs(1:nm, i)/dcmplx(sqrt(2d0*sqrt(mu/epsilon)*mesh%k**2)/2d0)
+      a_in = E*matrices%as(1:nm, i)/sqrt(2d0*sqrt(mu/epsilon)*mesh%k**2)/2d0
+      b_in = E*matrices%bs(1:nm, i)/sqrt(2d0*sqrt(mu/epsilon)*mesh%k**2)/2d0
 
       Pow = E**2/sqrt(mu/epsilon)/2d0/cc
 
