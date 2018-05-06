@@ -225,15 +225,15 @@ contains
                if (matrices%whichbar == 0) then
                   do k = 1, matrices%bars
                      call forcetorque(k, matrices, mesh)
-                     Q_t = Q_t + matrices%Q_t/matrices%bars
+                     Q_t = Q_t + matrices%Q_t/matrices%bars/matrices%polarization
                   end do
                else
                   k = matrices%whichbar
                   call forcetorque(k, matrices, mesh)
-                  Q_t = Q_t + matrices%Q_t
+                  Q_t = Q_t + matrices%Q_t/matrices%polarization
                end if
 
-               Q_t = matmul(transpose(matrices%R), Q_t)
+               Q_t = matmul(matrices%R, Q_t)
 
                F_coll(3, ind + 1) = F_coll(3, ind + 1) + F_align(Q_t, xi, phi, psi)/Bang
                F_coll(4, ind + 1) = F_coll(4, ind + 1) + H_align(Q_t, xi, phi, psi)/Bang

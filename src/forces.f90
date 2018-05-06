@@ -391,8 +391,8 @@ contains
       real(dp) :: Qt(3), xi, phi, psi, F
 
       F = -Qt(3)*(sin(psi)*cos(xi)*cos(phi) + cos(psi)*sin(xi)) &
-          + Qt(1)*(cos(psi)*cos(xi)*cos(phi) - sin(psi)*sin(xi)) &
-          + Qt(2)*cos(xi)*sin(phi)
+          + Qt(2)*(cos(psi)*cos(xi)*cos(phi) - sin(psi)*sin(xi)) &
+          + Qt(1)*cos(xi)*sin(phi)
 
    end function F_align
 
@@ -446,12 +446,12 @@ contains
       if (matrices%whichbar == 0) then
          do k = 1, matrices%bars
             call forcetorque(k, matrices, mesh)
-            Q = Q + matrices%Q_t/matrices%bars
+            Q = Q + matrices%Q_t/matrices%bars/matrices%polarization
          end do
       else
          k = matrices%whichbar
          call forcetorque(k, matrices, mesh)
-         Q = Q + matrices%Q_t
+         Q = Q + matrices%Q_t/matrices%polarization
       end if
 
    end function Qt
