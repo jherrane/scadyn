@@ -34,8 +34,12 @@ contains
          do i = 1, sz
             if (size(mesh%params, 2) > 1) mesh%param = mesh%params(:, matrices%whichbar)
             ii = i
-            if (matrices%singleT == 1) ii = matrices%whichbar
-            write (*, '(3(A,I0))') ' Step ', ii, '/', sz, ''
+            if (matrices%singleT == 1) then 
+               ii = matrices%whichbar
+               write (*, '(3(A,I0))') ' Step ', ii
+            else
+               write (*, '(3(A,I0))') ' Step ', ii, '/', sz, ''
+            end if
             nm = (matrices%Nmaxs(ii) + 1)**2 - 1
             mesh%k = mesh%ki(ii)
 

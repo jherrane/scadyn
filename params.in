@@ -25,7 +25,7 @@ int_mode 0              # 0 = normal scattering dynamics integration,
                         # 1 = external alignment integration, 2 = both 
                         # sequentially
 
-Tmat 0                  # 1 = file is usable / 0 = force T-matrix calculation
+Tmat 1                  # 1 = file is usable / 0 = force T-matrix calculation
 polarization 2          # 1 = lin / 2 = un
 bars 10                 # in range lmb1-lmb2 nm
 lambda1 200

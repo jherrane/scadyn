@@ -391,8 +391,8 @@ contains
       real(dp) :: Qt(3), xi, phi, psi, F
 
       F = -Qt(3)*(sin(psi)*cos(xi)*cos(phi) + cos(psi)*sin(xi)) &
-          + Qt(2)*(cos(psi)*cos(xi)*cos(phi) - sin(psi)*sin(xi)) &
-          + Qt(1)*cos(xi)*sin(phi)
+          + Qt(1)*(cos(psi)*cos(xi)*cos(phi) - sin(psi)*sin(xi)) &
+          + Qt(2)*cos(xi)*sin(phi)
 
    end function F_align
 
@@ -402,8 +402,8 @@ contains
       real(dp) :: Qt(3), xi, phi, psi, H
 
       H = Qt(3)*(cos(psi)*cos(xi) - sin(psi)*sin(xi)*cos(phi)) &
-          + Qt(2)*(sin(psi)*cos(xi) + cos(psi)*sin(xi)*cos(phi)) &
-          + Qt(1)*sin(xi)*cos(phi)
+          + Qt(1)*(sin(psi)*cos(xi) + cos(psi)*sin(xi)*cos(phi)) &
+          + Qt(2)*sin(xi)*cos(phi)
 
    end function H_align
 
@@ -412,8 +412,8 @@ contains
    function G_align(Qt, phi, psi) result(G)
       real(dp) :: Qt(3), phi, psi, G
 
-      G = Qt(3)*sin(psi)*sin(phi) - Qt(2)*cos(psi)*sin(phi) &
-          + Qt(1)*cos(phi)
+      G = Qt(3)*sin(psi)*sin(phi) - Qt(1)*cos(psi)*sin(phi) &
+          + Qt(2)*cos(phi)
 
    end function G_align
 

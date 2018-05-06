@@ -148,7 +148,6 @@ contains
       k0 = matrices%khat
       E0 = real(matrices%E0hat)
       E90 = real(matrices%E90hat)
-      a_3 = matrices%P(1:3, 3)
 
       Nang = 60 ! Angle of rotation of a_3 about e_1 (when psi=0)
       Bang = 20 ! Angle of averaging over beta
@@ -194,16 +193,15 @@ contains
 
       write (*, '(A)') '  Starting the calculation of phi-averaged radiative torques:'
       do psi_deg = 1, size(psis, 1)
-         ! First, set up B in the direction of psi
+         ! First, set up B in the direction of psi (B still lies in the xz-plane)
          psi = dble(psis(psi_deg))*pi/180d0
          x_B = [0d0, 1d0, 0d0]
 
          ! Rotation axis for precession averaging
-         nphi = matmul(R_aa(x_B,psi),[0d0,0d0,1d0]) ! Is actually B
+         nphi = matmul(R_aa(x_B,psi),k0) ! Is actually B
 
          ! Second, set up rotation from a_3 to new B
-         R_B = rotate_a_to_b(a_3, nphi)
-         a_3 = matmul(R_B, matrices%P(1:3, 3))
+         R_B = rotate_a_to_b(matrices%P(1:3, 3), nphi)
          
          ! Xi loop
          do i = 0, Nang - 1
@@ -222,7 +220,6 @@ contains
 
                ! The ultimate rotation matrices for scattering event
                matrices%R = matmul(R_phi, R_xi) ! First a_3 to xi, then beta about a_3
-               ! if(i == Nang-1)points(:,j+1) = matmul(matrices%R,matrices%P(1:3,3))
                call rot_setup(matrices)
 
                if (matrices%whichbar == 0) then
@@ -236,7 +233,7 @@ contains
                   Q_t = Q_t + matrices%Q_t
                end if
 
-               Q_t = matmul(matrices%R, Q_t)
+               Q_t = matmul(transpose(matrices%R), Q_t)
 
                F_coll(3, ind + 1) = F_coll(3, ind + 1) + F_align(Q_t, xi, phi, psi)/Bang
                F_coll(4, ind + 1) = F_coll(4, ind + 1) + H_align(Q_t, xi, phi, psi)/Bang
@@ -252,17 +249,10 @@ contains
 
       open (unit=1, file="out/F.out", ACTION="write", STATUS="replace")
       write (1, '(A)') 'xi   psi   F  H  G'
-      do i = 0, size(F_coll, 2) - 1
-         write (1, '(6ES12.3)') dcos(F_coll(1:2, i + 1)), F_coll(3:5, i + 1)
+      do i = 1, size(F_coll, 2)
+         write (1, '(6ES12.3)') dcos(F_coll(1:2, i)), F_coll(3:5, i)
       end do
       close (1)
-
-      ! open (unit=1, file="out/points", ACTION="write", STATUS="replace")
-      ! write (1, '(A)') 'x y z'
-      ! do i = 1, size(points, 2)
-      !    write (1, '(3ES12.3)') points(:,i)
-      ! end do
-      ! close (1)
 
    end subroutine torque_efficiency
 
