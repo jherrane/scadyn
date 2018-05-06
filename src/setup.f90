@@ -298,7 +298,6 @@ contains
          matrices%lambda1 = 2d0*pi/mesh%ki(1)
          matrices%lambda2 = 2d0*pi/mesh%ki(matrices%bars)
          if (matrices%waves == 'bnd') call calc_E_rel(matrices, mesh)
-!~         call init_geometry(matrices,mesh)
       end if
 
    end subroutine fix_band
@@ -314,8 +313,7 @@ contains
 
       Rx = reshape([0d0, 0d0, 1d0, 0d0, 1d0, 0d0, -1d0, 0d0, 0d0], [3, 3])
       Ry = reshape([1d0, 0d0, 0d0, 0d0, 0d0, 1d0, 0d0, -1d0, 0d0], [3, 3])
-!print*, matrices%khat
-!print*, matmul(R,[0d0,0d0,1d0])
+
       do i = 1, matrices%bars
          Nmax = matrices%Nmaxs(i)
          las = (Nmax + 1)*(2*Nmax + 1)*(2*Nmax + 3)/3 - 1

@@ -146,8 +146,8 @@ contains
          HB1(:, 2) = mu*H1(:)*conjg(H1(2))
          HB1(:, 3) = mu*H1(:)*conjg(H1(3))
 
-         E2 = F90+matrices%E90*exp(dcmplx(0.0d0, mesh%k*dot_product(matrices%khat, r)))
-         H2 = G90+H90*exp(dcmplx(0.0d0, mesh%k*dot_product(matrices%khat, r)))
+         E2 = F90 + matrices%E90*exp(dcmplx(0.0d0, mesh%k*dot_product(matrices%khat, r)))
+         H2 = G90 + H90*exp(dcmplx(0.0d0, mesh%k*dot_product(matrices%khat, r)))
 
          ED2(:, 1) = epsilon*E2(:)*conjg(E2(1))
          ED2(:, 2) = epsilon*E2(:)*conjg(E2(2))
@@ -172,9 +172,9 @@ contains
          torque2 = torque2 - dcmplx(0.5d0)*crossRC(r, matmul(T2, dcmplx(n)))*dcmplx(mesh%w(i1))
       end do
 
-! The total optical force is the average of the forces in the two cases
-      force = (force1 + force2)/2d0
-      torque = (torque1 + torque2)/2d0
+! The total optical force is the average of the forces, according to the number of polarizations
+      force = (force1 + force2)/matrices%polarization
+      torque = (torque1 + torque2)/matrices%polarization
 
       matrices%force = force
       matrices%torque = torque
@@ -269,9 +269,9 @@ contains
       fy = F_z(Nmax, a2, b2, p2, q2) + F_z(Nmax, a290, b290, p290, q290)
       ty = T_z(Nmax, a2, b2, p2, q2) + T_z(Nmax, a290, b290, p290, q290)
 
-! Averaging now, thus division by 2d0
-      matrices%force = dcmplx([fx, fy, fz]/cc/2d0)
-      matrices%torque = dcmplx([tx, ty, tz]/(cc*mesh%k)/2d0)
+! Averaging now, thus division by the number of polarization states
+      matrices%force = dcmplx([fx, fy, fz]/cc/matrices%polarization)
+      matrices%torque = dcmplx([tx, ty, tz]/(cc*mesh%k)/matrices%polarization)
       matrices%Q_t = dble(matrices%torque)*(mesh%k)/Pow/pi/mesh%a**2
       matrices%Q_f = dble(matrices%force)/Pow/pi/mesh%a**2
 
@@ -391,8 +391,8 @@ contains
       real(dp) :: Qt(3), xi, phi, psi, F
 
       F = -Qt(3)*(sin(psi)*cos(xi)*cos(phi) + cos(psi)*sin(xi)) &
-          + Qt(2)*(cos(psi)*cos(xi)*cos(phi) - sin(psi)*sin(xi)) &
-          + Qt(1)*cos(xi)*sin(phi)
+          + Qt(1)*(cos(psi)*cos(xi)*cos(phi) - sin(psi)*sin(xi)) &
+          + Qt(2)*cos(xi)*sin(phi)
 
    end function F_align
 
