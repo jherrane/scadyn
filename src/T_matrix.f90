@@ -10,7 +10,8 @@ module T_matrix
 contains
 
 !****************************************************************************80
-
+! The main calculation routine for the T-matrices. Uses the celebrated 
+! JVIE-methodology.
    subroutine calc_T()
       integer :: i, ii, nm, sz
 
@@ -71,7 +72,8 @@ contains
    end subroutine calc_T
 
 !****************************************************************************80
-
+! Allocate space for the currently used T-matrix, thus deallocation if 
+! necessary.
    subroutine allocate_T(i)
       integer :: Nmax, i
 
@@ -88,7 +90,9 @@ contains
    end subroutine allocate_T
 
 !****************************************************************************80
-
+! Allocate memory for the collection of T-matrices. Wastes space as the 
+! largest T-matrix usually is much larger than the others. Must be allocated 
+! before anything else is done with T-matrices.
    subroutine allocate_Ti()
       integer :: Nmax
 
@@ -107,7 +111,8 @@ contains
    end subroutine allocate_Ti
 
 !****************************************************************************80
-
+! The T-matrix of a sphere. Fast, accurate, yet not very usable. Unless 
+! combined with layered sphere codes and aggregation.
    subroutine mie_T_matrix()
       integer :: i, j, ci, nm, Nmax
       real(dp) :: k, ka
@@ -117,7 +122,7 @@ contains
       do i = 1, size(mesh%ki)
          if (allocated(a_n)) deallocate (a_n, b_n, j0, j1, h0, j0d, j1d, h0d)
 
-! write(*,'(3(A,I0))') ' Step ', i, '/', size(mesh%ki), ''
+         if(debug==1) write(*,'(3(A,I0))') ' Step ', i, '/', size(mesh%ki), ''
 
          k = mesh%ki(i)
          ka = k*mesh%a
@@ -148,9 +153,9 @@ contains
    end subroutine mie_T_matrix
 
 !****************************************************************************80
-! Orientation averaged T-matrix of the current particle in question. Assumes that 
-! the T-matrix of the particle is already calculated. Usable for coherent field 
-! applications. 
+! Orientation averaged T-matrix of the current particle in question. Assumes 
+! that the T-matrix of the particle is already calculated. Usable for coherent 
+! field applications. 
    subroutine ori_ave_T()
       integer :: i, ii, nm, sz, n, m, Nmax
       complex(dp), dimension(:, :), allocatable :: Taa, Tab, Tba, Tbb, &
@@ -216,7 +221,7 @@ contains
    end subroutine ori_ave_T
 
 !****************************************************************************80
-
+! Śolve the T-matrix via the VIE method and accelerated GMRES.
    subroutine compute_T_matrix(Nmax, Taa, Tab, Tba, Tbb)
       real(dp) :: k
       integer :: Nmax, nm
@@ -257,7 +262,8 @@ contains
    end subroutine compute_T_matrix
 
 !****************************************************************************80
-
+! Solve the scattered fields p and q, given electric field amplitude E and
+! the current wavelength index ii
    subroutine scattered_fields(E, p, q, p90, q90, ii)
       real(dp) :: E
       complex(dp), dimension(:), allocatable :: a_in, b_in, a90, b90, &
@@ -311,7 +317,7 @@ contains
    end subroutine scattered_fields
 
 !****************************************************************************80
-
+! Vector spherical harmonics of degree l and order m in direction (theta,phi)
    function vsh(n, m, thet, ph) result(BCP)
       integer :: n, m, mm
       real(dp) :: thet, ph, theta, phi, q
