@@ -99,6 +99,7 @@ contains
       real(dp) :: theta, beta, xi, phi, psi
       real(dp), dimension(:, :), allocatable :: Q_coll, F_coll, points
       real(dp), dimension(:), allocatable :: psis, thetas
+
       call rot_setup()
 
       k0 = matrices%khat
@@ -123,7 +124,7 @@ contains
             ! Find rotation of angle beta around the rotated a_3-axis
             beta = dble(j)*pi*2d0/Bang
             ! Flip the coordinate labels to match Lazarian2007b
-            Q_t = matmul(matrices%Rkt, get_Qt(theta, beta, 0d0))
+            Q_t = matmul(matrices%Rkt, get_Qt(theta, 0d0, beta))
 
             Q_t = [dot_product(Q_t, k0), dot_product(Q_t, E0), dot_product(Q_t, E90)]
             Q_coll(:, i + 1) = Q_coll(:, i + 1) + Q_t/Bang
@@ -197,7 +198,7 @@ contains
             end do
 
             F_coll(1:2, ind + 1) = [xi, psi]
-            call print_bar(ind, size(F_coll, 2))
+            call print_bar(ind+1, size(F_coll, 2))
             ind = ind + 1
 
          end do

@@ -60,9 +60,8 @@ contains
       if (r - dble(floor(r)) < 1d-7 .OR. i1 == 1) then
          write (6, '(2x,1i3,1a1,2x,1a1,256a1)', advance='no') &
             100*i1/Nmax, '%', '|', (bar, k=1, 50*i1/Nmax)
-         if(i1<Nmax) then
-            write (6, '(256a1)', advance='no') (back, k=1, (50*i1/Nmax) + 9)
-         else
+         write (6, '(256a1)', advance='no') (back, k=1, (50*i1/Nmax) + 9)
+         if(i1==Nmax) then
             write(*,*) ''
          end if
       end if

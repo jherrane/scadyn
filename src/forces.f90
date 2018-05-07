@@ -414,19 +414,20 @@ contains
 !****************************************************************************80
 ! Torque efficiency as a function of capital theta and phi (as in the works of
 ! Draine and Weingartner)
-   function get_Qt(theta, beta, phi) result(Q)
+   function get_Qt(theta, phi, beta) result(Q)
       real(dp) :: R_thta(3, 3), nbeta(3), R_beta(3, 3), Q(3), theta, beta, phi, &
-                  a_3(3)
+                  a_3(3), R_phi(3,3)
       integer :: k
 
-      Q = 0d0*phi
+      Q = 0d0
 
       a_3 = matrices%P(1:3, 3)
 
       R_thta = R_theta(theta)
+      R_phi = R_aa([0d0,0d0,1d0],phi)
       
 ! Rotation axis for beta averaging for current theta
-      nbeta = matmul(R_thta, a_3) ! Beta rotation about a_3
+      nbeta = matmul(matmul(R_phi,R_thta), a_3) ! Beta rotation about a_3
       nbeta = nbeta/vlen(nbeta) ! Ensure unit length of axis vector
 
       R_beta = R_aa(nbeta, beta)
