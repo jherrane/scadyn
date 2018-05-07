@@ -538,6 +538,8 @@ contains
 
       call find_k(matrices, mesh)
       call calc_E_rel(matrices, mesh)
+      ! Add 100 nm spike to the spectrum
+      if(2*pi/mesh%ki(1)/1d-6 < 0.15d0) matrices%E_rel(1) = maxval(matrices%E_rel)*1.33d0
       call read_mesh(matrices, mesh)
 
       size_param = size(mesh%params,1)

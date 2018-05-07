@@ -386,13 +386,17 @@ contains
    end function DG_torque
 
 !******************************************************************************
-! The radiative alignment torque, from Weingartner & Draine (2003)
+! The radiative alignment torque, from Weingartner & Draine (2003). Components are 
+! calculated using vector \hat{\xi} = \partial_\xi \hat{X_\psi}, where X_\psi is 
+! the position vector in terms of alignment directions \xi and \phi rotated amount 
+! \psi about the y-axis. Same is done in WD2003 for different axis notation.
    function F_align(Qt, xi, phi, psi) result(F)
       real(dp) :: Qt(3), xi, phi, psi, F
 
-      F = -Qt(3)*(sin(psi)*cos(xi)*cos(phi) + cos(psi)*sin(xi)) &
-          + Qt(1)*(cos(psi)*cos(xi)*cos(phi) - sin(psi)*sin(xi)) &
-          + Qt(2)*cos(xi)*sin(phi)
+      F = Qt(1)*(cos(psi)*cos(xi)*cos(phi) - sin(psi)*sin(xi)) &
+          + Qt(2)*cos(xi)*sin(phi) &
+          -Qt(3)*(sin(psi)*cos(xi)*cos(phi) + cos(psi)*sin(xi))
+          
 
    end function F_align
 
