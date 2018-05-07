@@ -41,7 +41,7 @@ contains
             nm = (matrices%Nmaxs(ii) + 1)**2 - 1
             mesh%k = mesh%ki(ii)
 
-            call allocate_T(ii, matrices)
+            call allocate_T(ii)
 
             call update_projections(ii)
 
@@ -72,8 +72,7 @@ contains
 
 !****************************************************************************80
 
-   subroutine allocate_T(i, matrices)
-      type(data) :: matrices
+   subroutine allocate_T(i)
       integer :: Nmax, i
 
       if (allocated(matrices%Taa)) then
@@ -303,7 +302,6 @@ contains
 !****************************************************************************80
 
    subroutine scattered_fields2(E, a, b, a90, b90, p, q, p90, q90, ii)
-      type(data) :: matrices
       real(dp) :: E
       complex(dp), dimension(:), allocatable :: a_in, b_in, a90, b90, &
                                                 a, b, p, q, p90, q90, ptemp, qtemp, p90temp, q90temp

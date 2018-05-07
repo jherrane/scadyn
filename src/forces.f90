@@ -424,7 +424,7 @@ contains
       a_3 = matrices%P(1:3, 3)
 
       R_thta = R_theta(theta)
-
+      
 ! Rotation axis for beta averaging for current theta
       nbeta = matmul(R_thta, a_3) ! Beta rotation about a_3
       nbeta = nbeta/vlen(nbeta) ! Ensure unit length of axis vector

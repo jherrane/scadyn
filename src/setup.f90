@@ -172,7 +172,6 @@ contains
 !****************************************************************************80
 
    subroutine update_projections(i)
-      type(data) :: matrices
       integer :: i
 
       matrices%S = matrices%listS(:, :, i)
@@ -389,7 +388,6 @@ contains
 !****************************************************************************80
 
    subroutine polarization()
-      type(data) :: matrices
       real(dp) :: k0(3), k1(3), R(3, 3)
 
       k0 = [0d0, 0d0, 1d0]

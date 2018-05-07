@@ -393,8 +393,7 @@ contains
 
 !****************************************************************************80
 
-   subroutine read_log(matrices)
-      type(data), intent(inout):: matrices
+   subroutine read_log()
       integer, parameter :: fh = 15
       integer :: line
 
@@ -652,7 +651,7 @@ contains
 
       if (n > 100000) then
          if (matrices%is_aligned == 0) then
-            matrices%is_aligned = alignment_state(matrices)
+            matrices%is_aligned = alignment_state()
          else if (matrices%alignment_found == 0) then
             print *, " ******************* HEY, IT'S ALIGNED! ********************"
             matrices%it_stop = n + matrices%it_log

@@ -1147,8 +1147,7 @@ contains
 !****************************************************************************80
 ! Tests whether a particle is aligned internally, i.e. one principal axis is
 ! directed in the direction of angular velocity
-   function alignment_state(matrices) result(ans)
-      type(data) :: matrices
+   function alignment_state() result(ans)
       real(dp) :: aw, cw, w(3), wnorm
       integer :: ans
 

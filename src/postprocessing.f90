@@ -122,7 +122,6 @@ contains
          do j = 0, Bang - 1
             ! Find rotation of angle beta around the rotated a_3-axis
             beta = dble(j)*pi*2d0/Bang
-
             ! Flip the coordinate labels to match Lazarian2007b
             Q_t = matmul(matrices%Rkt, get_Qt(theta, beta, 0d0))
 

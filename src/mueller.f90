@@ -37,7 +37,7 @@ contains
          N_points = 1 ! N_avgs replaces this
          N_phi = 1 ! Averaging occurs, so phi-dependency is lost
       case ('ori')
-         call read_log(matrices)
+         call read_log()
          everyn = 1
       end select
 
