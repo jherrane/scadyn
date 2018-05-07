@@ -233,11 +233,18 @@ contains
 
       do nm = 1, size(mat, 2)
          matrices%rhs = mat(:, nm)
-         if(debug/=1) open(unit=6, file="/dev/null", form="formatted")
+         ! Redirect terminal output to trash unless debug mode is on. Maybe
+         ! not very portable...
+         if(debug==0) open(unit=6, file="/dev/null", form="formatted")
          call gmres(matrices, mesh)
          T_mat(:, nm) = matmul(transpose(conjg(mat)), matrices%x)
-         if(debug/=1) open(unit=6, file="/dev/stdout", form="formatted")
+         if(debug==0) then
+            open(unit=6, file="/dev/stdout", form="formatted")
+         else
+            print*, nm,'/',size(mat,2) 
+         end if
          call print_bar(nm, size(mat, 2))
+         
       end do
 
       nm = (Nmax + 1)**2 - 1

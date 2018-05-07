@@ -55,11 +55,11 @@ contains
 
       back = char(8)
       bar = '='
-      r = 100d0/Nmax
+      r = 100d0/Nmax 
 ! print the percentage and the bar without line change, then reset cursor
-      if (floor((i1+1)*r)-floor(i1*r) == 1 .OR. i1 == 1) then
+      if (floor(i1*r)-floor((i1-1)*r) > 0) then
          write (6, '(2x,1i3,1a1,2x,1a1,256a1)', advance='no') &
-            100*i1/Nmax, '%', '|', (bar, k=1, 50*i1/Nmax)
+            ceiling(r*i1), '%', '|', (bar, k=1, 50*i1/Nmax)
          write (6, '(256a1)', advance='no') (back, k=1, (50*i1/Nmax) + 9)
          if(i1==Nmax) then
             write(*,*) ''
@@ -144,6 +144,9 @@ contains
 
          select case (arg_name)
 
+         case ('-d','--debug')
+            call get_command_argument(i, arg)
+            debug = 1
          case ('-m','--mesh')
             call get_command_argument(i + 1, arg)
             mesh%meshname = arg
@@ -193,6 +196,7 @@ contains
          case ('-h','--help')
             write(*, '(A)') ' Commands        Value       Description'
             write(*, '(A)') '---------------------------------------'
+            write(*, '(A)') ' -d --debug                  Print more detailed info'
             write(*, '(A)') ' -m --mesh       mesh.h5     Mesh geometry'
             write(*, '(A)') ' -T --Tmat       T.h5        T-matrix file'
             write(*, '(A)') ' -l --log        out/log     Log to file'
