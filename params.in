@@ -18,7 +18,7 @@ E 1d0                   # Amplitude of E at its maximum
 #####  Run parameters   #######################################################
 waves bnd               # Wavelength band options lin, inv, log, bnd, sil
 mueller_mode none       # Mueller matrix type, none, ave, ori, perf_ori
-test_forces 0           # 0 = integrate, 1 = test methods, 2 = calc Qt, 
+test_forces 2           # 0 = integrate, 1 = test methods, 2 = calc Qt, 
                         # 3 = stability analysis, 4 = write fields to file
                         # 5 = SOCpol-averaging of Mueller matrices
 int_mode 0              # 0 = normal scattering dynamics integration,

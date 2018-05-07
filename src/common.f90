@@ -1422,7 +1422,7 @@ contains
       a_1 = matrices%P(1:3, 1)
       a_2 = matrices%P(1:3, 2)
       a_3 = matrices%P(1:3, 3)
-
+      
 ! Rotation of a_3 to k
       theta0 = dacos(dot_product(k, a_3))
       if (theta0 > 1d-6) then

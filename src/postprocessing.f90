@@ -124,7 +124,8 @@ contains
             beta = dble(j)*pi*2d0/Bang
 
             ! Flip the coordinate labels to match Lazarian2007b
-            Q_t = matmul(matrices%Rkt, Qt(theta, beta, 0d0))
+            Q_t = matmul(matrices%Rkt, get_Qt(theta, beta, 0d0))
+
             Q_t = [dot_product(Q_t, k0), dot_product(Q_t, E0), dot_product(Q_t, E90)]
             Q_coll(:, i + 1) = Q_coll(:, i + 1) + Q_t/Bang
          end do

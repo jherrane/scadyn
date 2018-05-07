@@ -414,7 +414,7 @@ contains
 !****************************************************************************80
 ! Torque efficiency as a function of capital theta and phi (as in the works of
 ! Draine and Weingartner)
-   function Qt(theta, beta, phi) result(Q)
+   function get_Qt(theta, beta, phi) result(Q)
       real(dp) :: R_thta(3, 3), nbeta(3), R_beta(3, 3), Q(3), theta, beta, phi, &
                   a_3(3)
       integer :: k
@@ -433,6 +433,7 @@ contains
 
 ! The ultimate rotation matrices for scattering event
       matrices%R = matmul(R_beta, R_thta) ! First a_3 to theta, then beta about a_3
+
       call rot_setup()
 
       if (matrices%whichbar == 0) then
@@ -446,7 +447,7 @@ contains
          Q = Q + matrices%Q_t/matrices%polarization
       end if
 
-   end function Qt
+   end function get_Qt
 
 !****************************************************************************80
 ! Calculates orientation angles in terms of alignment angles xi, psi and phi
