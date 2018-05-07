@@ -50,14 +50,14 @@ contains
 
    subroutine print_bar(i1, Nmax)
       integer :: i1, Nmax, k
-      character(len=1) :: bar, back
       real(dp) :: r
+      character(len=1) :: bar, back
 
       back = char(8)
       bar = '='
-      r = 100d0*dble(i1)/dble(Nmax)
+      r = 100d0/Nmax
 ! print the percentage and the bar without line change, then reset cursor
-      if (r - dble(floor(r)) < 1d-7 .OR. i1 == 1) then
+      if (floor((i1+1)*r)-floor(i1*r) == 1 .OR. i1 == 1) then
          write (6, '(2x,1i3,1a1,2x,1a1,256a1)', advance='no') &
             100*i1/Nmax, '%', '|', (bar, k=1, 50*i1/Nmax)
          write (6, '(256a1)', advance='no') (back, k=1, (50*i1/Nmax) + 9)
