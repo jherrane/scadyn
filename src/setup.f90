@@ -512,8 +512,6 @@ contains
       real(dp), dimension(:), allocatable :: c, diff, absdif, w, epsr, epsi
       integer :: i, n, size_param, ind
 
-      call find_k()
-      call calc_E_rel()
       ! Add 100 nm spike to the spectrum
       if(2*pi/mesh%ki(1)/1d-6 < 0.15d0) matrices%E_rel(1) = maxval(matrices%E_rel)*1.33d0
       call read_mesh()
