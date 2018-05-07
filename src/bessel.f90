@@ -4,11 +4,9 @@ module bessel
    implicit none
 contains
 
-!******************************************************************************
+!****************************************************************************80
 ! The routine replaces the incident beams with Bessel beams.
-   subroutine bessel_beams(matrices, mesh)
-      type(mesh_struct) :: mesh
-      type(data) :: matrices
+   subroutine bessel_beams()
       integer :: i
       integer :: Nmax, nm
       complex(dp), dimension(:), allocatable :: a_in, b_in
@@ -27,7 +25,7 @@ contains
 
    end subroutine bessel_beams
 
-!******************************************************************************
+!****************************************************************************80
 ! The routine computes the SVWF expansion coefficients
 ! for a time harmonic x-polarized Bessel beams
 ! propagating +z-direction  with the wave number k
@@ -76,7 +74,7 @@ contains
 
    end subroutine bessel_z
 
-!*******************************************************************************
+!****************************************************************************80
 ! The associated Legendre functions Pnm and their derivatives
    subroutine legendre_Pnm(cth, Nmax, Pnm, dPnm)
       real(dp), intent(in) :: cth
@@ -139,7 +137,7 @@ contains
 
    end subroutine legendre_Pnm
 
-!*******************************************************************************
+!****************************************************************************80
 
    function jnm(n, m) result(j)
       integer :: n, m, j

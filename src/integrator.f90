@@ -6,27 +6,22 @@ module integrator
 
 contains
 
-!******************************************************************************
+!****************************************************************************80
 ! Main routine
-   subroutine integrate(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine integrate()
       integer :: t1, t2, rate
 
       print *, 'Integration in progress...'
       call system_clock(t1, rate)
-      call solve_eoms(matrices, mesh) ! integrator
+      call solve_eoms() ! integrator
       call system_clock(t2, rate)
       print *, ' Done in', real(T2 - T1)/real(rate), 'seconds'
    end subroutine integrate
 
-!******************************************************************************
+!****************************************************************************80
 ! Calculates grain dynamics. All radiative torques are calculated in so
 ! called scattering frame, and all ! dynamics are integrated in principal frame.
-   subroutine solve_eoms(matrices, mesh)
-
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine solve_eoms()
       integer :: i
       character(len=80) :: lg
 
@@ -34,22 +29,22 @@ contains
 
 ! Calculates the mass parameters for the mesh
       if (use_mie == 1) then
-         call mie_params(matrices, mesh)
+         call mie_params()
       else
-         call vie_params(matrices, mesh)
+         call vie_params()
       end if
 
-      call diagonalize_inertia(matrices, mesh)
+      call diagonalize_inertia()
 
-      call polarization(matrices)
-      call init_values(matrices)
-      call start_log(lg, matrices, mesh)
+      call polarization()
+      call init_values()
+      call start_log(lg)
 
-      call allocate_inc_wave(matrices, mesh)
+      call allocate_inc_wave()
 
-      if (beam_shape == 1) call gaussian_beams(matrices, mesh)
-      if (beam_shape == 2) call laguerre_gaussian_beams(matrices, mesh, p, l)
-      if (beam_shape == 3) call bessel_beams(matrices, mesh)
+      if (beam_shape == 1) call gaussian_beams()
+      if (beam_shape == 2) call laguerre_gaussian_beams(p, l)
+      if (beam_shape == 3) call bessel_beams()
 
 ! Iteration of optical force calculation
       do i = 1, matrices%it_max
@@ -57,17 +52,17 @@ contains
 
          select case (matrices%which_int)
          case (1)
-            call RK4_update(matrices, mesh)
+            call RK4_update()
          case (2)
-            call vlv_update(matrices, mesh)
+            call vlv_update()
          case (3)
-            call PCDM_update(matrices, mesh)
+            call PCDM_update()
          case default
-            call euler_update(matrices, mesh)
+            call euler_update()
          end select
 
-         call update_values(matrices)
-         call append_log(lg, i, matrices)
+         call update_values()
+         call append_log(lg, i)
          call print_bar(i, matrices%it_max)
 
       end do ! i = 1, matrices%it_max
@@ -75,11 +70,10 @@ contains
 
    end subroutine solve_eoms
 
-!******************************************************************************
+!****************************************************************************80
 ! Calculates adaptive time step over a maximum angle the particle
 ! can rotate during a step
-   subroutine adaptive_step(matrices)
-      type(data) :: matrices
+   subroutine adaptive_step()
       real(dp) :: max_w, test_dt
 
 ! Use an adaptive time step, integrate over rotation <= rot_max
@@ -95,7 +89,7 @@ contains
 
    end subroutine adaptive_step
 
-!******************************************************************************
+!****************************************************************************80
 ! Calculates the update coefficients for a linear vector ODE
 ! via 4th order Runge-Kutta algorithm
 ! input:  v(3) = velocity at previous timestep
@@ -115,7 +109,7 @@ contains
 
    end function RK4_3D
 
-!******************************************************************************
+!****************************************************************************80
 ! Calculates the update coefficients for a linear vector ODE
 ! via 2nd order Euler
 ! input:  v(3) = velocity at previous timestep
@@ -130,7 +124,7 @@ contains
 
    end function euler_3D
 
-!******************************************************************************
+!****************************************************************************80
 
    function get_dotq(w, q) result(dq)
 
@@ -148,7 +142,7 @@ contains
 
    end function get_dotq
 
-!******************************************************************************
+!****************************************************************************80
 
    function get_dotw(N, w, I, I_inv) result(dw)
 
@@ -158,20 +152,18 @@ contains
 
    end function get_dotw
 
-!******************************************************************************
+!****************************************************************************80
 
-   subroutine euler_update(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine euler_update()
       real(dp) :: qn(4), wn(3), vn(3), xn(3), P(3, 3)
       complex(dp), dimension(6) :: FN
 
       P = matrices%P
 
-      FN = get_forces(matrices, mesh)
+      FN = get_forces()
       matrices%F = real(FN(1:3))
       matrices%N = real(FN(4:6))
-      call adaptive_step(matrices)
+      call adaptive_step()
 
       wn = .5d0*matrices%dt*get_dotw(matrices%N, matrices%w, matrices%I, matrices%I_inv)
       qn = matrices%dt*get_dotq(matrices%w, matrices%q)
@@ -188,12 +180,9 @@ contains
 
    end subroutine euler_update
 
-!******************************************************************************
+!****************************************************************************80
 
-   subroutine RK4_update(matrices, mesh)
-
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine RK4_update()
       real(dp), dimension(4) :: qn
       real(dp) :: dt, k_q(4, 4), k_w(3, 4), coeffs(4), &
                   k_v(3, 4), k_x(3, 4), R(3, 3), wn(3), P(3, 3)
@@ -206,10 +195,10 @@ contains
 
       coeffs = [1d0, 2d0, 2d0, 1d0]
 
-      FN = real(get_forces(matrices, mesh))
+      FN = real(get_forces())
       matrices%F = FN(1:3)
       matrices%N = FN(4:6)
-      call adaptive_step(matrices)
+      call adaptive_step()
 
       dt = matrices%dt
 
@@ -220,7 +209,7 @@ contains
       k_q(:, 1) = dt*get_dotq(matrices%w, matrices%q)
       matrices%R = quat2mat(matrices%q + 0.5d0*k_q(:, 1))
 
-      FN = real(get_forces(matrices, mesh))
+      FN = real(get_forces())
       matrices%F = FN(1:3)
       k_v(:, 2) = dt*matrices%F/mesh%mass
       k_x(:, 2) = dt*(matrices%v_CM + k_v(:, 1)*0.5d0)
@@ -230,7 +219,7 @@ contains
       k_q(:, 2) = dt*get_dotq(matrices%w + 0.5d0*k_w(:, 1), matrices%q + 0.5d0*k_q(:, 1))
       matrices%R = quat2mat(matrices%q + 0.5d0*k_q(:, 2))
 
-      FN = real(get_forces(matrices, mesh))
+      FN = real(get_forces())
       matrices%F = FN(1:3)
       k_v(:, 3) = dt*matrices%F/mesh%mass
       k_x(:, 3) = dt*(matrices%v_CM + k_v(:, 2)*0.5d0)
@@ -240,7 +229,7 @@ contains
       k_q(:, 3) = dt*get_dotq(matrices%w + 0.5d0*k_w(:, 2), matrices%q + 0.5d0*k_q(:, 2))
       matrices%R = quat2mat(matrices%q + 0.5d0*k_q(:, 3))
 
-      FN = real(get_forces(matrices, mesh))
+      FN = real(get_forces())
       matrices%F = FN(1:3)
       k_v(:, 4) = dt*matrices%F/mesh%mass
       k_x(:, 4) = dt*(matrices%v_CM + k_v(:, 3))
@@ -258,11 +247,9 @@ contains
       matrices%Rn = quat2mat(matrices%qn) ! Update orientation matrix
    end subroutine RK4_update
 
-!******************************************************************************
+!****************************************************************************80
 ! Variational Lie-Verlet method for rotational integration
-   subroutine vlv_update(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine vlv_update()
       integer :: maxiter, i1
       real(dp) :: Rn(3, 3), wnh(3), dt, I(3), Jw(3), Ff
       real(dp) :: PxW(3), hel(3), Jac(3, 3), Jwn(3), iterstop
@@ -277,11 +264,11 @@ contains
 
 ! First force calculation for getting a reasonable value for dt
       if (matrices%tt == 0d0 .AND. .NOT. matrices%E < 1d-7) then
-         FN = get_forces(matrices, mesh)
+         FN = get_forces()
          matrices%F = real(FN(1:3))
          matrices%N = real(FN(4:6))
       end if
-      call adaptive_step(matrices)
+      call adaptive_step()
       dt = matrices%dt
       if (matrices%E < 1d-7) matrices%N = 0d0
 
@@ -317,7 +304,7 @@ contains
       matrices%Rn = quat2mat(matrices%qn)
 
       matrices%R = matrices%Rn
-      if (.NOT. matrices%E < 1d-7) FN = get_forces(matrices, mesh)
+      if (.NOT. matrices%E < 1d-7) FN = get_forces()
       if (matrices%E < 1d-7) FN = dcmplx(0d0)
       matrices%F = real(FN(1:3))
       matrices%N = real(FN(4:6))
@@ -331,22 +318,20 @@ contains
 
    end subroutine vlv_update
 
-!******************************************************************************
+!****************************************************************************80
 ! Improved predictor-corrector direct multiplication (PCDM) method of
 ! Seelen, L. J. H., Padding, J. T., & Kuipers, J. A. M. (2016).
 ! Improved quaternion-based integration scheme for
 ! rigid body motion. Acta Mechanica, 1-9. DOI: 10.1007/s00707-016-1670-x
-   subroutine PCDM_update(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine PCDM_update()
       real(dp), dimension(4) :: q, qn
       real(dp) ::  w(3), wn(3), Imat(3, 3), Imat_inv(3, 3), dwb(3), wb(3), wbn(3), dt
       complex(dp), dimension(6) :: FN
 
-      FN = get_forces(matrices, mesh)
+      FN = get_forces()
       matrices%F = real(FN(1:3))
       matrices%N = real(FN(4:6))
-      call adaptive_step(matrices)
+      call adaptive_step()
 
       dt = matrices%dt
 
@@ -371,7 +356,7 @@ contains
       wn = quat_rotation(qn, wbn) ! body->lab frame
 
 ! New torque with predicted values
-      FN = get_forces(matrices, mesh)
+      FN = get_forces()
       matrices%N = real(FN(4:6))
 
 ! Corrected new values
@@ -385,12 +370,9 @@ contains
 
    end subroutine PCDM_update
 
-!******************************************************************************
+!****************************************************************************80
 
-   subroutine diagonalize_inertia(matrices, mesh)
-
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine diagonalize_inertia()
       integer :: i, imin, imax, imid, negs
 
 ! Test if I is "almost diagonal", which causes diasym to do funny stuff
@@ -459,10 +441,7 @@ contains
 
    end subroutine diagonalize_inertia
 
-   subroutine mie_params(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct)             ::  mesh
-
+   subroutine mie_params()
       mesh%V = 4d0/3d0*pi*mesh%a**3
       mesh%mass = mesh%V*mesh%rho
       mesh%CM = [0d0, 0d0, 0d0]
@@ -473,42 +452,20 @@ contains
       matrices%P = eye(3)
    end subroutine mie_params
 
-!******************************************************************************
+!****************************************************************************80
 ! Mass parameters for VIE-mesh
-! input:  mesh
 ! output: mesh%V = volume of the mesh
 !         mesh%mass = mass of the mesh
 !         mesh%CM = coordinates of the center of mass
 !         mesh%I = The moment of inertia tensor
-!******************************************************************************
-   subroutine vie_params(matrices, mesh)
-
-      type(data) :: matrices
-      type(mesh_struct)             ::  mesh
-
-      real(dp)                      ::  rho, &
-                                       V, &
-                                       totV, &
-                                       mass, &
-                                       totMass, &
-                                       detJ, &
-                                       a, &
-                                       b, &
-                                       c, &
-                                       ap, &
-                                       bp, &
-                                       cp
-
-      integer                       ::  i1
-
-      real(dp), dimension(3)    ::  p0, &
-                                   p1, &
-                                   p2, &
-                                   p3, &
-                                   COM, &
-                                   CM
-      real(dp), dimension(4)    ::  x, y, z
-      real(dp), dimension(3, 3) ::  I, E
+!****************************************************************************80
+   subroutine vie_params()
+      real(dp) :: rho, V, totV, mass, totMass,detJ, &
+                  a, b, c, ap, bp, cp
+      integer  :: i1
+      real(dp), dimension(3) :: p0, p1, p2, p3, COM, CM
+      real(dp), dimension(4) :: x, y, z
+      real(dp), dimension(3, 3) :: I, E
 
       rho = mesh%rho ! currently density not in tetrahedral element data
 
@@ -578,26 +535,22 @@ contains
 
    end subroutine vie_params
 
-!******************************************************************************
+!****************************************************************************80
 ! Mass parameters for spherical aggregate
-! input:  mesh
 ! output: mesh%V = volume of the geometry
 !         mesh%mass = mass of the geometry
 !         mesh%CM = coordinates of the center of mass
 !         mesh%I = The moment of inertia tensor
-!******************************************************************************
-   subroutine aggr_params(matrices, mesh)
-
-      type(data) :: matrices
-      type(mesh_struct)             ::  mesh
+!****************************************************************************80
+   subroutine aggr_params()
       real(dp), dimension(:, :), allocatable :: coord
       real(dp), dimension(:), allocatable :: radius
-      real(dp)                      ::  rho, V, totV, mass, totMass
+      real(dp) :: rho, V, totV, mass, totMass
 
-      integer                       ::  i1
+      integer :: i1
 
-      real(dp), dimension(3)    ::  COM, CM
-      real(dp), dimension(3, 3) ::  I, E
+      real(dp), dimension(3) :: COM, CM
+      real(dp), dimension(3, 3) :: I, E
 
       coord = mesh%coord
       radius = mesh%radius
@@ -635,7 +588,7 @@ contains
 
    end subroutine aggr_params
 
-!******************************************************************************
+!****************************************************************************80
 
    function diagterm(y, z) result(a)
 
@@ -655,7 +608,7 @@ contains
 
    end function diagterm
 
-!******************************************************************************
+!****************************************************************************80
 
    function offterm(y, z) result(ap)
       real(dp)                 :: ap
@@ -680,5 +633,5 @@ contains
 
    end function offterm
 
-!******************************************************************************
+!****************************************************************************80
 end module integrator

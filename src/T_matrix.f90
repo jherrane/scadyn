@@ -9,11 +9,9 @@ module T_matrix
 
 contains
 
-!******************************************************************************
+!****************************************************************************80
 
-   subroutine calc_T(matrices, mesh)
-      type(mesh_struct) :: mesh
-      type(data) :: matrices
+   subroutine calc_T()
       integer :: i, ii, nm, sz
 
       sz = size(mesh%ki)
@@ -21,7 +19,7 @@ contains
 
       ! Because the mesh reading is after initial band setup, the astrosilicate
       ! fix "must" be done here
-      if (matrices%waves == 'sil') call band_astrosilicate(matrices, mesh)
+      if (matrices%waves == 'sil') call band_astrosilicate()
 
       write (*, '(3(A,I0))') ' Construct matrices for ', sz, ' wavelengths...'
       if(matrices%singleT == 1) then
@@ -29,7 +27,7 @@ contains
          2d0*pi/mesh%ki(matrices%whichbar)/1d-6, ' um.'
       end if
       if (use_mie == 1) then
-         call mie_T_matrix(matrices, mesh)
+         call mie_T_matrix()
       else
          do i = 1, sz
             if (size(mesh%params, 2) > 1) mesh%param = mesh%params(:, matrices%whichbar)
@@ -45,7 +43,7 @@ contains
 
             call allocate_T(ii, matrices)
 
-            call update_projections(matrices, ii)
+            call update_projections(ii)
 
             if (allocated(matrices%Fg)) deallocate (matrices%Fg)
             if (allocated(matrices%sp_mat)) deallocate (matrices%sp_mat, matrices%sp_ind)
@@ -60,7 +58,7 @@ contains
             end if
 
             print *, ' Compute T-matrix...'
-            call compute_T_matrix(matrices, mesh, matrices%Nmaxs(ii), matrices%Taa, &
+            call compute_T_matrix(matrices%Nmaxs(ii), matrices%Taa, &
                                   matrices%Tab, matrices%Tba, matrices%Tbb)
 
             matrices%Taai(1:nm, 1:nm, ii) = matrices%Taa
@@ -72,7 +70,7 @@ contains
 
    end subroutine calc_T
 
-!******************************************************************************
+!****************************************************************************80
 
    subroutine allocate_T(i, matrices)
       type(data) :: matrices
@@ -90,10 +88,9 @@ contains
 
    end subroutine allocate_T
 
-!******************************************************************************
+!****************************************************************************80
 
-   subroutine allocate_Ti(matrices)
-      type(data) :: matrices
+   subroutine allocate_Ti()
       integer :: Nmax
 
       Nmax = maxval(matrices%Nmaxs)
@@ -110,11 +107,9 @@ contains
 
    end subroutine allocate_Ti
 
-!******************************************************************************
+!****************************************************************************80
 
-   subroutine mie_T_matrix(matrices, mesh)
-      type(mesh_struct) :: mesh
-      type(data) :: matrices
+   subroutine mie_T_matrix()
       integer :: i, j, ci, nm, Nmax
       real(dp) :: k, ka
       complex(dp) :: m, r1
@@ -153,11 +148,9 @@ contains
 
    end subroutine mie_T_matrix
 
-!******************************************************************************
+!****************************************************************************80
 
-   subroutine ori_ave_T(matrices, mesh)
-      type(mesh_struct) :: mesh
-      type(data) :: matrices
+   subroutine ori_ave_T()
       integer :: i, ii, nm, sz, n, m, Nmax
       complex(dp), dimension(:, :), allocatable :: Taa, Tab, Tba, Tbb, &
                                                    Taa_av, Tab_av, Tba_av, Tbb_av
@@ -221,11 +214,9 @@ contains
 
    end subroutine ori_ave_T
 
-!******************************************************************************
+!****************************************************************************80
 
-   subroutine compute_T_matrix(matrices, mesh, Nmax, Taa, Tab, Tba, Tbb)
-      type(mesh_struct) :: mesh
-      type(data) :: matrices
+   subroutine compute_T_matrix(Nmax, Taa, Tab, Tba, Tbb)
       real(dp) :: k
       integer :: Nmax, nm
 
@@ -255,10 +246,9 @@ contains
 
    end subroutine compute_T_matrix
 
-!*******************************************************************************
+!****************************************************************************80
 
-   subroutine scattered_fields(matrices, E, p, q, p90, q90, ii)
-      type(data) :: matrices
+   subroutine scattered_fields(E, p, q, p90, q90, ii)
       real(dp) :: E
       complex(dp), dimension(:), allocatable :: a_in, b_in, a90, b90, &
                                                 a, b, p, q, p90, q90, ptemp, qtemp, p90temp, q90temp
@@ -301,7 +291,7 @@ contains
       p90temp = matmul(Taa, a90) + matmul(Tab, b90)
       q90temp = matmul(Tbb, b90) + matmul(Tba, a90)
 
-      call sph_rotation_sparse_gen2(matrices%Rkt, Nmax, rbak, ibak)
+      call sph_rotation_sparse_gen(mat2euler(matrices%Rkt), Nmax, rbak, ibak)
 
       p = sparse_matmul(rbak, ibak, ptemp, nm)
       q = sparse_matmul(rbak, ibak, qtemp, nm)
@@ -310,9 +300,9 @@ contains
 
    end subroutine scattered_fields
 
-!*******************************************************************************
+!****************************************************************************80
 
-   subroutine scattered_fields2(matrices, E, a, b, a90, b90, p, q, p90, q90, ii)
+   subroutine scattered_fields2(E, a, b, a90, b90, p, q, p90, q90, ii)
       type(data) :: matrices
       real(dp) :: E
       complex(dp), dimension(:), allocatable :: a_in, b_in, a90, b90, &
@@ -357,7 +347,7 @@ contains
       p90temp = matmul(Taa, a90) + matmul(Tab, b90)
       q90temp = matmul(Tbb, b90) + matmul(Tba, a90)
 
-      call sph_rotation_sparse_gen2(matrices%Rkt, Nmax, rbak, ibak)
+      call sph_rotation_sparse_gen(mat2euler(matrices%Rkt), Nmax, rbak, ibak)
 
       p = sparse_matmul(rbak, ibak, ptemp, nm)
       q = sparse_matmul(rbak, ibak, qtemp, nm)
@@ -366,7 +356,7 @@ contains
 
    end subroutine scattered_fields2
 
-!******************************************************************************
+!****************************************************************************80
 
    function vsh(n, m, thet, ph) result(BCP)
       integer :: n, m, mm

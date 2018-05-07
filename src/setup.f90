@@ -9,11 +9,9 @@ module setup
    implicit none
 contains
 
-!******************************************************************************
+!****************************************************************************80
 
-   subroutine init_geometry(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine init_geometry()
       type(data_struct), dimension(:), allocatable :: sphere
       type(level_struct), dimension(:), allocatable :: otree
       real(dp) :: ka, maxrad, maxrad_sph, vol
@@ -33,7 +31,7 @@ contains
          end if
 
          print *, 'Reading mesh...'
-         call read_mesh(matrices, mesh) ! io
+         call read_mesh() ! io
          call int_points(mesh)
 
          if (matrices%Tmat == 0) print *, 'Initializing FFT... '
@@ -51,7 +49,7 @@ contains
             print *, 'Done'
          end if
 
-         if (matrices%Tmat == 0) call construct_projectors(matrices, mesh) ! projection
+         if (matrices%Tmat == 0) call construct_projectors() ! projection
 
          ! Check whether using maxval is good or not
          do i = 1, matrices%bars
@@ -63,7 +61,7 @@ contains
          write (*, '(A, 20F6.3)') ' Wavelengths in um: ', 2d6*pi/mesh%ki
 
       else if (use_mie .NE. 1) then !* SPHERICAL AGGREGATE *******************
-         call read_aggr(mesh)
+         call read_aggr()
          Nspheres = size(mesh%radius)
          allocate (sphere(Nspheres))
 
@@ -117,11 +115,9 @@ contains
       end if
    end subroutine init_geometry
 
-!******************************************************************************
+!****************************************************************************80
 
-   subroutine construct_projectors(matrices, mesh)
-      type(mesh_struct), intent(inout) :: mesh
-      type(data) :: matrices
+   subroutine construct_projectors()
       integer :: i, M_box
       real(dp) :: k_orig
 
@@ -173,9 +169,9 @@ contains
 
    end subroutine construct_projectors
 
-!******************************************************************************
+!****************************************************************************80
 
-   subroutine update_projections(matrices, i)
+   subroutine update_projections(i)
       type(data) :: matrices
       integer :: i
 
@@ -187,11 +183,9 @@ contains
 
    end subroutine update_projections
 
-!******************************************************************************
+!****************************************************************************80
 
-   subroutine allocate_inc_wave(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine allocate_inc_wave()
       complex(dp), dimension(:), allocatable :: a_in, b_in
       integer :: Nmax, i, las, nm
 
@@ -225,11 +219,9 @@ contains
 
    end subroutine allocate_inc_wave
 
-!******************************************************************************
+!****************************************************************************80
 
-   subroutine update_inc_wave(i, matrices, mesh, a_nm, b_nm, a_nm90, b_nm90)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine update_inc_wave(i, a_nm, b_nm, a_nm90, b_nm90)
       complex(dp), dimension(:), allocatable :: a_in, b_in, a90, b90, &
                                                 a, b, a_nm, b_nm, a_nm90, b_nm90
       complex(dp), dimension(:, :), allocatable :: Taa, Tab, Tba, Tbb
@@ -269,14 +261,13 @@ contains
 
    end subroutine update_inc_wave
 
-!******************************************************************************
+!****************************************************************************80
 
-   subroutine rot_setup(matrices)
-      type(data) :: matrices
+   subroutine rot_setup()
       real(dp), dimension(3, 3) ::  RT, R_k, R_k90
 
       RT = transpose(matrices%R)
-      R_k = matmul(RT, matrices%Rexp)
+      R_k = matmul(RT, matrices%R_fixk)
       R_k90 = matmul(R_k, matrices%R90_init)
 
       matrices%Rkt = transpose(R_k)
@@ -284,28 +275,24 @@ contains
       matrices%E0hat = dcmplx(matmul(R_k, [1d0, 0d0, 0d0]))
       matrices%E90hat = dcmplx(matmul(R_k, [0d0, 1d0, 0d0]))
 
-      call gen_rotations(matrices, R_k, R_k90)
+      call gen_rotations(R_k, R_k90)
 
    end subroutine rot_setup
 
-!******************************************************************************
+!****************************************************************************80
 
-   subroutine fix_band(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
-
+   subroutine fix_band()
       if (dabs(matrices%lambda1 - 2d0*pi/mesh%ki(1)) > 1d-7) then
          matrices%lambda1 = 2d0*pi/mesh%ki(1)
          matrices%lambda2 = 2d0*pi/mesh%ki(matrices%bars)
-         if (matrices%waves == 'bnd') call calc_E_rel(matrices, mesh)
+         if (matrices%waves == 'bnd') call calc_E_rel()
       end if
 
    end subroutine fix_band
 
-!******************************************************************************
+!****************************************************************************80
 
-   subroutine gen_rotations(matrices, R, R90)
-      type(data) :: matrices
+   subroutine gen_rotations(R, R90)
       integer :: las, Nmax, i
       complex(8), dimension(:), allocatable :: rotD, rotD90, rotX, rotY
       integer, dimension(:, :), allocatable :: indD, indD90, indX, indY
@@ -328,10 +315,10 @@ contains
          allocate (rotY(las))
          allocate (indY(las, 2))
 
-         call sph_rotation_sparse_gen2(R, Nmax, rotD, indD)
-         call sph_rotation_sparse_gen2(R90, Nmax, rotD90, indD90)
-         call sph_rotation_sparse_gen2(Rx, Nmax, rotX, indX)
-         call sph_rotation_sparse_gen2(Ry, Nmax, rotY, indY)
+         call sph_rotation_sparse_gen(mat2euler(R), Nmax, rotD, indD)
+         call sph_rotation_sparse_gen(mat2euler(R90), Nmax, rotD90, indD90)
+         call sph_rotation_sparse_gen(mat2euler(Rx), Nmax, rotX, indX)
+         call sph_rotation_sparse_gen(mat2euler(Ry), Nmax, rotY, indY)
 
          matrices%rotDs(1:las, i) = rotD
          matrices%indDs(1:las, :, i) = indD
@@ -345,7 +332,7 @@ contains
 
    end subroutine gen_rotations
 
-!*******************************************************************************
+!****************************************************************************80
 
    subroutine int_points(mesh)
       type(mesh_struct) :: mesh
@@ -378,7 +365,7 @@ contains
 
    end subroutine int_points
 
-!******************************************************************************
+!****************************************************************************80
 
    subroutine int_points_mie(mesh)
       type(mesh_struct) :: mesh
@@ -399,9 +386,9 @@ contains
 
    end subroutine int_points_mie
 
-!******************************************************************************
+!****************************************************************************80
 
-   subroutine polarization(matrices)
+   subroutine polarization()
       type(data) :: matrices
       real(dp) :: k0(3), k1(3), R(3, 3)
 
@@ -414,7 +401,7 @@ contains
 
    end subroutine polarization
 
-!******************************************************************************
+!****************************************************************************80
 ! B_lambda calculates the black body radiation intensity at
 ! wavelength lambda (m) and temperature T (K) using Planck's
 ! distribution.
@@ -427,14 +414,12 @@ contains
 
    end function B_lambda
 
-!******************************************************************************
+!****************************************************************************80
 ! find_k calculates reasonable values for n=bars wavenumbers
 ! in the approximate wavelength range lambda1-lambda2,
 ! with the priority that one wavelength in the range is at the
 ! maximum
-   subroutine find_k(matrices, mesh)
-      type(data), intent(inout) :: matrices
-      type(mesh_struct), intent(inout) :: mesh
+   subroutine find_k()
       real(dp) :: dlmbda, lmax, fix
       real(dp), dimension(:), allocatable :: c, diff, absdif
       integer :: i, n, imin
@@ -481,11 +466,9 @@ contains
 
    end subroutine find_k
 
-!******************************************************************************
+!****************************************************************************80
 ! Calculate the relative amplitudes in the field
-   subroutine calc_E_rel(matrices, mesh)
-      type(data), intent(inout):: matrices
-      type(mesh_struct), intent(inout) :: mesh
+   subroutine calc_E_rel()
       real(dp) :: lambda, N, sm, sm2, dlmbda, M
       integer :: i
 
@@ -512,35 +495,30 @@ contains
 
    end subroutine calc_E_rel
 
-!******************************************************************************
+!****************************************************************************80
 ! Setup the wavelength band and all matrices in it
-   subroutine setup_band(matrices, mesh)
-      type(data), intent(inout):: matrices
-      type(mesh_struct), intent(inout) :: mesh
-
+   subroutine setup_band()
       if (matrices%waves == 'bnd') then
-         call find_k(matrices, mesh)
-         call calc_E_rel(matrices, mesh)
+         call find_k()
+         call calc_E_rel()
       else
-         call band_no_blackbody(matrices, mesh)
+         call band_no_blackbody()
       end if
 
    end subroutine setup_band
 
-!******************************************************************************
+!****************************************************************************80
 ! Set the particle as Draine&Lee1984 astrosilicate
-   subroutine band_astrosilicate(matrices, mesh)
-      type(data), intent(inout):: matrices
-      type(mesh_struct), intent(inout) :: mesh
+   subroutine band_astrosilicate()
       real(dp) :: lmax
       real(dp), dimension(:), allocatable :: c, diff, absdif, w, epsr, epsi
       integer :: i, n, size_param, ind
 
-      call find_k(matrices, mesh)
-      call calc_E_rel(matrices, mesh)
+      call find_k()
+      call calc_E_rel()
       ! Add 100 nm spike to the spectrum
       if(2*pi/mesh%ki(1)/1d-6 < 0.15d0) matrices%E_rel(1) = maxval(matrices%E_rel)*1.33d0
-      call read_mesh(matrices, mesh)
+      call read_mesh()
 
       size_param = size(mesh%params,1)
       if(allocated(mesh%params)) deallocate(mesh%params)
@@ -570,11 +548,9 @@ contains
 
    end subroutine band_astrosilicate
 
-!******************************************************************************
+!****************************************************************************80
 ! Setup the wavelength band and all matrices inv A in it
-   subroutine band_no_blackbody(matrices, mesh)
-      type(data), intent(inout):: matrices
-      type(mesh_struct), intent(inout) :: mesh
+   subroutine band_no_blackbody()
       real(dp) :: lmax
       real(dp), dimension(:), allocatable :: c, diff, absdif
       integer :: i, n
@@ -612,174 +588,5 @@ contains
       matrices%E_rel = 1d0
 
    end subroutine band_no_blackbody
-
-!******************************************************************************
-
-   subroutine sph_rotation_sparse_gen2(rot, Nmax, spD, ind)
-      complex(dp), dimension(:, :), allocatable :: DD, locD
-      complex(dp), dimension(:) :: spD
-      complex(dp) :: C(3, 3), invC(3, 3), D1(7, 7), a1, a2, a3
-
-      real(dp), allocatable, dimension(:) :: denom_mu
-      real(dp) :: rot(3, 3), R(3, 3), a, b, b2, cm, dm, dmm, delta, &
-                  nom_a, nom_b, nom_b2, angles(3)
-
-      integer, dimension(:, :) :: ind
-      integer :: Nmax, n, m, mu, ind1, ind2, mm, x, y, en, las, &
-                 m2, mu2, en2
-
-      allocate (DD(2*(Nmax + 2) + 1, 2*(Nmax + 2) + 1))
-      allocate (locD(2*Nmax + 1, 2*Nmax + 1))
-      allocate (denom_mu(2*Nmax - 1))
-
-! Note Change of signs alpha and gamma in the rotation matrix
-!R = rotation_matrix(-angles(1), angles(2), -angles(3))
-!R = transpose(rot)
-      R = rot
-      angles = mat2euler(R)
-      R = rotation_matrix(-angles(1), angles(2), -angles(3))
-
-      a1 = dcmplx(1.0d0/sqrt(2.0d0))
-      a2 = dcmplx(0d0, 1.0d0/sqrt(2.0d0))
-      a3 = dcmplx(1.0d0)
-
-      C(1, :) = [a1, 0.0d0*a3, -a1]
-      C(2, :) = [-a2, 0.0d0*a3, -a2]
-      C(3, :) = [0.0d0*a3, a3, 0.0d0*a3]
-
-      invC(1, :) = [a1, a2, 0.0d0*a3]
-      invC(2, :) = [0.0d0*a3, 0.0d0*a3, a3]
-      invC(3, :) = [-a1, a2, 0.0d0*a3]
-
-      D1(:, :) = dcmplx(0.0d0, 0.0d0)
-      D1(3:5, 3:5) = (transpose(matmul(invC, matmul(dcmplx(R), C))))
-
-      DD = dcmplx(0.0d0, 0.0d0)
-      DD(1:7, 1:7) = D1
-
-      las = 0
-! n = 1
-      n = 1
-      do m2 = -n, n
-         do mu2 = -n, n
-            las = las + 1
-
-            ind1 = n*n + n + m2
-            ind2 = n*n + n + mu2
-
-            if (m2 >= 0 .and. mu2 >= 0) then
-               delta = 1d0
-            end if
-
-            if (m2 >= 0 .and. mu2 < 0) then
-               delta = (-1d0)**mu2
-            end if
-
-            if (m2 < 0 .and. mu2 >= 0) then
-               delta = (-1d0)**m2
-            end if
-
-            if (m2 < 0 .and. mu2 < 0) then
-               delta = (-1d0)**(m2 + mu2)
-            end if
-
-            spD(las) = delta*D1(2 + m2 + n + 1, 2 + mu2 + n + 1)
-            ind(las, 1) = ind1
-            ind(las, 2) = ind2
-         end do
-      end do
-
-      do n = 2, Nmax
-         locD(:, :) = dcmplx(0.0d0, 0.0d0)
-
-         do mu = -n + 1, n - 1
-            denom_mu(mu + n) = sqrt(dble((n + mu)*(n - mu)))
-         end do
-
-         do m = -n, n
-            mm = -m
-
-            nom_a = sqrt(dble((n + m)*(n - m)))
-            nom_b = sqrt(dble((n + m)*(n + m - 1)))
-            nom_b2 = sqrt(dble((n + mm)*(n + mm - 1)))
-
-            do mu = -n + 1, n - 1
-               a = nom_a/denom_mu(mu + n)
-               b = nom_b/(sqrt(2.0d0)*denom_mu(mu + n))
-               b2 = nom_b2/(sqrt(2.0d0)*denom_mu(mu + n))
-
-               x = mu + n + 1
-               y = m + n + 1
-
-               locD(x, y) = D1(4, 4)*a*DD(x + 1, y + 1) &
-                            + b*D1(4, 5)*DD(x + 1, y) &
-                            + b2*D1(4, 3)*DD(x + 1, y + 2)
-            end do
-
-            mu = -n
-
-            cm = sqrt(dble(n + m)*dble(n - m)/dble(n*(2*n - 1)))
-            dm = sqrt(dble(n + m)*dble(n + m - 1d0)/dble(2*n*(2*n - 1)))
-            dmm = sqrt(dble(n - m)*dble(n - m - 1d0)/dble(2*n*(2*n - 1)))
-
-            x = mu + n + 1
-            y = m + n + 1
-
-            locD(x, y) = (D1(3, 4)*cm*DD(x + 2, y + 1) &
-                          + dm*D1(3, 5)*DD(x + 2, y) &
-                          + dmm*D1(3, 3)*DD(x + 2, y + 2))
-
-            mu = n
-
-            x = mu + n + 1
-            y = m + n + 1
-
-            locD(x, y) = (D1(5, 4)*cm*DD(x, y + 1) &
-                          + dm*D1(5, 5)*DD(x, y) &
-                          + dmm*D1(5, 3)*DD(x, y + 2))
-
-         end do
-
-         DD(:, :) = dcmplx(0.0d0, 0.0d0)
-         en = 2*(n + 2) - 1
-         en2 = 2*n + 1
-         DD(3:en, 3:en) = locD(1:en2, 1:en2)
-
-         ind1 = n**2
-         ind2 = (n + 1)**2 - 1; 
-         do m2 = -n, n
-            do mu2 = -n, n
-               las = las + 1
-
-               ind1 = n*n + n + m2
-               ind2 = n*n + n + mu2
-
-               if (m2 >= 0 .and. mu2 >= 0) then
-                  delta = 1d0
-               end if
-
-               if (m2 >= 0 .and. mu2 < 0) then
-                  delta = (-1d0)**mu2
-               end if
-
-               if (m2 < 0 .and. mu2 >= 0) then
-                  delta = (-1d0)**m2
-               end if
-
-               if (m2 < 0 .and. mu2 < 0) then
-                  delta = (-1d0)**(m2 + mu2)
-               end if
-
-               ! delta = 1
-
-               spD(las) = delta*locD(m2 + n + 1, mu2 + n + 1)
-               ind(las, 1) = ind1
-               ind(las, 2) = ind2
-
-            end do
-         end do
-      end do
-
-   end subroutine sph_rotation_sparse_gen2
 
 end module setup

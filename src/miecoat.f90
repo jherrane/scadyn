@@ -5,7 +5,7 @@ module miecoat
 
 contains
 
-!********************************************************************
+!****************************************************************************80
 !
 ! Bohren & Huffman's Mie coefficients for coated sphere
 ! All bessel functions computed by upward recurrence.
@@ -140,8 +140,8 @@ contains
 
    end subroutine bhcoat
 
-!* Mie scattering routine for coated spheres from BH **************************
-
+!****************************************************************************80
+!* Mie scattering routine for coated spheres from BH 
    subroutine coated_mie_coeff_nm(N, x, mr, a_nm, b_nm, c_nm, d_nm)
       integer :: N
       real(dp) :: x(2)

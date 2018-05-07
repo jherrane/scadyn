@@ -12,19 +12,20 @@ contains
 ! HDF5 WRITE
 
 ! MY ROUTINES *****************************************************************
-!******************************************************************************
+!****************************************************************************80
 
    subroutine splash()
-      print *, '*************************************************************'
-      print *, '**                                                         **'
-      print *, '**             JVIE T-Matrix Dynamics v. 0.1               **'
-      print *, '**                                                         **'
-      print *, '*************************************************************'
+      print *, '******************************************************************************'
+      print *, '**                                                                          **'
+      print *, '**                         JVIE T-Matrix Dynamics v. 0.4                    **'
+      print *, '**                                                                          **'
+      print *, '******************************************************************************'
+      print *, ''
       call curr_time()
 
    end subroutine splash
 
-!******************************************************************************
+!****************************************************************************80
 
    subroutine curr_time()
       character(8)  :: date, fmt, fmt2
@@ -45,7 +46,7 @@ contains
 
    end subroutine curr_time
 
-!******************************************************************************
+!****************************************************************************80
 
    subroutine print_bar(i1, Nmax)
       integer :: i1, Nmax, k
@@ -59,12 +60,16 @@ contains
       if (r - dble(floor(r)) < 1d-7 .OR. i1 == 1) then
          write (6, '(2x,1i3,1a1,2x,1a1,256a1)', advance='no') &
             100*i1/Nmax, '%', '|', (bar, k=1, 50*i1/Nmax)
-         write (6, '(256a1)', advance='no') (back, k=1, (50*i1/Nmax) + 9)
+         if(i1<Nmax) then
+            write (6, '(256a1)', advance='no') (back, k=1, (50*i1/Nmax) + 9)
+         else
+            write(*,*) ''
+         end if
       end if
 
    end subroutine print_bar
 
-!******************************************************************************
+!****************************************************************************80
 
    subroutine print_mat(mat, matname)
       real(dp), dimension(:, :) :: mat
@@ -79,7 +84,7 @@ contains
 
    end subroutine print_mat
 
-!******************************************************************************
+!****************************************************************************80
 
    subroutine print_cmat(mat, matname)
       complex(dp), dimension(:, :) :: mat
@@ -94,7 +99,7 @@ contains
 
    end subroutine print_cmat
 
-!******************************************************************************
+!****************************************************************************80
 
    subroutine print_cvec(mat, matname)
       complex(dp), dimension(:) :: mat
@@ -111,10 +116,9 @@ contains
    end subroutine print_cvec
 
 ! CLEARTEXT READ **************************************************************
-!******************************************************************************
-   subroutine check_paramsfile(matrices)
+!****************************************************************************80
+   subroutine check_paramsfile()
 ! Subroutine to read input parameters
-      type(data), intent(inout):: matrices
       integer ::  i
       character(len=80) :: arg
 
@@ -128,12 +132,9 @@ contains
       end do
    end subroutine check_paramsfile
 
-!******************************************************************************
-
-   subroutine read_arguments(matrices, mesh)
+!****************************************************************************80
 ! Subroutine to read input parameters
-      type(data), intent(inout):: matrices
-      type(mesh_struct), intent(inout) :: mesh
+   subroutine read_arguments()
       integer :: i
       character(len=80) :: arg_name, arg
 
@@ -144,65 +145,67 @@ contains
 
          select case (arg_name)
 
-         case ('-mesh')
+         case ('-m','--mesh')
             call get_command_argument(i + 1, arg)
             mesh%meshname = arg
             write (*, '(2A)') ' Mesh: ', trim(mesh%meshname)
-         case ('-T')
+         case ('-T', '--Tmat')
             call get_command_argument(i + 1, arg)
             matrices%tname = arg
             write (*, '(2A)') ' T-matrix: ', trim(matrices%tname)
-         case ('-log')
+         case ('-l', '--log')
             call get_command_argument(i + 1, arg)
             matrices%out = arg
             write (*, '(2A)') ' Log: ', trim(matrices%out)
-         case ('-mueller')
+         case ('-M','--Mueller')
             call get_command_argument(i + 1, arg)
             matrices%mueller = arg
             write (*, '(2A)') ' Mueller: ', trim(matrices%mueller)
-         case ('-mueller_mode')
+         case ('--mueller_mode')
             call get_command_argument(i + 1, arg)
             matrices%mueller_mode = trim(arg)
             write (*, '(2A)') ' Mueller mode: ', trim(matrices%mueller_mode)
-         case ('-paramsfile')
+         case ('-p','--paramsfile')
             call get_command_argument(i + 1, arg)
             matrices%paramsfile = trim(arg)
-         case ('-refr')
+         case ('--refr')
             call get_command_argument(i + 1, arg)
             read (arg, *) matrices%refr
-         case ('-refi')
+         case ('--refi')
             call get_command_argument(i + 1, arg)
             read (arg, *) matrices%refi
-         case ('-wb')
+         case ('w','--wavelen')
             call get_command_argument(i + 1, arg)
             read (arg, *) matrices%whichbar
-         case ('-singleT')
+         case ('-S','--singleT')
             call get_command_argument(i + 1, arg)
             read (arg, *) matrices%singleT
-         case ('-seed')
+         case ('-s','--seed')
             call get_command_argument(i + 1, arg)
             read (arg, *) seedling
             matrices%R = rand_rot()
-         case ('-mie')
+         case ('--Mie')
             call get_command_argument(i + 1, arg)
             read (arg, *) use_mie
          case ('-B')
             call get_command_argument(i + 1, arg)
             read (arg, *) calc_extra_torques
 
-         case ('-help')
-            print *, 'Command line parameters'
-            print *, '-mesh mesh.h5          "Mesh geometry"'
-            print *, '-T T.h5                "T-matrix file"'
-            print *, '-log out/log           "Log to file"'
-            print *, '-mueller out/mueller   "Mueller matrix to file"'
-            print *, '-paramsfile params.in  "Read input parameters from file"'
-            print *, '-refr 0.0              "Real part of refractive index"'
-            print *, '-refi 0.0              "Imaginary part of refractive index"'
-            print *, '-wb 0                  "Choose wavelength from the T-matrix"'
-            print *, '-singleT 0             "Calculate only one T-matrix, of wb"'
-            print *, '-mie 1                 "Use the Mie sphere"'
-            print *, '-B 1                   "Use external magnetic field"'
+         case ('-h','--help')
+            write(*, '(A)') ' Commands        Value       Description'
+            write(*, '(A)') '---------------------------------------'
+            write(*, '(A)') ' -m --mesh       mesh.h5     Mesh geometry'
+            write(*, '(A)') ' -T --Tmat       T.h5        T-matrix file'
+            write(*, '(A)') ' -l --log        out/log     Log to file'
+            write(*, '(A)') ' -M --Mueller    out/mueller Mueller matrix to file'
+            write(*, '(A)') ' -p --paramsfile params.in   Read input parameters from file'
+            write(*, '(A)') '    --refr       0.0         Real part of refractive index'
+            write(*, '(A)') '    --refi       0.0         Imaginary part of refractive index'
+            write(*, '(A)') ' -w --wavelen    0           Choose wavelength from the T-matrix'
+            write(*, '(A)') ' -S --singleT    0           Calculate only one T-matrix, of wb'
+            write(*, '(A)') ' -s --seed       0           RNG seed'
+            write(*, '(A)') '    --Mie        1           Use the Mie sphere'
+            write(*, '(A)') ' -B              1           Use external magnetic field'
 
             stop
          case default
@@ -218,12 +221,9 @@ contains
 
    end subroutine read_arguments
 
-!******************************************************************************
-
-   subroutine read_params(matrices, mesh)
+!****************************************************************************80
 ! Subroutine to read a input file for nifty usage
-      type(data), intent(inout):: matrices
-      type(mesh_struct), intent(inout) :: mesh
+   subroutine read_params()
 ! Input related variables
       character(len=150) :: buffer, label
       real(dp) :: temp, tempii
@@ -367,7 +367,7 @@ contains
 
    end subroutine read_params
 
-!******************************************************************************
+!****************************************************************************80
 
    function get_last_line_no(fle) result(lineno)
       character(len=80) :: fle
@@ -391,7 +391,7 @@ contains
 
    end function get_last_line_no
 
-!******************************************************************************
+!****************************************************************************80
 
    subroutine read_log(matrices)
       type(data), intent(inout):: matrices
@@ -477,7 +477,7 @@ contains
 
    end subroutine read_log
 
-!******************************************************************************
+!****************************************************************************80
 
    subroutine read_mueller(A, fname)
       real(dp), allocatable, intent(out) :: A(:, :)
@@ -500,7 +500,7 @@ contains
    end subroutine read_mueller
 
 ! CLEARTEXT WRITE *************************************************************
-!******************************************************************************
+!****************************************************************************80
 
    subroutine write_mueller(A, fname)
       real(dp), intent(in) :: A(:, :)
@@ -524,7 +524,7 @@ contains
 
    end subroutine write_mueller
 
-!******************************************************************************
+!****************************************************************************80
 
    subroutine write_RT_matrix(A, fname, type)
       real(dp), intent(in) :: A(:, :)
@@ -556,11 +556,9 @@ contains
 
    end subroutine write_RT_matrix
 
-!******************************************************************************
+!****************************************************************************80
 
-   subroutine init_values(matrices)
-      type(data) :: matrices
-
+   subroutine init_values()
       matrices%k_orig = matrices%khat
       matrices%E0_orig = real(matrices%E0hat)
       matrices%E90_orig = real(matrices%E90hat)
@@ -581,16 +579,14 @@ contains
       matrices%J = matmul(matmul(matrices%P, matrices%R), matmul(matrices%I, matrices%w)) ! In lab frame!
 
 ! R_expansion, for planewave expansion rotation from (0, 0, 1) position to khat
-      matrices%Rexp = find_Rexp(matrices)
-      matrices%Rexp = transpose(matrices%Rexp)
+      matrices%R_fixk = transpose(rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0]))
       matrices%R90_init = reshape(dble([0d0, 1d0, 0d0, -1d0, 0d0, 0d0, 0d0, 0d0, 1d0]), [3, 3])
 
    end subroutine init_values
 
-!******************************************************************************
+!****************************************************************************80
 
-   subroutine update_values(matrices)
-      type(data) :: matrices
+   subroutine update_values()
 
       matrices%x_CM = matrices%xn ! In lab frame!
       matrices%v_CM = matrices%vn ! In lab frame!
@@ -602,11 +598,9 @@ contains
                           matmul(matrices%I, matrices%w))
    end subroutine update_values
 
-!******************************************************************************
+!****************************************************************************80
 
-   subroutine start_log(fname, matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct), intent(in) :: mesh
+   subroutine start_log(fname)
       integer :: i1
       character(len=80) :: fname
 
@@ -640,21 +634,20 @@ contains
       do i1 = 1, 3
          write (1, '(9f7.3)') matrices%P(i1, :)
       end do
-      write (1, '(A)') ' Log: n | x | v | w | J | N | F | t | R '
+      write (1, '(A)') ' Log: n x(1:3) v(1:3) w(1:3) J(1:3) N(1:3) F(1:3) t R(1:9) '
       write (1, '(A)') ' '
 
       close (1)
 
    end subroutine start_log
 
-!******************************************************************************
+!****************************************************************************80
 
-   subroutine append_log(fname, n, matrices)
-      type(data):: matrices
+   subroutine append_log(fname, n)
       integer :: n, i, md
       character(len=80) :: fname, fmt
 
-      fmt = '(I0, 6(A, 3ES11.3), A, 1ES16.8, A, 9f7.3)'
+      fmt = '(I0, 6(3ES11.3), 1ES16.8, 9f7.3)'
       md = mod(n, 1000)
 
       if (n > 100000) then
@@ -683,14 +676,14 @@ contains
          if (n > matrices%it_stop - matrices%it_log .OR. matrices%it_log == 0) then
             do i = 1, 1000
                if (i + matrices%buffer <= matrices%it_stop) then
-                  write (1, fmt) i + matrices%buffer, ' |', &
-                     matrices%x_buf(:, i), ' |', &
-                     matrices%v_buf(:, i), ' |', &
-                     matmul(matmul(matrices%P, matrices%R_buf(:, :, i)), matrices%w_buf(:, i)), ' |', &
-                     matrices%J_buf(:, i), ' |', &
-                     matrices%N_buf(:, i), ' |', &
-                     matrices%F_buf(:, i), ' |', &
-                     matrices%t_buf(:, i), ' |', &
+                  write (1, fmt) i + matrices%buffer, &
+                     matrices%x_buf(:, i), &
+                     matrices%v_buf(:, i), &
+                     matmul(matmul(matrices%P, matrices%R_buf(:, :, i)), matrices%w_buf(:, i)), &
+                     matrices%J_buf(:, i), &
+                     matrices%N_buf(:, i), &
+                     matrices%F_buf(:, i), &
+                     matrices%t_buf(:, i), &
                      matrices%R_buf(:, :, i)
                end if
             end do
@@ -702,11 +695,9 @@ contains
    end subroutine append_log
 
 ! HDF5 READ *******************************************************************
-!******************************************************************************
+!****************************************************************************80
 
-   subroutine read_mesh(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine read_mesh()
       character(len=80) :: file
 
 !character(len=8), PARAMETER :: file = "mesh.h5"
@@ -731,7 +722,7 @@ contains
       call h5open_f(error)
       call h5fopen_f(file, H5F_ACC_RDWR_F, file_id, error)
 
-!******************************************************************************
+!****************************************************************************80
 
       call h5dopen_f(file_id, coord_dataset, coord_dataset_id, error)
       call h5dget_space_f(coord_dataset_id, coord_dataspace_id, error)
@@ -740,7 +731,7 @@ contains
       call h5dread_f(coord_dataset_id, H5T_NATIVE_DOUBLE, coord, coord_dims, error)
       call h5dclose_f(coord_dataset_id, error)
 
-!******************************************************************************
+!****************************************************************************80
 
       call h5dopen_f(file_id, etopol_dataset, etopol_dataset_id, error)
       call h5dget_space_f(etopol_dataset_id, etopol_dataspace_id, error)
@@ -749,7 +740,7 @@ contains
       call h5dread_f(etopol_dataset_id, H5T_NATIVE_integer, etopol, etopol_dims, error)
       call h5dclose_f(etopol_dataset_id, error)
 
-!******************************************************************************
+!****************************************************************************80
 
       call h5dopen_f(file_id, param_r_dataset, param_r_dataset_id, error)
       call h5dget_space_f(param_r_dataset_id, param_r_dataspace_id, error)
@@ -762,7 +753,7 @@ contains
       call h5dread_f(param_r_dataset_id, H5T_NATIVE_DOUBLE, param_r, param_r_dims, error)
       call h5dclose_f(param_r_dataset_id, error)
 
-!******************************************************************************
+!****************************************************************************80
 
       call h5dopen_f(file_id, param_i_dataset, param_i_dataset_id, error)
       call h5dget_space_f(param_i_dataset_id, param_i_dataspace_id, error)
@@ -775,7 +766,7 @@ contains
       call h5dread_f(param_i_dataset_id, H5T_NATIVE_DOUBLE, param_i, param_i_dims, error)
       call h5dclose_f(param_i_dataset_id, error)
 
-!******************************************************************************
+!****************************************************************************80
 
       call h5fclose_f(file_id, error)
       call h5close_f(error)
@@ -808,7 +799,7 @@ contains
          end if
       end if
 
-      vol = get_tetra_vol(mesh)
+      vol = get_tetra_vol()
       a_eff = (3d0*vol/4d0/pi)**(1d0/3d0)
 
       mesh%coord = mesh%coord*mesh%a/a_eff ! Scale coordinates to correspond the real grain
@@ -816,10 +807,9 @@ contains
 
    end subroutine read_mesh
 
-!******************************************************************************
+!****************************************************************************80
 
-   subroutine read_aggr(mesh)
-      type(mesh_struct) :: mesh
+   subroutine read_aggr()
       character(len=16), PARAMETER :: dataset1 = "coord" ! Dataset name
       character(len=16), PARAMETER :: dataset2 = "radius" ! Dataset name
 
@@ -851,7 +841,7 @@ contains
       call h5dread_f(dataset2_id, H5T_NATIVE_DOUBLE, radius, coord_dims, error)
       call h5dclose_f(dataset2_id, error)
 
-!******************************************************************************
+!****************************************************************************80
 
       call h5fclose_f(file_id, error) ! close file
       call h5close_f(error) ! close inteface
@@ -864,13 +854,9 @@ contains
 
    end subroutine read_aggr
 
-!******************************************************************************
+!****************************************************************************80
 
-   subroutine read_T(matrices, mesh)
-!character(len=28), intent(in) :: fname
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
-
+   subroutine read_T()
       character(len=80) :: file ! File name
       character(len=16), PARAMETER :: dataset1 = "Taai_r"
       character(len=16), PARAMETER :: dataset2 = "Taai_i"
@@ -909,7 +895,7 @@ contains
       call h5open_f(error)
       call h5fopen_f(file, H5F_ACC_RDWR_F, file_id, error)
 
-!******************************************************************************
+!****************************************************************************80
 
       call h5dopen_f(file_id, dataset1, dataset1_id, error)
       call h5dget_space_f(dataset1_id, dataspace_id, error)
@@ -928,7 +914,7 @@ contains
       allocate (Taai(size(Taai_r, 1), size(Taai_r, 1), dims(3)))
       Taai = dcmplx(Taai_r, Taai_i)
 
-!******************************************************************************
+!****************************************************************************80
 
       call h5dopen_f(file_id, dataset3, dataset3_id, error)
       call h5dget_space_f(dataset3_id, dataspace_id, error)
@@ -947,7 +933,7 @@ contains
       allocate (Tabi(size(Tabi_r, 1), size(Tabi_r, 1), dims(3)))
       Tabi = dcmplx(Tabi_r, Tabi_i)
 
-!******************************************************************************
+!****************************************************************************80
 
       call h5dopen_f(file_id, dataset5, dataset5_id, error)
       call h5dget_space_f(dataset5_id, dataspace_id, error)
@@ -966,7 +952,7 @@ contains
       allocate (Tbai(size(Tbai_r, 1), size(Tbai_r, 1), dims(3)))
       Tbai = dcmplx(Tbai_r, Tbai_i)
 
-!******************************************************************************
+!****************************************************************************80
 
       call h5dopen_f(file_id, dataset7, dataset7_id, error)
       call h5dget_space_f(dataset7_id, dataspace_id, error)
@@ -985,7 +971,7 @@ contains
       allocate (Tbbi(size(Tbbi_r, 1), size(Tbbi_r, 1), dims(3)))
       Tbbi = dcmplx(Tbbi_r, Tbbi_i)
 
-!******************************************************************************
+!****************************************************************************80
 
       call h5lexists_f(file_id, dataset9, exists, error)
       if (exists) then
@@ -1009,7 +995,7 @@ contains
             matrices%refi = imag(ref)
          end if
 
-         !****************************************************************************
+!****************************************************************************80
 
          call h5dopen_f(file_id, dataset10, dataset10_id, error)
          call h5dget_space_f(dataset10_id, dataspace_id, error)
@@ -1027,7 +1013,7 @@ contains
 !   matrices%Nmaxs(i) = int(dsqrt(real(num)+1d0)-1d0)
             matrices%Nmaxs(i) = truncation_order(mesh%ki(i)*mesh%a)
          end do
-         !****************************************************************************
+!****************************************************************************80
       end if
 
       call h5fclose_f(file_id, error)
@@ -1049,25 +1035,19 @@ contains
    end subroutine read_T
 
 ! HDF5 WRITE ******************************************************************
-!******************************************************************************
-   subroutine write_T(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
-
+!****************************************************************************80
+   subroutine write_T()
       if (matrices%singleT == 1) then
-         call singleT_write2file(matrices)
+         call singleT_write2file()
       else
-         call T_write2file(matrices, mesh)
+         call T_write2file()
       end if
 
    end subroutine write_T
 
-!******************************************************************************
+!****************************************************************************80
 
-   subroutine T_write2file(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
-
+   subroutine T_write2file()
       character(len=80) :: fname
       character(len=80) :: filename
 
@@ -1114,7 +1094,7 @@ contains
       CALL h5screate_simple_f(1, dimsinfo, dspace_id2, error)
       CALL h5screate_simple_f(1, dimswl, dspace_id3, error)
 
-!******************************************************************
+!****************************************************************************80
 
       CALL h5dcreate_f(file_id, dsetname1, H5T_NATIVE_DOUBLE, dspace_id, &
                        dset_id1, error, H5P_DEFAULT_F, H5P_DEFAULT_F, H5P_DEFAULT_F)
@@ -1125,7 +1105,7 @@ contains
       CALL h5dwrite_f(dset_id2, H5T_NATIVE_DOUBLE, imag(matrices%Taai), dims, error)
       CALL h5dclose_f(dset_id2, error)
 
-!******************************************************************
+!****************************************************************************80
 
       CALL h5dcreate_f(file_id, dsetname3, H5T_NATIVE_DOUBLE, dspace_id, &
                        dset_id3, error, H5P_DEFAULT_F, H5P_DEFAULT_F, H5P_DEFAULT_F)
@@ -1136,7 +1116,7 @@ contains
       CALL h5dwrite_f(dset_id4, H5T_NATIVE_DOUBLE, imag(matrices%Tabi), dims, error)
       CALL h5dclose_f(dset_id4, error)
 
-!******************************************************************
+!****************************************************************************80
 
       CALL h5dcreate_f(file_id, dsetname5, H5T_NATIVE_DOUBLE, dspace_id, &
                        dset_id5, error, H5P_DEFAULT_F, H5P_DEFAULT_F, H5P_DEFAULT_F)
@@ -1147,7 +1127,7 @@ contains
       CALL h5dwrite_f(dset_id6, H5T_NATIVE_DOUBLE, imag(matrices%Tbai), dims, error)
       CALL h5dclose_f(dset_id6, error)
 
-!******************************************************************
+!****************************************************************************80
 
       CALL h5dcreate_f(file_id, dsetname7, H5T_NATIVE_DOUBLE, dspace_id, &
                        dset_id7, error, H5P_DEFAULT_F, H5P_DEFAULT_F, H5P_DEFAULT_F)
@@ -1158,7 +1138,7 @@ contains
       CALL h5dwrite_f(dset_id8, H5T_NATIVE_DOUBLE, imag(matrices%Tbbi), dims, error)
       CALL h5dclose_f(dset_id8, error)
 
-!******************************************************************
+!****************************************************************************80
 
       CALL h5dcreate_f(file_id, dsetname9, H5T_NATIVE_DOUBLE, dspace_id2, &
                        dset_id9, error, H5P_DEFAULT_F, H5P_DEFAULT_F, H5P_DEFAULT_F)
@@ -1166,14 +1146,14 @@ contains
                                                     imag(mesh%param(1)), mesh%a], dimsinfo, error)
       CALL h5dclose_f(dset_id9, error)
 
-!******************************************************************
+!****************************************************************************80
 
       CALL h5dcreate_f(file_id, dsetname10, H5T_NATIVE_DOUBLE, dspace_id3, &
                        dset_id10, error, H5P_DEFAULT_F, H5P_DEFAULT_F, H5P_DEFAULT_F)
       CALL h5dwrite_f(dset_id10, H5T_NATIVE_DOUBLE, 2d0*pi/mesh%ki, dimswl, error)
       CALL h5dclose_f(dset_id10, error)
 
-!******************************************************************
+!****************************************************************************80
 
       CALL h5sclose_f(dspace_id, error)
       CALL h5fclose_f(file_id, error)
@@ -1181,12 +1161,9 @@ contains
 
    end subroutine T_write2file
 
-!******************************************************************************
+!****************************************************************************80
 
-   subroutine T_empty(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
-
+   subroutine T_empty()
       character(len=80) :: fname
       character(len=80) :: filename
 
@@ -1237,7 +1214,7 @@ contains
       CALL h5screate_simple_f(1, dimsinfo, dspace_id2, error)
       CALL h5screate_simple_f(1, dimswl, dspace_id3, error)
 
-!******************************************************************
+!****************************************************************************80
 
       CALL h5dcreate_f(file_id, dsetname1, H5T_NATIVE_DOUBLE, dspace_id, &
                        dset_id1, error, H5P_DEFAULT_F, H5P_DEFAULT_F, H5P_DEFAULT_F)
@@ -1248,7 +1225,7 @@ contains
       CALL h5dwrite_f(dset_id2, H5T_NATIVE_DOUBLE, imag(emptyT), dims, error)
       CALL h5dclose_f(dset_id2, error)
 
-!******************************************************************
+!****************************************************************************80
 
       CALL h5dcreate_f(file_id, dsetname3, H5T_NATIVE_DOUBLE, dspace_id, &
                        dset_id3, error, H5P_DEFAULT_F, H5P_DEFAULT_F, H5P_DEFAULT_F)
@@ -1259,7 +1236,7 @@ contains
       CALL h5dwrite_f(dset_id4, H5T_NATIVE_DOUBLE, imag(emptyT), dims, error)
       CALL h5dclose_f(dset_id4, error)
 
-!******************************************************************
+!****************************************************************************80
 
       CALL h5dcreate_f(file_id, dsetname5, H5T_NATIVE_DOUBLE, dspace_id, &
                        dset_id5, error, H5P_DEFAULT_F, H5P_DEFAULT_F, H5P_DEFAULT_F)
@@ -1270,7 +1247,7 @@ contains
       CALL h5dwrite_f(dset_id6, H5T_NATIVE_DOUBLE, imag(emptyT), dims, error)
       CALL h5dclose_f(dset_id6, error)
 
-!******************************************************************
+!****************************************************************************80
 
       CALL h5dcreate_f(file_id, dsetname7, H5T_NATIVE_DOUBLE, dspace_id, &
                        dset_id7, error, H5P_DEFAULT_F, H5P_DEFAULT_F, H5P_DEFAULT_F)
@@ -1281,7 +1258,7 @@ contains
       CALL h5dwrite_f(dset_id8, H5T_NATIVE_DOUBLE, imag(emptyT), dims, error)
       CALL h5dclose_f(dset_id8, error)
 
-!******************************************************************
+!****************************************************************************80
 
       CALL h5dcreate_f(file_id, dsetname9, H5T_NATIVE_DOUBLE, dspace_id2, &
                        dset_id9, error, H5P_DEFAULT_F, H5P_DEFAULT_F, H5P_DEFAULT_F)
@@ -1289,14 +1266,14 @@ contains
                                                     imag(mesh%param(1)), mesh%a], dimsinfo, error)
       CALL h5dclose_f(dset_id9, error)
 
-!******************************************************************
+!****************************************************************************80
 
       CALL h5dcreate_f(file_id, dsetname10, H5T_NATIVE_DOUBLE, dspace_id3, &
                        dset_id10, error, H5P_DEFAULT_F, H5P_DEFAULT_F, H5P_DEFAULT_F)
       CALL h5dwrite_f(dset_id10, H5T_NATIVE_DOUBLE, 2d0*pi/mesh%ki, dimswl, error)
       CALL h5dclose_f(dset_id10, error)
 
-!******************************************************************
+!****************************************************************************80
 
       CALL h5sclose_f(dspace_id, error)
       CALL h5fclose_f(file_id, error)
@@ -1304,11 +1281,9 @@ contains
 
    end subroutine T_empty
 
-!*******************************************************************************
+!****************************************************************************80
 
-   subroutine singleT_write2file(matrices)
-      type(data) :: matrices
-
+   subroutine singleT_write2file()
       character(len=80) :: filename
 
       character(len=6), PARAMETER :: dsetname1 = "Taai_r"
@@ -1342,7 +1317,7 @@ contains
       call h5open_f(error)
       call h5fopen_f(filename, H5F_ACC_RDWR_F, file_id, error)
 
-!******************************************************************
+!****************************************************************************80
 
       call h5dopen_f(file_id, dsetname1, dset_id1, error)
       call h5dget_space_f(dset_id1, dspace_id, error)
@@ -1362,7 +1337,7 @@ contains
       CALL h5dwrite_f(dset_id2, H5T_NATIVE_DOUBLE, Ti_i, dims, error)
       call h5dclose_f(dset_id2, error)
 
-!******************************************************************
+!****************************************************************************80
 
       call h5dopen_f(file_id, dsetname3, dset_id3, error)
       call h5dget_space_f(dset_id3, dspace_id, error)
@@ -1380,7 +1355,7 @@ contains
       CALL h5dwrite_f(dset_id4, H5T_NATIVE_DOUBLE, Ti_i, dims, error)
       call h5dclose_f(dset_id4, error)
 
-!******************************************************************
+!****************************************************************************80
 
       call h5dopen_f(file_id, dsetname5, dset_id5, error)
       call h5dget_space_f(dset_id5, dspace_id, error)
@@ -1398,7 +1373,7 @@ contains
       CALL h5dwrite_f(dset_id6, H5T_NATIVE_DOUBLE, Ti_i, dims, error)
       call h5dclose_f(dset_id6, error)
 
-!******************************************************************
+!****************************************************************************80
 
       call h5dopen_f(file_id, dsetname7, dset_id7, error)
       call h5dget_space_f(dset_id7, dspace_id, error)
@@ -1416,7 +1391,7 @@ contains
       CALL h5dwrite_f(dset_id8, H5T_NATIVE_DOUBLE, Ti_i, dims, error)
       call h5dclose_f(dset_id8, error)
 
-!******************************************************************
+!****************************************************************************80
 
       CALL h5sclose_f(dspace_id, error)
       CALL h5fclose_f(file_id, error)
@@ -1424,7 +1399,7 @@ contains
 
    end subroutine singleT_write2file
 
-!*******************************************************************************
+!****************************************************************************80
 
    subroutine write2file(A, fname)
       complex(dp), intent(in) :: A(:, :)

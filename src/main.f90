@@ -5,77 +5,70 @@ program main
    use postprocessing
 
    implicit none
-   type(data) :: matrices
-   type(mesh_struct) :: mesh
 
    call splash()
 
-   call check_paramsfile(matrices)
-   call read_params(matrices, mesh)
-   call read_arguments(matrices, mesh)
-   call setup_band(matrices, mesh)
+   call check_paramsfile()
+   call read_params()
+   call read_arguments()
+   call setup_band()
 
-   call init_geometry(matrices, mesh)
+   call init_geometry()
 
-   call allocate_Ti(matrices)
+   call allocate_Ti()
 
    if (matrices%Tmat == 1 .AND. file_exists(matrices%tname)) then
-      call read_T(matrices, mesh)
-      call fix_band(matrices, mesh)
+      call read_T()
+      call fix_band()
    else
       write (*, '(A,1ES8.2)') '  a = ', mesh%a
       if (matrices%singleT == 1) then
-         if (.NOT. file_exists(matrices%tname)) call T_empty(matrices, mesh)
+         if (.NOT. file_exists(matrices%tname)) call T_empty()
       end if
 
-      call calc_T(matrices, mesh)
-      call write_T(matrices, mesh)
+      call calc_T()
+      call write_T()
    end if
 
    if (run_test == 0) then
-      call integrate(matrices, mesh)
+      call integrate()
    else
-      call tests(matrices, mesh)
+      call tests()
    end if
 
-   if (trim(matrices%mueller_mode) /= 'none') call compute_mueller(matrices, mesh)
-
-   write(*, '(A)') '-------------------------------- All done! -------------------------------------'
+   if (trim(matrices%mueller_mode) /= 'none') call compute_mueller()
 
 contains
 
-!******************************************************************************
+!****************************************************************************80
 
-   subroutine tests(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
-
-      call polarization(matrices)
-      call allocate_inc_wave(matrices, mesh)
+   subroutine tests()
+      call polarization()
+      call allocate_inc_wave()
 
       if (use_mie == 1) then
-         call mie_params(matrices, mesh)
+         call mie_params()
       else
          if (mesh%is_mesh == 1) then
-            call vie_params(matrices, mesh)
+            call vie_params()
          else
-            call aggr_params(matrices, mesh)
+            call aggr_params()
          end if
       end if
 
       matrices%x_CM = mesh%CM
-      call diagonalize_inertia(matrices, mesh)
-      call init_values(matrices)
+      call diagonalize_inertia()
+      call init_values()
 
-      if (beam_shape == 1) call gaussian_beams(matrices, mesh)
-      if (beam_shape == 2) call laguerre_gaussian_beams(matrices, mesh, p, l)
-      if (beam_shape == 3) call bessel_beams(matrices, mesh)
+      if (beam_shape == 1) call gaussian_beams()
+      if (beam_shape == 2) call laguerre_gaussian_beams(p, l)
+      if (beam_shape == 3) call bessel_beams()
 
-      if (run_test == 1) call test_methods(matrices, mesh)
-      if (run_test == 2) call torque_efficiency(matrices, mesh)
-      if (run_test == 3) call stability_analysis(matrices, mesh)
-      if (run_test == 4) call write_fields(matrices, mesh)
-      if (run_test == 5) call test_mueller(matrices, mesh)
+      if (run_test == 1) call test_methods()
+      if (run_test == 2) call torque_efficiency()
+      if (run_test == 3) call stability_analysis()
+      if (run_test == 4) call write_fields()
+      if (run_test == 5) call test_mueller()
 
    end subroutine tests
 

@@ -6,7 +6,7 @@ module shapebeam
    implicit none
 contains
 
-!******************************************************************************
+!****************************************************************************80
 ! The routine computes the SVWF expansion coefficients
 ! for a time harmonic x-polarized planewave
 ! propagating +z-direction  with the wave number k
@@ -36,7 +36,7 @@ contains
 
    end subroutine pw
 
-!******************************************************************************
+!****************************************************************************80
 ! The routine computes the SVWF expansion coefficients
 ! for a time harmonic x-and y-polarized planewave
 ! propagating +z-direction  with the wave number k
@@ -64,29 +64,25 @@ contains
 
    end subroutine pw2
 
-!******************************************************************************
+!****************************************************************************80
 ! The Gaussian amplitude profile in localized approximation (kw0>=5) a'la
 ! MSTM 3.0 (Mackowski et al 2013)
-   subroutine gaussian_beams(matrices, mesh)
-      type(mesh_struct) :: mesh
-      type(data) :: matrices
+   subroutine gaussian_beams()
       real(dp) :: width
       integer :: i
 
       width = 5d0/(maxval(mesh%ki))/sqrt(2d0)
 
       do i = 1, matrices%bars
-         call gaussian_beam_shape(matrices, mesh, i, matrices%Nmaxs(i), width)
+         call gaussian_beam_shape(i, matrices%Nmaxs(i), width)
       end do
 
    end subroutine gaussian_beams
 
-!******************************************************************************
+!****************************************************************************80
 ! The Gaussian amplitude profile in localized approximation (kw0>=5) a'la
 ! MSTM 3.0 (Mackowski et al 2013)
-   subroutine gaussian_beam_shape(matrices, mesh, i, Nmax, width)
-      type(mesh_struct) :: mesh
-      type(data) :: matrices
+   subroutine gaussian_beam_shape(i, Nmax, width)
       real(dp) :: gn, kw0, width
       integer :: n, m, ind, i, Nmax
 
@@ -109,27 +105,23 @@ contains
 
    end subroutine gaussian_beam_shape
 
-!******************************************************************************
+!****************************************************************************80
 
-   subroutine laguerre_gaussian_beams(matrices, mesh, p, l)
-      type(mesh_struct) :: mesh
-      type(data) :: matrices
+   subroutine laguerre_gaussian_beams(p, l)
       real(dp) :: width
       integer :: i, p, l
 
       width = 0.3d0/(maxval(mesh%ki))
 
       do i = 1, matrices%bars
-         call laguerre_gauss_num(matrices, mesh, i, p, l, width)
+         call laguerre_gauss_num(i, p, l, width)
       end do
 
    end subroutine laguerre_gaussian_beams
 
-!******************************************************************************
+!****************************************************************************80
 ! Axisymmetric LG-beam. In here, instead of some other routines.
-   subroutine laguerre_gauss_num(matrices, mesh, whichWL, n, m, w0)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine laguerre_gauss_num(whichWL, n, m, w0)
       integer :: whichWL, nmax, i, j, m, n, ind
       real(dp) :: w0, theta, phi, x, f, n_j, norm
       complex(dp), dimension(:), allocatable :: a_jm, b_jm
@@ -197,7 +189,7 @@ contains
 
    end subroutine laguerre_gauss_num
 
-!******************************************************************************
+!****************************************************************************80
 
    subroutine gaussi(P, w, order)
       real(dp), dimension(:), allocatable :: P
@@ -213,7 +205,7 @@ contains
 
    end subroutine gaussi
 
-!******************************************************************************
+!****************************************************************************80
 
    subroutine integ_points(P, w, M, N)
       real(dp), dimension(:, :), allocatable :: P
@@ -243,7 +235,7 @@ contains
 
    end subroutine integ_points
 
-!******************************************************************************
+!****************************************************************************80
 
    function E_nm(x, f, n, m) result(Enm)
       integer :: n, m
@@ -260,7 +252,7 @@ contains
 
    end function E_nm
 
-!******************************************************************************
+!****************************************************************************80
 
    function dE_nm(theta, f, n, m) result(dEnm)
       integer :: n, m
@@ -275,7 +267,7 @@ contains
 
    end function dE_nm
 
-!******************************************************************************
+!****************************************************************************80
 ! The generalized Laguerre polynomial as a summation, same as in MATLAB
    function L_pl(p, l, x) result(Lpl)
       real(dp) :: x, Lpl
@@ -290,11 +282,9 @@ contains
 
    end function L_pl
 
-!******************************************************************************
+!****************************************************************************80
 ! Axisymmetric LG-beam
-   subroutine laguerre_gauss_farfield(matrices, mesh, i, p, l, w0)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine laguerre_gauss_farfield(i, p, l, w0)
       integer :: i, nmax, total_modes, iii, jjj, ntheta, nphi, p, l, tp, info, lwork, ind
       integer, dimension(:), allocatable :: nn, mm, nn_old
       complex(dp) :: x, y, BCP(9)
@@ -395,7 +385,7 @@ contains
 
    end subroutine laguerre_gauss_farfield
 
-!******************************************************************************
+!****************************************************************************80
 
    function LG_mode(p, l, r, phi) result(res)
       integer :: p, l, fp, fpl
@@ -415,11 +405,9 @@ contains
 
    end function LG_mode
 
-!******************************************************************************
+!****************************************************************************80
 
-   subroutine fields_out(matrices, mesh, which, n)
-      type(mesh_struct) :: mesh
-      type(data) :: matrices
+   subroutine fields_out(which, n)
       integer :: n, nn, i, which
       real(dp), allocatable :: grid(:, :)
       complex(dp) :: F(3), G(3)
@@ -427,7 +415,7 @@ contains
 
       nn = n*n
 
-      grid = field_grid(mesh)
+      grid = field_grid()
 
       allocate (E(3, nn))
       matrices%field_points = grid
@@ -441,11 +429,9 @@ contains
 
    end subroutine fields_out
 
-!******************************************************************************
+!****************************************************************************80
 
-   subroutine scat_fields_out(matrices, mesh, which, n)
-      type(mesh_struct) :: mesh
-      type(data) :: matrices
+   subroutine scat_fields_out(which, n)
       integer :: n, nn, i, which
       real(dp), allocatable :: grid(:, :)
       complex(dp), dimension(:), allocatable :: p, q, p90, q90
@@ -454,13 +440,13 @@ contains
 
       nn = n*n
 
-      grid = field_grid(mesh)
+      grid = field_grid()
 
 ! Ensure that directions are ok. They might already be...
       matrices%Rkt = eye(3)
       allocate (E(3, nn))
-      call rot_setup(matrices)
-      call scattered_fields(matrices, 1d0, p, q, p90, q90, which)
+      call rot_setup()
+      call scattered_fields(1d0, p, q, p90, q90, which)
 
       matrices%field_points = grid
       do i = 1, nn
@@ -473,10 +459,9 @@ contains
 
    end subroutine scat_fields_out
 
-!******************************************************************************
+!****************************************************************************80
 
-   function field_grid(mesh) result(grid)
-      type(mesh_struct) :: mesh
+   function field_grid() result(grid)
       integer :: n, nn, i, j, ind
       real(dp) :: lim
       real(dp), allocatable :: z(:), y(:), grid(:, :)
@@ -503,11 +488,9 @@ contains
 
    end function field_grid
 
-!******************************************************************************
+!****************************************************************************80
 
-   subroutine write_fields(matrices, mesh)
-      type(mesh_struct) :: mesh
-      type(data) :: matrices
+   subroutine write_fields()
       integer :: i, n
       character(LEN=80) :: gridname, fieldname, scatfield
       i = 1
@@ -516,11 +499,11 @@ contains
       fieldname = 'E_field.h5'
       scatfield = 'E_scat.h5'
 
-      call fields_out(matrices, mesh, i, n)
+      call fields_out(i, n)
       call write2file(dcmplx(matrices%field_points), gridname)
       call write2file(matrices%E_field, fieldname)
 
-      call scat_fields_out(matrices, mesh, i, n)
+      call scat_fields_out(i, n)
       call write2file(matrices%E_field, scatfield)
 
    end subroutine write_fields

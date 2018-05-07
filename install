@@ -9,7 +9,7 @@ install() {
 	
 	make
 	
-	./scadyn -mesh examples/GRE-1.h5 -T examples/T-GRE-1.h5
+	./scadyn --mesh examples/GRE-1.h5 -T examples/T-GRE-1.h5
 }
 
 install

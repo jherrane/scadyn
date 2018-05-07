@@ -5,11 +5,9 @@ module mueller
 
 contains
 
-!******************************************************************************
+!****************************************************************************80
 ! Compute the mueller matrix. Bad code ahead.
-   subroutine compute_mueller(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine compute_mueller()
       integer :: iii1, iii2
       complex(dp), dimension(:), allocatable :: p, q, p90, q90
       integer :: Nmax, ii, las, nm, N_points, halton_init, N_avgs, N_theta, N_phi, everyn
@@ -92,13 +90,12 @@ contains
             end if
 
             matrices%khat = -matrices%khat/vlen(matrices%khat)
-            matrices%Rexp = find_Rexp(matrices)
-            matrices%Rexp = transpose(matrices%Rexp)
+            matrices%R_fixk = transpose(rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0]))
 
             if (trim(matrices%mueller_mode) == 'perf_ori') matrices%R = R_aa(matrices%khat, phi)
 
-            call rot_setup(matrices)
-            call scattered_fields(matrices, E, p, q, p90, q90, ii)
+            call rot_setup()
+            call scattered_fields(E, p, q, p90, q90, ii)
             if (allocated(SS)) deallocate (SS)
             call mueller_matrix_coeff(p, q, p90, q90, dcmplx(mesh%k), N_theta, N_phi, SS)
             SSS = SSS + SS
@@ -112,11 +109,9 @@ contains
 
    end subroutine compute_mueller
 
-!******************************************************************************
+!****************************************************************************80
 
-   subroutine scattering_extinction_matrices(matrices, mesh, a_dist, points, al_direction)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine scattering_extinction_matrices(a_dist, points, al_direction)
       integer :: i, ind, ii, N_points, N_size, N_ia
       real(dp) :: al_direction(3), inc_angles(2), K(4,4)
       complex(dp) :: Kevals(4), Kevecs(4,4)
@@ -150,9 +145,9 @@ contains
             KK = 0d0
             do ii = 1, size(a_dist, 1)
                if (a_dist(ii) <= a_dist(N_size)) then
-                  call mueller_ave(SS, KK, matrices, mesh, points, ii)
+                  call mueller_ave(SS, KK, points, ii)
                else
-                  call mueller_align(SS, KK, matrices, mesh, points, ii, al_direction)
+                  call mueller_align(SS, KK, points, ii, al_direction)
                end if
             end do
 
@@ -186,11 +181,9 @@ contains
 
    end subroutine scattering_extinction_matrices
 
-!******************************************************************************
+!****************************************************************************80
 
-   subroutine mueller_ave(SS, KK, matrices, mesh, points, ii)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine mueller_ave(SS, KK, points, ii)
       integer :: i, ii, N_avgs, halton_init, nm, Nmax
       real(dp) :: E, vec(3), k_sph(3)
       real(dp), dimension(:, :), allocatable :: S, SS, K, KK, points
@@ -211,11 +204,10 @@ contains
 
          matrices%khat = -matrices%khat/vlen(matrices%khat)
          k_sph = cart2sph(matrices%khat)
-         matrices%Rexp = find_Rexp(matrices)
-         matrices%Rexp = transpose(matrices%Rexp)
+         matrices%R_fixk = transpose(rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0]))
 
-         call rot_setup(matrices)
-         call scattered_fields(matrices, E, p, q, p90, q90, ii)
+         call rot_setup()
+         call scattered_fields(E, p, q, p90, q90, ii)
          if (allocated(S)) deallocate (S, K)
          call scattering_matrix_coeff(p, q, p90, q90, dcmplx(mesh%k), size(points, 2), points, S)
          call extinction_matrix_coeff(p, q, p90, q90, dcmplx(mesh%k), k_sph(2), k_sph(3), K)
@@ -225,11 +217,9 @@ contains
 
    end subroutine mueller_ave
 
-!******************************************************************************
+!****************************************************************************80
 
-   subroutine mueller_align(SS, KK, matrices, mesh, points, ii, al_direction)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine mueller_align(SS, KK, points, ii, al_direction)
       integer :: i, ii, N_avgs, nm, Nmax
       real(dp) :: E, omega(3), al_direction(3), theta, phi, RR(3, 3), Qt(3, 3), R0(3, 3), &
                   aproj(3), k_sph(3)
@@ -258,12 +248,12 @@ contains
 
          matrices%khat = -matrices%khat/vlen(matrices%khat)
          k_sph = cart2sph(matrices%khat)
-         matrices%Rexp = find_Rexp(matrices)
-         matrices%Rexp = transpose(matrices%Rexp)
+
+         matrices%R_fixk = transpose(rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0]))
          matrices%R = R_aa(matrices%khat, phi)
 
-         call rot_setup(matrices)
-         call scattered_fields(matrices, E, p, q, p90, q90, ii)
+         call rot_setup()
+         call scattered_fields(E, p, q, p90, q90, ii)
          if (allocated(S)) deallocate (S, K)
          call scattering_matrix_coeff(p, q, p90, q90, dcmplx(mesh%k), size(points, 2), points, S)
          call extinction_matrix_coeff(p, q, p90, q90, dcmplx(mesh%k), k_sph(2), k_sph(3), K)

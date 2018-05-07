@@ -8,7 +8,7 @@ module common
 !  LOWSUBROUTINES
 
 ! PARAMETERS ******************************************************************
-!******************************************************************************
+!****************************************************************************80
 
    integer, parameter   :: dp = selected_real_kind(15, 307)
    integer, parameter   :: nthreads = 24
@@ -37,7 +37,7 @@ module common
    integer :: l = 0
 
 ! TYPES ***********************************************************************
-!******************************************************************************
+!****************************************************************************80
 
    type mesh_struct
       complex(dp), dimension(:, :), allocatable :: params
@@ -77,7 +77,7 @@ module common
       real(dp), dimension(1, 1000) :: t_buf
 
       real(dp), dimension(4) :: q, qn
-      real(dp), dimension(3, 3) :: R, Rn, Rkt, P, I, I_inv, R_init, R90_init, Rexp, R_al
+      real(dp), dimension(3, 3) :: R, Rn, Rkt, P, I, I_inv, R_init, R90_init, R_fixk, R_al
       real(dp), dimension(3) :: khat, w, x_CM, v_CM, N, wn, xn, vn, J, F, Ip, CM, &
                                 dw, k_orig, E0_orig, E90_orig, Q_t, Q_f, B
       real(dp) ::  khi_0, rot_max, lambda1, lambda2, temp, dt0, dt, tt, &
@@ -109,10 +109,13 @@ module common
       complex(dp), dimension(:, :), allocatable :: A, B
    end type data_struct
 
+   type(data) :: matrices
+   type(mesh_struct) :: mesh
+
 contains
 
 ! LOWFUNCTIONS ****************************************************************
-!******************************************************************************
+!****************************************************************************80
 
    function crossRR(a, b) result(c)
       real(dp), intent(in) :: a(3), b(3)
@@ -123,7 +126,7 @@ contains
 
    end function crossRR
 
-!******************************************************************************
+!****************************************************************************80
 
    function crossRC(a, b) result(c)
       complex(dp), intent(in) :: b(3)
@@ -135,7 +138,7 @@ contains
 
    end function crossRC
 
-!******************************************************************************
+!****************************************************************************80
 
    function crossCC(a, b) result(c)
       complex(dp), intent(in) :: a(3), b(3)
@@ -146,7 +149,7 @@ contains
 
    end function crossCC
 
-!******************************************************************************
+!****************************************************************************80
 
    function norm(r, rp) result(c)
       implicit none
@@ -156,7 +159,7 @@ contains
 !norm=sqrt(dot_product(r-rp,r-rp))
    end function norm
 
-!******************************************************************************
+!****************************************************************************80
 
    function vlen(r) result(c)
       implicit none
@@ -166,7 +169,7 @@ contains
 !norm=sqrt(dot_product(r-rp,r-rp))
    end function vlen
 
-!******************************************************************************
+!****************************************************************************80
 
    function tet_area(coord) result(c)
       implicit none
@@ -182,7 +185,7 @@ contains
 !norm=sqrt(dot_product(r-rp,r-rp))
    end function tet_area
 
-!******************************************************************************
+!****************************************************************************80
 
    function tetra_volume(tet_coord) result(vol)
       real(dp), intent(in) :: tet_coord(:, :)
@@ -198,7 +201,7 @@ contains
 
    end function tetra_volume
 
-!******************************************************************************
+!****************************************************************************80
 
    function Gr(rf, rp, k) result(Green)
       real(dp), intent(in) :: rf(3), rp(3)
@@ -210,7 +213,7 @@ contains
       Green = cdexp(dcmplx(0.0d0, k*R))/dcmplx((4d0*pi*R))
    end function Gr
 
-!******************************************************************************
+!****************************************************************************80
 
    function grad_G(rf, rp, k) result(gradG)
       real(dp), intent(in) :: rf(3), rp(3), k
@@ -223,7 +226,7 @@ contains
 
    end function grad_G
 
-!******************************************************************************
+!****************************************************************************80
 
    function tetra_face(tet_coord, face) result(tri_coord)
       real(dp), intent(in) :: tet_coord(3, 4)
@@ -253,7 +256,7 @@ contains
 
    end function tetra_face
 
-!******************************************************************************
+!****************************************************************************80
 
    function tri_n_vectors(tri_coord) result(nvec)
       real(dp), intent(in) :: tri_coord(3, 3)
@@ -270,7 +273,7 @@ contains
 
    end function tri_n_vectors
 
-!******************************************************************************
+!****************************************************************************80
 
    function tetra_n_vectors(tet_coord) result(n_vectors)
       real(dp), intent(in) :: tet_coord(3, 4)
@@ -293,10 +296,9 @@ contains
 
    end function tetra_n_vectors
 
-!******************************************************************************
+!****************************************************************************80
 
-   function get_tetra_vol(mesh) result(volume)
-      type(mesh_struct)             ::  mesh
+   function get_tetra_vol() result(volume)
       real(dp)                      ::  volume, V, totV
       integer                       ::  i1
       real(dp), dimension(3)    ::  p0, p1, p2, p3
@@ -320,7 +322,7 @@ contains
 
    end function get_tetra_vol
 
-!******************************************************************************
+!****************************************************************************80
 
    function vec2arr(mesh, vec) result(arr)
       type(mesh_struct) :: mesh
@@ -345,7 +347,7 @@ contains
 
    end function vec2arr
 
-!******************************************************************************
+!****************************************************************************80
 
    function arr2vec(mesh, arr) result(vec)
       type(mesh_struct) :: mesh
@@ -370,7 +372,7 @@ contains
 
    end function arr2vec
 
-!******************************************************************************
+!****************************************************************************80
 
    function calc_det3(mat) result(det)
       real(dp), dimension(3, 3), intent(in) :: mat
@@ -382,7 +384,7 @@ contains
 
    end function calc_det3
 
-!******************************************************************************
+!****************************************************************************80
 
    subroutine gradshape(rot, dN, T_coord)
       real(dp), dimension(3, 4), intent(in) :: T_coord
@@ -424,7 +426,7 @@ contains
 
    end subroutine gradshape
 
-!******************************************************************************
+!****************************************************************************80
 
    function sph_unit_vectors(theta, phi) result(vec)
       real(dp), intent(in) :: theta, phi
@@ -436,7 +438,7 @@ contains
 
    end function sph_unit_vectors
 
-!******************************************************************************
+!****************************************************************************80
 
    function real_outer_product(a, b) result(vec)
       real(dp), dimension(:) :: a, b
@@ -454,7 +456,7 @@ contains
 
    end function real_outer_product
 
-!******************************************************************************
+!****************************************************************************80
 
    function rotation(x, axis, angle) result(xp)
       real(dp) :: x(3), angle, xp(3)
@@ -480,7 +482,7 @@ contains
 
    end function rotation
 
-!******************************************************************************
+!****************************************************************************80
 ! Transform Tait-Bryan XYZ angles to a rotation matrix
    function rotation_matrix(a, b, g) result(rot)
       real(dp) :: a, b, g
@@ -499,7 +501,7 @@ contains
 
    end function rotation_matrix
 
-!******************************************************************************
+!****************************************************************************80
 
    function R_aa(axis, angle) result(rot)
       real(dp) :: axis(3), angle, rot(3, 3)
@@ -509,7 +511,7 @@ contains
 
    end function R_aa
 
-!******************************************************************************
+!****************************************************************************80
 
    function halton_seq(index, base) result(num)
       integer :: base, index, i
@@ -528,7 +530,7 @@ contains
 
    end function halton_seq
 
-!******************************************************************************
+!****************************************************************************80
 
    function neighbour_tet(T_nodes, B_nodes) result(num)
       integer :: T_nodes(4), B_nodes(4)
@@ -544,7 +546,7 @@ contains
 
    end function neighbour_tet
 
-!******************************************************************************
+!****************************************************************************80
 
    function factorial(a) result(c)
       integer :: i1, a
@@ -558,7 +560,7 @@ contains
 
    end function factorial
 
-!******************************************************************************
+!****************************************************************************80
 
    function cart2sph(x) result(vec)
       real(dp), intent(in) :: x(3)
@@ -570,7 +572,7 @@ contains
 
    end function cart2sph
 
-!******************************************************************************
+!****************************************************************************80
 
    function cart2sph2(x) result(vec)
       real(dp), intent(in) :: x(3)
@@ -582,7 +584,7 @@ contains
 
    end function cart2sph2
 
-!******************************************************************************
+!****************************************************************************80
 
    function sph2cart(r, theta, phi) result(x)
       real(dp), intent(in) :: r, theta, phi
@@ -594,7 +596,7 @@ contains
 
    end function sph2cart
 
-!******************************************************************************
+!****************************************************************************80
 
    function sph2cart_vec(theta, phi, vec) result(vec2)
       complex(dp), intent(in) :: vec(3)
@@ -609,7 +611,7 @@ contains
 
    end function sph2cart_vec
 
-!******************************************************************************
+!****************************************************************************80
 
    function circ2cart_vec(vec) result(vec2)
       complex(dp), intent(in) :: vec(3)
@@ -623,7 +625,7 @@ contains
 
    end function circ2cart_vec
 
-!******************************************************************************
+!****************************************************************************80
 
    function binomial(n, k) result(c)
       integer :: n, k, i1
@@ -636,7 +638,7 @@ contains
 
    end function binomial
 
-!******************************************************************************
+!****************************************************************************80
 
    function rotation_angles(x) result(vec)
       real(dp), intent(in) :: x(3)
@@ -648,7 +650,7 @@ contains
 
    end function rotation_angles
 
-!******************************************************************************
+!****************************************************************************80
 
    function truncation_order(ka) result(Nmax)
       real(dp) :: ka, lim
@@ -663,7 +665,7 @@ contains
 
    end function truncation_order
 
-!******************************************************************************
+!****************************************************************************80
 
    function truncation_order2(ka) result(Nmax)
       real(dp) :: ka
@@ -677,7 +679,7 @@ contains
 
    end function truncation_order2
 
-!******************************************************************************
+!****************************************************************************80
 
    function cross_skew(v) result(Vx)
       real(dp) :: v(3), Vx(3, 3)
@@ -687,7 +689,7 @@ contains
 
    end function cross_skew
 
-!******************************************************************************
+!****************************************************************************80
 
    function eye(dim) result(I)
       real(dp), dimension(:, :), allocatable :: I
@@ -699,7 +701,7 @@ contains
 
    end function eye
 
-!******************************************************************************
+!****************************************************************************80
 !    Discover Euler angle vector from 3x3 matrix
 
 !    Uses the conventions above.
@@ -770,7 +772,7 @@ contains
 
    end function mat2euler
 
-!******************************************************************************
+!****************************************************************************80
 
    function rotate_a_to_b(a, b) result(R)
       real(dp), dimension(3), intent(in) :: a, b
@@ -817,50 +819,7 @@ contains
 
    end function rotate_a_to_b
 
-!******************************************************************************
-
-   function find_Rexp(matrices) result(R)
-      type(data), intent(in) :: matrices
-      real(dp), dimension(3, 3) :: R
-      real(dp), dimension(3) :: k, knew
-
-      k = matrices%khat
-      knew = dble((/0.d0, 0.d0, 1.d0/))
-
-      R = rotate_a_to_b(k, knew)
-
-   end function find_Rexp
-
-!******************************************************************************
-
-   function find_Rexp2(matrices) result(R)
-      type(data), intent(in) :: matrices
-      real(dp), dimension(3, 3) :: I, R, Vx
-      real(dp), dimension(3) :: b, a, v
-      real(dp) :: tolerance, s, c
-
-      tolerance = 1.d-6
-
-      b = matrices%khat
-      a = dble((/0.d0, 0.d0, 1.d0/))
-      I = eye(3)
-
-      c = dot_product(a, b)
-      v = crossRR(a, b)
-      s = vlen(v)
-
-      Vx = reshape([0.d0, v(3), -v(2), -v(3), 0.d0, v(1), v(2), -v(1), 0.d0], [3, 3])
-
-      if (c < tolerance) then
-         R = -eye(3)
-         return
-      else
-         R = I + Vx + matmul(Vx, Vx)*(1d0 - c)/s**2
-      end if
-
-   end function find_Rexp2
-
-!******************************************************************************
+!****************************************************************************80
 ! Rodrigues' rotation formula
    function rodr(x) result(expx)
       real(dp) :: x(3), expx(3, 3), theta, xhat(3, 3)
@@ -871,7 +830,7 @@ contains
 
    end function rodr
 
-!******************************************************************************
+!****************************************************************************80
 ! Random rotation matrix
    function rand_rot() result(R)
       real(dp) :: R(3, 3), theta, phi, vec(3), u(3)
@@ -900,7 +859,7 @@ contains
 
    end function rand_rot
 
-!******************************************************************************
+!****************************************************************************80
 ! Dericative of the Rodrigues' rotation formula
    function drodr(x) result(dexpx)
       real(dp) :: x(3), dexpx(3, 3), theta, xhat(3, 3)
@@ -912,7 +871,7 @@ contains
 
    end function drodr
 
-!******************************************************************************
+!****************************************************************************80
 ! Cayley formula
    function cay(x) result(cayx)
       real(dp) :: x(3), cayx(3, 3), theta, xhat(3, 3)
@@ -923,7 +882,7 @@ contains
 
    end function cay
 
-!******************************************************************************
+!****************************************************************************80
 ! Dericative of the Cayley formula
    function dcay(x) result(dcayx)
       real(dp) :: x(3), dcayx(3, 3), theta, xhat(3, 3)
@@ -934,7 +893,7 @@ contains
 
    end function dcay
 
-!******************************************************************************
+!****************************************************************************80
 ! Hatmap R^3 --> so(3)
    function hat(v) result(Vx)
       real(dp)                 :: v(3), Vx(3, 3)
@@ -944,7 +903,7 @@ contains
 
    end function hat
 
-!******************************************************************************
+!****************************************************************************80
 
    function quat_mult(q1, q2) result(q3)
       real(dp), dimension(4) :: q1, q2, q3
@@ -954,7 +913,7 @@ contains
 
    end function quat_mult
 
-!******************************************************************************
+!****************************************************************************80
 ! Quaternion-vector multiplication
    function quat_rotation(q1, v) result(vout)
       real(dp), dimension(4) :: q1, q2, q3
@@ -968,7 +927,7 @@ contains
 
    end function quat_rotation
 
-!******************************************************************************
+!****************************************************************************80
 
    function quat_norm(q) result(norm)
       real(dp), dimension(4) :: q
@@ -978,7 +937,7 @@ contains
 
    end function quat_norm
 
-!******************************************************************************
+!****************************************************************************80
 
    function quat_conj(q) result(qc)
       real(dp), dimension(4) :: q, qc
@@ -988,7 +947,7 @@ contains
 
    end function quat_conj
 
-!******************************************************************************
+!****************************************************************************80
 
    function quat_inv(q) result(qinv)
       real(dp), dimension(4) :: q, qinv
@@ -998,7 +957,7 @@ contains
 
    end function
 
-!******************************************************************************
+!****************************************************************************80
 
    function normalize_quat(q) result(qhat)
       real(dp), dimension(4):: q, qhat
@@ -1007,7 +966,7 @@ contains
 
    end function normalize_quat
 
-!******************************************************************************
+!****************************************************************************80
 
    function quat2mat(q) result(M)
       real(dp), dimension(4) :: q
@@ -1030,7 +989,7 @@ contains
 
    end function quat2mat
 
-!******************************************************************************
+!****************************************************************************80
 
    function mat2quat(M) result(q)
       real(dp) :: M(3, 3), q(4), q0, q1, q2, q3
@@ -1077,7 +1036,7 @@ contains
 
    end function mat2quat
 
-!******************************************************************************
+!****************************************************************************80
 
    function rand_sphere() result(vec)
       integer, parameter :: seed = 86456
@@ -1093,7 +1052,7 @@ contains
 
    end function rand_sphere
 
-!******************************************************************************
+!****************************************************************************80
 
    function fibonacci_sphere(n, randomize) result(vec)
       integer :: n, randomize, i
@@ -1130,7 +1089,7 @@ contains
 
    end function fibonacci_sphere
 
-!******************************************************************************
+!****************************************************************************80
 
    function uniform_sphere(n, theta, phi) result(vec)
       integer :: n, i, j
@@ -1151,7 +1110,7 @@ contains
 
    end function uniform_sphere
 
-!******************************************************************************
+!****************************************************************************80
 ! Function to calculate a leapfrog update of an quaternion when corresponding
 ! angular velocity is w. As in [Seelen2016]
    function q_worm(w, dt) result(qw)
@@ -1174,7 +1133,7 @@ contains
       qw = normalize_quat(qw)
    end function q_worm
 
-!******************************************************************************
+!****************************************************************************80
 ! Rolling mean for purposes when data contains no high peaks. Any peaks will
 ! affect the mean for a long time, which is not always desirable.
    function rolling_mean(N, mean, new_sample) result(avg)
@@ -1185,7 +1144,7 @@ contains
 
    end function rolling_mean
 
-!******************************************************************************
+!****************************************************************************80
 ! Tests whether a particle is aligned internally, i.e. one principal axis is
 ! directed in the direction of angular velocity
    function alignment_state(matrices) result(ans)
@@ -1213,7 +1172,7 @@ contains
 
    end function alignment_state
 
-!******************************************************************************
+!****************************************************************************80
    function file_exists(fname) result(exists)
       logical :: exists
       CHARACTER(LEN=80) :: fname
@@ -1223,7 +1182,7 @@ contains
    end function file_exists
 
 ! LOWSUBROUTINES **************************************************************
-!******************************************************************************
+!****************************************************************************80
 
    subroutine linmap_tet(P, W, tet_coord, P0, W0)
       real(dp), intent(in) :: tet_coord(:, :)
@@ -1249,7 +1208,7 @@ contains
 
    end subroutine linmap_tet
 
-!******************************************************************************
+!****************************************************************************80
 
    subroutine linmap_tri(P, W, tri_coord, P0, W0)
       implicit none
@@ -1281,7 +1240,7 @@ contains
 
    end subroutine linmap_tri
 
-!******************************************************************************
+!****************************************************************************80
 
    subroutine vec2arr2(arr, mesh, vec)
       type(mesh_struct), intent(in) :: mesh
@@ -1331,7 +1290,7 @@ contains
 
    end subroutine vec2arr2
 
-!******************************************************************************
+!****************************************************************************80
 
    subroutine diasym(a, eig)
 !**************************************************************
@@ -1353,7 +1312,7 @@ contains
 
    end subroutine diasym
 
-!******************************************************************************
+!****************************************************************************80
 
    subroutine diagen(a, eig, eigenvectors)
 !**************************************************************
@@ -1388,7 +1347,7 @@ contains
       end do
    end subroutine diagen
 
-!******************************************************************************
+!****************************************************************************80
 
    subroutine linspace(d1, d2, n, grid)
 
@@ -1408,7 +1367,7 @@ contains
 
    end subroutine linspace
 
-!******************************************************************************
+!****************************************************************************80
 
    subroutine angular_grid(ntheta, nphi, theta, phi)
 
@@ -1435,7 +1394,7 @@ contains
 
    end subroutine angular_grid
 
-!*******************************************************************************
+!****************************************************************************80*
 
    function choose(n, k) result(res)
       implicit none
@@ -1447,10 +1406,9 @@ contains
 
    end function choose
 
-!*******************************************************************************
+!****************************************************************************80*
 
-   function R_theta(matrices, theta) result(R)
-      type(data) :: matrices
+   function R_theta(theta) result(R)
       real(dp), dimension(3, 3) ::  R_init, R_thta, R, R_pol
       real(dp), dimension(3) :: a_3, e_3, e_2, k, ninit, a_2, a_1
       real(dp) :: theta, theta0
@@ -1502,7 +1460,7 @@ contains
 
    end function R_theta
 
-!******************************************************************************
+!****************************************************************************80
 
 end module common
 

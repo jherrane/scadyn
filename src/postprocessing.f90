@@ -7,23 +7,16 @@ module postprocessing
 
 contains
 
-!******************************************************************************
+!****************************************************************************80
 
-   subroutine test_methods(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine test_methods()
       integer :: i, j, ii, range(2)
       real(dp), dimension(:, :), allocatable :: Q_fcoll, Q_tcoll
       complex(dp), dimension(3) :: F, N, FF, NN, N_B, N_DG
-! Now, to comply with the properties of DDSCAT, the scattering happens
-! with respect to the particle principal axes
-      matrices%khat = matrices%P(:, 3)
-! matrices%B = vlen(matrices%B)*(0.5d0*matrices%P(:,1) + matrices%P(:,3))
-      write (*, '(A, 3ES11.3)') ' B: ', matrices%B
-      matrices%Rexp = find_Rexp(matrices)
-      matrices%Rexp = transpose(matrices%Rexp)
 
-      call rot_setup(matrices)
+      matrices%R_fixk = transpose(rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0]))
+
+      call rot_setup()
 
       allocate (Q_fcoll(3, matrices%bars))
       allocate (Q_tcoll(3, matrices%bars))
@@ -45,8 +38,8 @@ contains
 
          do i = range(1), range(2)
             select case (j)
-            case (1); call forcetorque_num(i, matrices, mesh)
-            case (2); call forcetorque(i, matrices, mesh)
+            case (1); call forcetorque_num(i)
+            case (2); call forcetorque(i)
             end select
             ii = i
             if (matrices%whichbar > 0) ii = matrices%whichbar
@@ -67,13 +60,9 @@ contains
          write (*, '(A,3ES11.3,A)') ' F = (', real(FF), ' ) N'
          write (*, '(A,3ES11.3,A)') ' N = (', real(NN), ' ) Nm'
 
-         write (*, '(A)') '  [ In body coordinates, where incident field direction = z_b = a_3:'
-         write (*, '(A,3ES11.3,A)') '   F = (', matmul(matrices%P, real(FF)), ' ) N'
-         write (*, '(A,3ES11.3,A)') '   N = (', matmul(matrices%P, real(NN)), ' ) Nm ]'
-
          if (j == 2) then
-            N_DG = DG_torque(matrices, mesh)
-            N_B = barnett_torque(matrices, mesh)
+            N_DG = DG_torque()
+            N_B = barnett_torque()
 
             write (*, '(A,3ES11.3,A)') ' N_DG = (', real(N_DG), ' ) Nm'
             write (*, '(A,3ES11.3,A)') ' N_B = (', real(N_B), ' ) Nm'
@@ -81,10 +70,10 @@ contains
 
          print *, ''
 
-         print *, 'Efficiencies for each wavelength separately, in body coordinates'
+         print *, 'Efficiencies for each wavelength separately'
          do i = 1, size(Q_fcoll, 2)
-            Q_fcoll(:, i) = matmul(matrices%P, Q_fcoll(:, i))
-            Q_tcoll(:, i) = matmul(matrices%P, Q_tcoll(:, i))
+            Q_fcoll(:, i) = matmul(matrices%R, Q_fcoll(:, i))
+            Q_tcoll(:, i) = matmul(matrices%R, Q_tcoll(:, i))
          end do
 
          write (*, '(A, 80F7.1)') 'WL(nm):', 2d9*pi/mesh%ki
@@ -97,53 +86,20 @@ contains
          write (*, '(A, 80F7.3)') '   Qtz:', Q_tcoll(3, :)
       end do
 
-! allocate(MM_nm(3,(matrices%Nmaxs(1)+1)**2-1), NN_nm(3,(matrices%Nmaxs(1)+1)**2-1))
-! call MN_circ(MM_nm, NN_nm, matrices%Nmaxs(1), dcmplx(mesh%ki(1)), [0d0, -7d-7, -7d-7], 0)
-! do i = 1,size(MM_nm,2)
-!    write(*,'(3(ES11.3,SP,ES11.3,"i"))') MM_nm(:,i)
-! end do
-
-! do i = 1, size(Q_fcoll,2)
-!         Q_fcoll(:,i) = matmul(transpose(matrices%P),Q_fcoll(:,i))
-!         Q_tcoll(:,i) = matmul(transpose(matrices%P),Q_tcoll(:,i))
-! end do
-
-! call print_mat(matrices%P, 'P')
-! write(*,'(A, 3ES12.4)')  'Ip   =', matrices%Ip
-! write(*,'(A, 3F8.4)') 'E0   =', real(matrices%E0hat)
-! write(*,'(A, 3F8.4)') 'E90  =', real(matrices%E90hat)
-! write(*,'(A, 3F8.4)') 'khat =', matrices%khat
-
-! open(unit=2, file="out/Q.dat", ACTION="write", STATUS="replace")
-! write(2,'(A)') "      ka        Qf_k       Qt_1       Qt_2       Qt_3       |Qt|"
-! do i = range(1),range(2)
-!         ii = i
-!         if(matrices%whichbar > 0) ii = matrices%whichbar
-!         Qmag = dsqrt(Q_tcoll(1,ii)**2 + Q_tcoll(2,ii)**2 + Q_tcoll(3,ii)**2)
-!         write(2,'(9F11.7)') mesh%ki(ii)*mesh%a, &
-!         dot_product(Q_fcoll(:,ii),matrices%khat), &
-!         dot_product(Q_tcoll(:,ii),matrices%khat), &
-!         dot_product(Q_tcoll(:,ii),-matrices%P(:,2)), &
-!         dot_product(Q_tcoll(:,ii),-matrices%P(:,1)),  Qmag
-! end do
-! close(2)
-
    end subroutine test_methods
 
-!******************************************************************************
+!****************************************************************************80
 ! Calculates the torque efficiency of a particle averaged over rotation
 ! about its major axis of inertia (a_3) for angles 0 to pi between
 ! a_3 and incident k0. Results are automatically comparable with DDSCAT.
-   subroutine torque_efficiency(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine torque_efficiency()
       integer :: i, j, k, Nang, Bang, psi_deg, ind
       real(dp), dimension(3, 3) :: R_phi, R_B, R_xi
       real(dp), dimension(3) :: k0, E0, E90, Q_t, nphi, a_3, x_B
       real(dp) :: theta, beta, xi, phi, psi
       real(dp), dimension(:, :), allocatable :: Q_coll, F_coll, points
       real(dp), dimension(:), allocatable :: psis, thetas
-      call rot_setup(matrices)
+      call rot_setup()
 
       k0 = matrices%khat
       E0 = real(matrices%E0hat)
@@ -168,7 +124,7 @@ contains
             beta = dble(j)*pi*2d0/Bang
 
             ! Flip the coordinate labels to match Lazarian2007b
-            Q_t = matmul(matrices%Rkt, Qt(matrices, mesh, theta, beta, 0d0))
+            Q_t = matmul(matrices%Rkt, Qt(theta, beta, 0d0))
             Q_t = [dot_product(Q_t, k0), dot_product(Q_t, E0), dot_product(Q_t, E90)]
             Q_coll(:, i + 1) = Q_coll(:, i + 1) + Q_t/Bang
          end do
@@ -220,16 +176,16 @@ contains
 
                ! The ultimate rotation matrices for scattering event
                matrices%R = matmul(R_phi, R_xi) ! First a_3 to xi, then beta about a_3
-               call rot_setup(matrices)
+               call rot_setup()
 
                if (matrices%whichbar == 0) then
                   do k = 1, matrices%bars
-                     call forcetorque(k, matrices, mesh)
+                     call forcetorque(k)
                      Q_t = Q_t + matrices%Q_t/matrices%bars
                   end do
                else
                   k = matrices%whichbar
-                  call forcetorque(k, matrices, mesh)
+                  call forcetorque(k)
                   Q_t = Q_t + matrices%Q_t
                end if
 
@@ -256,11 +212,9 @@ contains
 
    end subroutine torque_efficiency
 
-!*******************************************************************************
+!****************************************************************************80
 
-   subroutine stability_analysis(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine stability_analysis()
       integer :: i, j, k, ind, Npoints, Nang, Bang, N_J, Nphi, Ntheta
       real(dp), dimension(3, 3) ::  R_beta, R_thta
       real(dp), dimension(3) :: Q_t, nbeta
@@ -271,14 +225,13 @@ contains
       complex(dp), dimension(3) :: N
       real(dp), dimension(:), allocatable :: theta, costheta, phi
 
-      call rot_setup(matrices)
+      call rot_setup()
 
       k0 = matrices%khat
 
       a_1 = matrices%P(1:3, 1)
       a_2 = matrices%P(1:3, 2)
       a_3 = matrices%P(1:3, 3)
-!~ write(*,'(A,3F7.3)') '  a_3  =', a_3
 
       Ntheta = 90
       Nphi = 180
@@ -293,7 +246,6 @@ contains
       vec = 0d0
       mx = 0d0
 
-!~ vec = fibonacci_sphere(Npoints,1)
       vec = uniform_sphere(Npoints, theta, phi)
 
       open (unit=1, file="out/NdotQ.dat", ACTION="write", STATUS="replace")
@@ -305,16 +257,16 @@ contains
          knew = vec(:, i)
          ! The ultimate rotation matrices for scattering event
          matrices%R = rotate_a_to_b(k0, knew)
-         call rot_setup(matrices)
+         call rot_setup()
 
          if (matrices%whichbar == 0) then
             do k = 1, matrices%bars
-               call forcetorque(k, matrices, mesh)
+               call forcetorque(k)
                N = N + matrices%Q_t
             end do
          else
             k = matrices%whichbar
-            call forcetorque(k, matrices, mesh)
+            call forcetorque(k)
             N = N + matrices%Q_t
          end if
          anew = matmul(transpose(matrices%R), a_3)
@@ -348,7 +300,7 @@ contains
 ! Theta loop
       do i = 0, Nang - 1
          thta = dble(i)*pi/180d0
-         R_thta = R_theta(matrices, thta)
+         R_thta = R_theta(thta)
          N = dcmplx(0d0)
 
          ! Rotation axis for beta averaging for current theta
@@ -365,15 +317,15 @@ contains
 
             ! The ultimate rotation matrices for scattering event
             matrices%R = matmul(R_beta, R_thta) ! First a_3 to theta, then beta about a_3
-            call rot_setup(matrices)
+            call rot_setup()
             if (matrices%whichbar == 0) then
                do k = 1, matrices%bars
-                  call forcetorque(k, matrices, mesh)
+                  call forcetorque(k)
                   N = N + matrices%torque
                end do
             else
                k = matrices%whichbar
-               call forcetorque(k, matrices, mesh)
+               call forcetorque(k)
                N = N + matrices%torque
             end if
             ! Flip the coordinate labels to match Lazarian2007b
@@ -382,7 +334,7 @@ contains
                   dot_product(NN, real(matrices%E0hat)), dot_product(NN, real(matrices%E90hat))]
             Q_coll(:, i + 1) = Q_coll(:, i + 1) + NN
          end do
-!~         NN = matmul(transpose(matrices%R) , real(N))
+
          ind = ind + 1
          call print_bar(ind, Nang)
 
@@ -393,11 +345,9 @@ contains
 
    end subroutine stability_analysis
 
-!******************************************************************************
+!****************************************************************************80
 
-   subroutine test_mueller(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine test_mueller()
       integer :: i, j, ind, halton_init, N_points, N_phi, N_theta
       real(dp) :: al_direction(3)
       real(dp), dimension(:), allocatable :: a_dist
@@ -418,16 +368,9 @@ contains
          end do
       end do
 
-! open(unit=1, file='points', ACTION="write", STATUS="replace")
-! write(1,'(A, A)')        ' theta    ',' phi'
-! do i = 1, size(points,2)
-!    write(1,'(2f7.3)')    points(:,i)
-! end do
-! close(1)
-
       a_dist = mesh%ki*mesh%a/mesh%ki(2)
       al_direction = [0d0, 0d0, 1d0]
-      call scattering_extinction_matrices(matrices, mesh, a_dist, points, al_direction)
+      call scattering_extinction_matrices(a_dist, points, al_direction)
 
    end subroutine test_mueller
 
