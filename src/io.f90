@@ -173,7 +173,7 @@ contains
          case ('--refi')
             call get_command_argument(i + 1, arg)
             read (arg, *) matrices%refi
-         case ('w','--wavelen')
+         case ('-w','--wavelen')
             call get_command_argument(i + 1, arg)
             read (arg, *) matrices%whichbar
          case ('-S','--singleT')
