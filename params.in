@@ -28,8 +28,8 @@ int_mode 0              # 0 = normal scattering dynamics integration,
 Tmat 0                  # 1 = file is usable / 0 = force T-matrix calculation
 polarization 2          # 1 = lin / 2 = un
 bars 10                 # in range lmb1-lmb2 nm
-lambda1 120
-lambda2 1740
+lambda1 200
+lambda2 2000
 whichbar 0              # 0 = use all
 beam_shape 0            # 0 = plane wave, 1 = Gaussian, 2 = LG, 3 = Bessel
 pl 0 0                  # Laguerre-Gaussian beam mode
