@@ -27,6 +27,9 @@ module common
    real(dp), dimension(3), parameter   :: e_2 = [0d0, 1d0, 0d0]
    real(dp), dimension(3), parameter   :: e_3 = [0d0, 0d0, 1d0]
 
+   integer :: it_log = 0
+   integer :: it_stop = 0
+   integer :: it_max = 0
    integer :: seedling = 0
    integer :: use_mie = 0
    integer :: run_test = 0
@@ -87,8 +90,8 @@ module common
       integer, dimension(:, :, :), allocatable :: listindS, indDs, indD90s, indXs, indYs
       integer, dimension(:, :), allocatable :: indS, T_ind, indS_loc, sp_ind
       integer, dimension(:), allocatable :: S_tet_loc, Nmaxs
-      integer :: Nmax, polarization, bars, Tmat, it_max, which_int, &
-                 is_aggr, whichbar, buffer, it_log, N_mean, is_aligned, alignment_found, it_stop, &
+      integer :: Nmax, polarization, bars, Tmat, which_int, &
+                 is_aggr, whichbar, buffer, N_mean, is_aligned, alignment_found, &
                  singleT
 
       character(len=38) :: waves = 'band'

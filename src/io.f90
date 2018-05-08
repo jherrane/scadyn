@@ -282,9 +282,9 @@ contains
             case ('dt')
                read (buffer, *, iostat=ios) matrices%dt0
             case ('it_max')
-               read (buffer, *, iostat=ios) matrices%it_max
+               read (buffer, *, iostat=ios) it_max
             case ('it_log')
-               read (buffer, *, iostat=ios) matrices%it_log
+               read (buffer, *, iostat=ios) it_log
             case ('rot_max')
                read (buffer, *, iostat=ios) matrices%rot_max
             case ('khat')
@@ -351,6 +351,8 @@ contains
                read (buffer, *, iostat=ios) beam_shape
             case ('pl')
                read (buffer, *, iostat=ios) p, l
+            case ('int_mode')
+               read (buffer, *, iostat=ios) int_mode
             case default
                !print *, 'Skipping invalid label at line', line
 
@@ -361,7 +363,8 @@ contains
       close (fh)
 
       if (temp > 1d-7) matrices%refi = tempii
-      matrices%it_stop = matrices%it_max
+      it_stop = it_max
+      if(it_log > it_max) it_log = 0
       mesh%is_mesh = 1 - matrices%is_aggr
       matrices%B = matrices%B_len*(matmul(R_aa([0d0, 1d0, 0d0], matrices%B_psi), [0d0, 0d0, 1d0]))
       allocate (mesh%ki(matrices%bars))
@@ -396,26 +399,27 @@ contains
 
 !****************************************************************************80
 
-   subroutine read_log()
+   subroutine read_log(no)
       integer, parameter :: fh = 15
       integer :: line
 
 ! Control file variables
       real(dp) :: wlast(3), t_tresh, t1, t2, tf, w_av(3), Rab(3, 3)
-      integer :: firstlineno, lastlineno, i, n1, n2
-      character(len=140) :: dummy
+      integer :: firstlineno, lastlineno, no, numlines, i, n1, n2
       real(dp) :: x(3), v(3), w(3), J(3), F(3), N(3), t, R(9)
 
-      firstlineno = 5023
+      numlines = no
       lastlineno = get_last_line_no(matrices%out)
 
+      if(numlines>=lastlineno-23) numlines = lastlineno-23
+      firstlineno = lastlineno-numlines
+
       open (fh, file=trim(matrices%out))
-      do i = 1, lastlineno - 1
+      do i = 1, lastlineno-1
          read (fh, *)
       end do
 
-      read (fh, *) line, dummy, x, dummy, v, dummy, w, dummy, J, dummy, F, dummy, N, dummy, &
-         t, dummy, R
+      read (fh, *) line, x, v, w, J, N, F, t, R
       !write(*,'(I0,3ES11.3)') line, w
       !call print_mat(reshape(R,[3,3]), 'R')
 
@@ -434,8 +438,7 @@ contains
       open (fh, file=trim(matrices%out))
       do i = 1, lastlineno
          if (i >= firstlineno) then
-            read (fh, *) line, dummy, x, dummy, v, dummy, w, dummy, J, dummy, F, dummy, N, dummy, &
-               t, dummy, R
+            read (fh, *) line, x, v, w, J, N, F, t, R
             w_av = w_av + w
             if (t > t2) then
                ! print*, line
@@ -466,10 +469,9 @@ contains
       open (fh, file=trim(matrices%out))
       do i = 1, lastlineno
          if (i >= firstlineno) then
-            read (fh, *) line, dummy, x, dummy, v, dummy, w, dummy, J, dummy, F, dummy, N, dummy, &
-               t, dummy, R
-            matrices%RRR(:, :, i - firstlineno + 1) = reshape(R, [3, 3])
-            matrices%www(:, i - firstlineno + 1) = w
+            read (fh, *) line, x, v, w, J, N, F, t, R
+            matrices%RRR(:, :, i - firstlineno) = reshape(R, [3, 3])
+            matrices%www(:, i - firstlineno) = w
          else
             read (fh, *)
          end if
@@ -618,7 +620,7 @@ contains
       write (1, '(A, A)') 'meshname =   ', mesh%meshname
       write (1, '(A, 3f7.3)') 'k_hat    = ', matrices%khat
       write (1, '(A, 3ES11.3)') 'dt       = ', matrices%dt
-      write (1, '(A,I20)') 'Nmax     = ', matrices%it_max
+      write (1, '(A,I20)') 'Nmax     = ', it_max
       write (1, '(A, 3ES11.3)') 'w0       = ', matmul(matmul(matrices%P, matrices%R), &
                                                       matrices%w)
       write (1, '(A, 9f7.3)') 'R0       = ', matrices%R
@@ -646,38 +648,42 @@ contains
 !****************************************************************************80
 
    subroutine append_log(fname, n)
-      integer :: n, i, md
+      integer :: n, i, md, ind
       character(len=80) :: fname, fmt
 
       fmt = '(I0, 6(3ES11.3), 1ES16.8, 9f7.3)'
-      md = mod(n, 1000)
+      md = mod(n+1, 1000)
 
-      if (n > 100000) then
+! If the simulation has run for long enough and the particle spins stably, 
+! flag the calculation to end (by changing the it_stop value).
+      if (n >= 100000) then
          if (matrices%is_aligned == 0) then
             matrices%is_aligned = alignment_state()
          else if (matrices%alignment_found == 0) then
             print *, " ******************* HEY, IT'S ALIGNED! ********************"
-            matrices%it_stop = n + matrices%it_log
+            it_stop = n + it_log + 1
             matrices%alignment_found = 1
          end if
       end if
 
-      if (md == 0) md = 1000
-      matrices%x_buf(:, md) = matrices%x_CM
-      matrices%v_buf(:, md) = matrices%v_CM
-      matrices%w_buf(:, md) = matrices%w
-      matrices%J_buf(:, md) = matrices%J
-      matrices%N_buf(:, md) = matrices%N
-      matrices%F_buf(:, md) = matrices%F
-      matrices%t_buf(:, md) = matrices%tt
-      matrices%R_buf(:, :, md) = matrices%R
+! If the modulo if zero, we are at the final place of the buffer. Otherwise, 
+! just save to buffer position given by the modulo.
+      ind = md
+      if (md == 0) ind = 1000
+      matrices%x_buf(:, ind) = matrices%x_CM
+      matrices%v_buf(:, ind) = matrices%v_CM
+      matrices%w_buf(:, ind) = matrices%w
+      matrices%J_buf(:, ind) = matrices%J
+      matrices%N_buf(:, ind) = matrices%N
+      matrices%F_buf(:, ind) = matrices%F
+      matrices%t_buf(:, ind) = matrices%tt
+      matrices%R_buf(:, :, ind) = matrices%R
 
-      md = mod(n, 1000)
-      if (md == 0 .OR. n == matrices%it_stop) then
+      if (md == 0 .OR. n+1 == it_stop) then
          open (unit=1, file=fname, action="write", position="append", STATUS="old")
-         if (n > matrices%it_stop - matrices%it_log .OR. matrices%it_log == 0) then
+         if (n >= it_stop - it_log .OR. it_log == 0) then
             do i = 1, 1000
-               if (i + matrices%buffer <= matrices%it_stop) then
+               if (i + matrices%buffer <= it_stop) then
                   write (1, fmt) i + matrices%buffer, &
                      matrices%x_buf(:, i), &
                      matrices%v_buf(:, i), &

@@ -116,7 +116,7 @@ contains
       real(dp), dimension(:, :), allocatable :: S
       complex(dp), dimension(:), allocatable :: p, q, p90, q90
 
-      call read_log()
+      call read_log(5000)
       N_points = size(matrices%RRR, 3)
 
       allocate (S(N_theta*N_phi, 18))

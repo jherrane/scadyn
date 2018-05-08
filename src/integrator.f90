@@ -16,6 +16,7 @@ contains
       call solve_eoms() ! integrator
       call system_clock(t2, rate)
       print *, ' Done in', real(T2 - T1)/real(rate), 'seconds'
+
    end subroutine integrate
 
 !****************************************************************************80
@@ -47,8 +48,8 @@ contains
       if (beam_shape == 3) call bessel_beams()
 
 ! Iteration of optical force calculation
-      do i = 1, matrices%it_max
-         if (i >= matrices%it_stop) exit
+      do i = 0, it_max-1
+         if (i >= it_stop) exit
 
          select case (matrices%which_int)
          case (1)
@@ -63,12 +64,104 @@ contains
 
          call update_values()
          call append_log(lg, i)
-         call print_bar(i, matrices%it_max)
-
-      end do ! i = 1, matrices%it_max
-      print *, ''
+         call print_bar(i+1, it_max)
+      end do
 
    end subroutine solve_eoms
+
+!****************************************************************************80
+
+   subroutine compute_log_RAT()
+      integer :: i, j, k, Nang, ind, N_points, numlines
+      real(dp) :: E, RR(3, 3)
+      complex(dp), dimension(:), allocatable :: p, q, p90, q90
+      real(dp), dimension(3, 3) :: R_B, R_xi
+      real(dp), dimension(3) :: k0, E0, E90, Q_t, nphi, a_3, x_B
+      real(dp) :: xi, phi, psi
+      real(dp), dimension(:, :), allocatable :: F_coll
+      real(dp), dimension(:), allocatable :: thetas
+
+      numlines = it_log
+      if(it_log == 0) numlines = it_max
+      call read_log(numlines)
+
+      matrices%R = eye(3)
+      call rot_setup()
+
+      k0 = matrices%khat
+      E0 = real(matrices%E0hat)
+      E90 = real(matrices%E90hat)
+      a_3 = matmul(transpose(matmul(matrices%R_al, matrices%RRR(:, :, 1))),matrices%P(1:3,3))
+
+      Nang = 60 ! Angle of rotation of a_3 about e_1 (when psi=0)
+      allocate (thetas(Nang))
+      call linspace(0d0, pi, Nang, thetas)
+
+      allocate (F_coll(6, Nang))
+      F_coll(:, :) = 0d0
+      ind = 0
+
+      write (*, '(A)') '  Starting the calculation of averaged radiative torques:'
+! First, set up B in the direction of psi (B still lies in the xz-plane)
+      psi = matrices%B_psi
+      x_B = [0d0, 1d0, 0d0]
+
+! Rotation axis for precession averaging
+      nphi = matmul(R_aa(x_B, psi), k0) ! Is actually B
+
+! Second, set up rotation from a_3 to new B
+      R_B = rotate_a_to_b(a_3, nphi)
+
+! Xi loop
+      do i = 0, Nang - 1
+         xi = thetas(i + 1)
+
+! Rotation to xi of a_3 is a combined rotation of angle psi+xi
+         R_xi = matmul(R_aa(x_B, xi), R_B)
+
+         do j = 1, numlines
+            RR = transpose(matmul(matrices%R_al, matrices%RRR(:, :, j)))
+            matrices%khat = matmul(RR, [0d0, 0d0, 1d0])
+            matrices%khat = -matrices%khat/vlen(matrices%khat)
+            matrices%R_fixk = transpose(rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0]))
+            Q_t = 0d0
+
+            matrices%R = matmul(RR, R_xi) ! First a_3 to xi, then beta about a_3
+            call rot_setup()
+
+            if (matrices%whichbar == 0) then
+               do k = 1, matrices%bars
+                  call forcetorque(k)
+                  Q_t = Q_t + matrices%Q_t/matrices%bars
+               end do
+            else
+               k = matrices%whichbar
+               call forcetorque(k)
+               Q_t = Q_t + matrices%Q_t
+            end if
+
+            Q_t = matmul(matrices%R, Q_t)
+
+            F_coll(3, ind + 1) = F_coll(3, ind + 1) + F_align(Q_t, xi, phi, psi)/numlines
+            F_coll(4, ind + 1) = F_coll(4, ind + 1) + H_align(Q_t, xi, phi, psi)/numlines
+            F_coll(5, ind + 1) = F_coll(5, ind + 1) + G_align(Q_t, phi, psi)/numlines
+
+         end do
+
+         F_coll(1:2, ind + 1) = [xi, psi]
+         call print_bar(ind + 1, size(F_coll, 2))
+         ind = ind + 1
+
+      end do
+
+      open (unit=1, file="out/F.out", ACTION="write", STATUS="replace")
+      write (1, '(A)') 'xi   psi   F  H  G'
+      do i = 1, size(F_coll, 2)
+         write (1, '(6ES12.3)') dcos(F_coll(1:2, i)), F_coll(3:5, i)
+      end do
+      close (1)
+      
+   end subroutine compute_log_RAT
 
 !****************************************************************************80
 ! Calculates adaptive time step over a maximum angle the particle
