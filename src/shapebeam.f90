@@ -73,8 +73,8 @@ contains
       real(dp), dimension(:), allocatable :: Pjm
 
       call integ_points(PP, w, 20, 20)
-! call sample_points(PP,w,20,20)
-! call write2file(dcmplx(PP),fname)
+      ! call sample_points(PP,w,20,20)
+      ! call write2file(dcmplx(PP),fname)
 
       f = 1d0/(mesh%ki(whichWL)*w0)
       nmax = matrices%Nmaxs(whichWL)
@@ -92,12 +92,12 @@ contains
 
          ind = j*(j + 1) + m
 
-         ! Theta-phi-integration is done using Gaussian quadratures in the i-loop
+! Theta-phi-integration is done using Gaussian quadratures in the i-loop
          do i = 1, size(PP, 2)
             theta = PP(2, i)
             phi = PP(3, i)
 
-            ! Calculate the normalized spherical harmonics
+! Calculate the normalized spherical harmonics
             call legendre2(j, cos(theta), Pjm) ! The same as legendre of MATLAB
             if (m + 1 > j) then
                Yjm = dcmplx(0d0)
@@ -244,7 +244,7 @@ contains
       x = dcmplx(1d0, 0d0)
       y = dcmplx(0d0, 0d0)
 
-! total_modes = nmax**2 + 2*nmax
+      ! total_modes = nmax**2 + 2*nmax
       total_modes = 2*nmax
       allocate (nn(total_modes), mm(total_modes), nn_old(total_modes))
       do iii = 1, total_modes
@@ -274,13 +274,13 @@ contains
          if (theta(iii) < pi*(180-truncation_angle)/180) beam_envelope(iii) = dcmplx(0d0)
       end do
 
-! if(vlen(offset)>1d-9)
-      ! Phase shift is exp(-i*k * offset.rhat)
-      ! rhat = rtpv2xyzv( ones(size(theta)), zeros(size(theta)), zeros(size(theta)), ones(size(theta)), theta, phi );
-      ! [offset,rhat] = matchsize(offset,rhat);
-      ! phase_shift = exp( -i * k * dot(offset,rhat,2) );
-      ! beam_envelope = beam_envelope .* phase_shift;
-! endif
+      ! if(vlen(offset)>1d-9)
+            ! Phase shift is exp(-i*k * offset.rhat)
+            ! rhat = rtpv2xyzv( ones(size(theta)), zeros(size(theta)), zeros(size(theta)), ones(size(theta)), theta, phi );
+            ! [offset,rhat] = matchsize(offset,rhat);
+            ! phase_shift = exp( -i * k * dot(offset,rhat,2) );
+            ! beam_envelope = beam_envelope .* phase_shift;
+      ! endif
 
       Ex = x*beam_envelope
       Ey = y*beam_envelope
@@ -424,9 +424,9 @@ contains
          end do
       end do
 
-! do i = 1,size(grid,2)
-!   write(*, '(3ES11.3)') grid(:,i)
-! end do
+      ! do i = 1,size(grid,2)
+      !   write(*, '(3ES11.3)') grid(:,i)
+      ! end do
 
    end function field_grid
 

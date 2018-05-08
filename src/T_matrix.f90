@@ -18,8 +18,8 @@ contains
       sz = size(mesh%ki)
       if (matrices%singleT == 1) sz = 1
 
-      ! Because the mesh reading is after initial band setup, the astrosilicate
-      ! fix "must" be done here
+! Because the mesh reading is after initial band setup, the astrosilicate
+! fix "must" be done here
       if (matrices%waves == 'sil') call band_astrosilicate()
 
       write (*, '(3(A,I0))') ' Construct matrices for ', sz, ' wavelengths...'
@@ -238,8 +238,8 @@ contains
 
       do nm = 1, size(mat, 2)
          matrices%rhs = mat(:, nm)
-         ! Redirect terminal output to trash unless debug mode is on. Maybe
-         ! not very portable...
+! Redirect terminal output to trash unless debug mode is on. Maybe
+! not very portable...
          if(debug==0) open(unit=6, file="/dev/null", form="formatted")
          call gmres(matrices, mesh)
          T_mat(:, nm) = matmul(transpose(conjg(mat)), matrices%x)
@@ -345,7 +345,7 @@ contains
          Y2 = dcmplx(L2(mm + 1))*exp(dcmplx(0.0, m*phi))
       end if
 
-! vector spherical harmonics
+! Vector spherical harmonics
       P(:) = dcmplx(0.0, 0.0)
       P(1) = Y
 

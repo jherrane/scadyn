@@ -167,7 +167,7 @@ contains
       real(dp), dimension(3), intent(in) :: r
       real(dp) :: c
       c = sqrt((r(1))**2 + (r(2))**2 + (r(3))**2)
-!norm=sqrt(dot_product(r-rp,r-rp))
+      !norm=sqrt(dot_product(r-rp,r-rp))
    end function vlen
 
 !****************************************************************************80
@@ -183,7 +183,7 @@ contains
       tri4 = vlen(crossRR(coord(:, 1) - coord(:, 2), coord(:, 4) - coord(:, 2)))/2d0
 
       c = tri1 + tri2 + tri3 + tri4
-!norm=sqrt(dot_product(r-rp,r-rp))
+      !norm=sqrt(dot_product(r-rp,r-rp))
    end function tet_area
 
 !****************************************************************************80
@@ -498,7 +498,7 @@ contains
       rot(3, 1) = sin(b); 
       rot(3, 2) = -sin(a)*cos(b); 
       rot(3, 3) = cos(a)*cos(b); 
-!rot = transpose(rot) ! Important transform to column-major order!
+      !rot = transpose(rot) ! Important transform to column-major order!
 
    end function rotation_matrix
 
@@ -1431,7 +1431,7 @@ contains
          R_init = R_aa(ninit, -theta0)
       else
          R_init = eye(3)
-!        print*, 'check this out 1'
+         ! print*, 'check this out 1'
       end if
 
 ! Rotate polarizations to align with a_1, a_2
@@ -1442,7 +1442,7 @@ contains
          R_pol = R_aa(ninit, -theta0)
       else
          R_pol = eye(3)
-!        print*, 'check that out 2'
+         ! print*, 'check that out 2'
       end if
       R_init = matmul(R_pol, R_init)
 

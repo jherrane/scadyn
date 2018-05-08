@@ -284,8 +284,8 @@ contains
          hel = matmul(matrices%I, matrices%w) - Jw + PxW - 0.25d0*dt**2*Ff*wnh + 0.5d0*dt*matrices%N
          if (vlen(hel) < iterstop) then
             exit
-!~  else if(i1==maxiter) then
-!~   print*, ' Maximum number of VLV Newton iterations exceeded...'
+         ! else if(i1==maxiter) then
+         !    print*, ' Maximum number of VLV Newton iterations exceeded...'
          end if
 
          Jac = -matrices%I + 0.5d0*dt*(reshape( &
@@ -417,8 +417,8 @@ contains
             matrices%Ip = [mesh%I(1, 1), mesh%I(2, 2), mesh%I(3, 3)]
          end if
       else
-         ! P will be the rotation matrix between principal axes and laboratory
-         ! axes, so that diag(Ip) = P'*I*P
+! P will be the rotation matrix between principal axes and laboratory
+! axes, so that diag(Ip) = P'*I*P
          matrices%P = mesh%I
          call diasym(matrices%P, matrices%Ip)
       end if

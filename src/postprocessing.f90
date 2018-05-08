@@ -150,32 +150,32 @@ contains
 
       write (*, '(A)') '  Starting the calculation of phi-averaged radiative torques:'
       do psi_deg = 1, size(psis, 1)
-         ! First, set up B in the direction of psi (B still lies in the xz-plane)
+! First, set up B in the direction of psi (B still lies in the xz-plane)
          psi = dble(psis(psi_deg))*pi/180d0
          x_B = [0d0, 1d0, 0d0]
 
-         ! Rotation axis for precession averaging
+! Rotation axis for precession averaging
          nphi = matmul(R_aa(x_B,psi),k0) ! Is actually B
 
-         ! Second, set up rotation from a_3 to new B
+! Second, set up rotation from a_3 to new B
          R_B = rotate_a_to_b(matrices%P(1:3, 3), nphi)
          
-         ! Xi loop
+! Xi loop
          do i = 0, Nang - 1
             xi = thetas(i + 1)
 
-            ! Rotation to xi of a_3 is a combined rotation of angle psi+xi 
+! Rotation to xi of a_3 is a combined rotation of angle psi+xi 
             R_xi = matmul(R_aa(x_B, xi),R_B)
 
-            ! Beta averaging loop
+! Beta averaging loop
             do j = 0, Bang - 1
                Q_t = 0d0
 
-               ! Find rotation of angle beta around the rotated a_3-axis
+! Find rotation of angle beta around the rotated a_3-axis
                phi = dble(j)*pi*2d0/Bang
                R_phi = R_aa(nphi, phi)
 
-               ! The ultimate rotation matrices for scattering event
+! The ultimate rotation matrices for scattering event
                matrices%R = matmul(R_phi, R_xi) ! First a_3 to xi, then beta about a_3
                call rot_setup()
 
@@ -304,19 +304,19 @@ contains
          R_thta = R_theta(thta)
          N = dcmplx(0d0)
 
-         ! Rotation axis for beta averaging for current theta
+! Rotation axis for beta averaging for current theta
          nbeta = matmul(R_thta, a_3) ! Beta rotation about a_3
          nbeta = nbeta/vlen(nbeta) ! Ensure unit length of axis vector
 
-         ! Beta averaging loop
+! Beta averaging loop
          do j = 0, Bang - 1
             Q_t = 0d0
 
-            ! Find rotation of angle beta around the rotated a_3-axis
+! Find rotation of angle beta around the rotated a_3-axis
             beta = dble(j)*pi*2d0/Bang
             R_beta = R_aa(nbeta, beta)
 
-            ! The ultimate rotation matrices for scattering event
+! The ultimate rotation matrices for scattering event
             matrices%R = matmul(R_beta, R_thta) ! First a_3 to theta, then beta about a_3
             call rot_setup()
             if (matrices%whichbar == 0) then
@@ -329,7 +329,7 @@ contains
                call forcetorque(k)
                N = N + matrices%torque
             end if
-            ! Flip the coordinate labels to match Lazarian2007b
+! Flip the coordinate labels to match Lazarian2007b
             NN = matmul(matrices%Rkt, real(N))
             NN = [dot_product(NN, matrices%khat), &
                   dot_product(NN, real(matrices%E0hat)), dot_product(NN, real(matrices%E90hat))]

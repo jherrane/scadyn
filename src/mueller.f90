@@ -19,7 +19,7 @@ contains
          stop
       end if
 
-      ! Choose wavelength
+! Choose wavelength
       ii = matrices%whichbar
       if (ii == 0) ii = 1
 
@@ -84,7 +84,7 @@ contains
       allocate (S(N_theta*N_phi, 18))
       S = 0d0
 
-      ! Hard coded orientation data
+! Hard coded orientation data
       omega = [1d0, 0d0, 0d0]
       R0 = rotate_a_to_b(matrices%P(:, 3), omega)
       Qt = matmul(R0, matrices%P)
@@ -175,10 +175,10 @@ contains
 
       ind = 0
       do N_size = 1, size(a_dist, 1)
-         ! Choose wavelength
+! Choose wavelength
          mesh%k = mesh%ki(N_size)
          do N_ia = 1, size(inc_angles, 1)
-            ! We take every N_size as the critical size, below which nothing is aligned
+! We take every N_size as the critical size, below which nothing is aligned
             SS = 0d0
             KK = 0d0
             do ii = 1, size(a_dist, 1)

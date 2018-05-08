@@ -153,17 +153,17 @@ contains
          HB2(:, 2) = mu*H2(:)*conjg(H2(2))
          HB2(:, 3) = mu*H2(:)*conjg(H2(3))
 
-         ! Maxwell's stress tensor
+! Maxwell's stress tensor
          T1 = -ED1 - HB1 + dcmplx(0.5d0)*(dcmplx(epsilon)*dot_product(E1, E1) + &
                                           dcmplx(mu)*dot_product(H1, H1))*I
          T2 = -ED2 - HB2 + dcmplx(0.5d0)*(dcmplx(epsilon)*dot_product(E2, E2) + &
                                           dcmplx(mu)*dot_product(H2, H2))*I
 
-         ! Force
+! Force
          force1 = force1 - dcmplx(0.5d0)*matmul(T1, dcmplx(n))*dcmplx(mesh%w(i1))
          force2 = force2 - dcmplx(0.5d0)*matmul(T2, dcmplx(n))*dcmplx(mesh%w(i1))
 
-         ! Torque
+! Torque
          torque1 = torque1 - dcmplx(0.5d0)*crossRC(r, matmul(T1, dcmplx(n)))*dcmplx(mesh%w(i1))
          torque2 = torque2 - dcmplx(0.5d0)*crossRC(r, matmul(T2, dcmplx(n)))*dcmplx(mesh%w(i1))
       end do

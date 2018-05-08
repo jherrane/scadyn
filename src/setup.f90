@@ -51,7 +51,7 @@ contains
 
          if (matrices%Tmat == 0) call construct_projectors() ! projection
 
-         ! Check whether using maxval is good or not
+! Check whether using maxval is good or not
          do i = 1, matrices%bars
             ka = mesh%ki(i)*(dble(maxval([mesh%Nx, mesh%Ny, mesh%Nz])) &
                              *mesh%delta)/2.0d0
@@ -512,7 +512,7 @@ contains
       real(dp), dimension(:), allocatable :: c, diff, absdif, w, epsr, epsi
       integer :: i, n, size_param, ind
 
-      ! Add 100 nm spike to the spectrum
+! Add 100 nm spike to the spectrum
       if(2*pi/mesh%ki(1)/1d-6 < 0.15d0) matrices%E_rel(1) = maxval(matrices%E_rel)*1.33d0
       call read_mesh()
 
@@ -520,7 +520,7 @@ contains
       if(allocated(mesh%params)) deallocate(mesh%params)
       allocate (mesh%params(size_param, matrices%bars))
       
-      ! Read the astrosilicate data
+! Read the astrosilicate data
       open (unit=15, file="examples/eps_Sil", status='old',    &
             access='sequential', form='formatted', action='read' )
 
@@ -535,8 +535,8 @@ contains
 
       close(15)
 
-      ! Find the closest values for dielectric constant according to 
-      ! the wavelength band 
+! Find the closest values for dielectric constant according to 
+! the wavelength band 
       do i = 1, matrices%bars
          ind = minloc(abs(w-2d0*pi/mesh%ki(i)/1d-6),1)
          mesh%params(:,i) = dcmplx(epsr(ind), epsi(ind))

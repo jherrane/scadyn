@@ -416,11 +416,11 @@ contains
 
       read (fh, *) line, dummy, x, dummy, v, dummy, w, dummy, J, dummy, F, dummy, N, dummy, &
          t, dummy, R
-!write(*,'(I0,3ES11.3)') line, w
-!call print_mat(reshape(R,[3,3]), 'R')
+      !write(*,'(I0,3ES11.3)') line, w
+      !call print_mat(reshape(R,[3,3]), 'R')
 
       wlast = w/dsqrt(w(1)**2 + w(2)**2 + w(3)**2)
-!write(*,'(3ES11.3)') wlast
+      !write(*,'(3ES11.3)') wlast
 
       close (fh)
 
@@ -428,7 +428,7 @@ contains
       tf = t
       t1 = t - t_tresh
       t2 = t - 10*t_tresh
-!print*, t1, t2
+      !print*, t1, t2
 
       w_av = 0d0
       open (fh, file=trim(matrices%out))
@@ -438,15 +438,15 @@ contains
                t, dummy, R
             w_av = w_av + w
             if (t > t2) then
-!     print*, line
+            ! print*, line
                t2 = tf
             end if
             if (t > t1) then
-!     print*, line
+            ! print*, line
                t1 = tf
             end if
             if (i == firstlineno) then
-!     print*, line
+            ! print*, line
                n1 = line
             end if
          else
@@ -455,10 +455,10 @@ contains
       end do
       n2 = line
       w_av = w_av/(lastlineno - firstlineno + 1)
-!print*, 'w_av = ', w_av
+      ! print*, 'w_av = ', w_av
       close (fh)
       Rab = rotate_a_to_b(w_av, [1d0, 0d0, w_av(3)])
-!call print_mat(Rab,'R_ab')
+      ! call print_mat(Rab,'R_ab')
       matrices%R_al = Rab
       allocate (matrices%RRR(3, 3, n2 - n1 + 1))
       allocate (matrices%www(3, n2 - n1 + 1))
@@ -608,10 +608,10 @@ contains
 
       matrices%buffer = 0
 
-!if(file_exists(fname)) then
-! print*, "Log exists, shutting down... (Remember to disable this later!)"
-! stop
-!end if
+      !if(file_exists(fname)) then
+      ! print*, "Log exists, shutting down... (Remember to disable this later!)"
+      ! stop
+      !end if
 
       open (unit=1, file=fname, ACTION="write", STATUS="replace")
 
@@ -702,7 +702,7 @@ contains
    subroutine read_mesh()
       character(len=80) :: file
 
-!character(len=8), PARAMETER :: file = "mesh.h5"
+      ! character(len=8), PARAMETER :: file = "mesh.h5"
       character(len=5), PARAMETER :: coord_dataset = "coord"
       character(len=6), PARAMETER :: etopol_dataset = "etopol"
       character(len=7), PARAMETER :: param_r_dataset = "param_r"
@@ -1008,11 +1008,11 @@ contains
 
          mesh%ki = 2d0*pi/wls
          do i = 1, size(wls, 1)
-!   num = 0
-!   do j = 1,size(Taai,1)
-!     if(real(Taai(j,1,i))/=0d0) num = num + 1
-!   end do
-!   matrices%Nmaxs(i) = int(dsqrt(real(num)+1d0)-1d0)
+            ! num = 0
+            ! do j = 1,size(Taai,1)
+            !    if(real(Taai(j,1,i))/=0d0) num = num + 1
+            ! end do
+            ! matrices%Nmaxs(i) = int(dsqrt(real(num)+1d0)-1d0)
             matrices%Nmaxs(i) = truncation_order(mesh%ki(i)*mesh%a)
          end do
 !****************************************************************************80
