@@ -55,14 +55,14 @@ contains
 
       back = char(8)
       bar = '='
-      r = 100d0/Nmax 
+      r = 100d0/Nmax
 ! print the percentage and the bar without line change, then reset cursor
-      if (floor(i1*r)-floor((i1-1)*r) > 0) then
+      if (floor(i1*r) - floor((i1 - 1)*r) > 0) then
          write (6, '(2x,1i3,1a1,2x,1a1,256a1)', advance='no') &
             ceiling(r*i1), '%', '|', (bar, k=1, 50*i1/Nmax)
          write (6, '(256a1)', advance='no') (back, k=1, (50*i1/Nmax) + 9)
-         if(i1==Nmax) then
-            write(*,*) ''
+         if (i1 == Nmax) then
+            write (*, *) ''
          end if
       end if
 
@@ -144,10 +144,10 @@ contains
 
          select case (arg_name)
 
-         case ('-d','--debug')
+         case ('-d', '--debug')
             call get_command_argument(i, arg)
             debug = 1
-         case ('-m','--mesh')
+         case ('-m', '--mesh')
             call get_command_argument(i + 1, arg)
             mesh%meshname = arg
             write (*, '(2A)') ' Mesh: ', trim(mesh%meshname)
@@ -159,7 +159,7 @@ contains
             call get_command_argument(i + 1, arg)
             matrices%out = arg
             write (*, '(2A)') ' Log: ', trim(matrices%out)
-         case ('-M','--Mueller')
+         case ('-M', '--Mueller')
             call get_command_argument(i + 1, arg)
             matrices%mueller = arg
             write (*, '(2A)') ' Mueller: ', trim(matrices%mueller)
@@ -167,7 +167,7 @@ contains
             call get_command_argument(i + 1, arg)
             matrices%mueller_mode = trim(arg)
             write (*, '(2A)') ' Mueller mode: ', trim(matrices%mueller_mode)
-         case ('-p','--paramsfile')
+         case ('-p', '--paramsfile')
             call get_command_argument(i + 1, arg)
             matrices%paramsfile = trim(arg)
          case ('--refr')
@@ -176,13 +176,13 @@ contains
          case ('--refi')
             call get_command_argument(i + 1, arg)
             read (arg, *) matrices%refi
-         case ('-w','--wavelen')
+         case ('-w', '--wavelen')
             call get_command_argument(i + 1, arg)
             read (arg, *) matrices%whichbar
-         case ('-S','--singleT')
+         case ('-S', '--singleT')
             call get_command_argument(i + 1, arg)
             read (arg, *) matrices%singleT
-         case ('-s','--seed')
+         case ('-s', '--seed')
             call get_command_argument(i + 1, arg)
             read (arg, *) seedling
             matrices%R = rand_rot()
@@ -193,22 +193,22 @@ contains
             call get_command_argument(i + 1, arg)
             read (arg, *) calc_extra_torques
 
-         case ('-h','--help')
-            write(*, '(A)') ' Commands        Value       Description'
-            write(*, '(A)') '---------------------------------------'
-            write(*, '(A)') ' -d --debug                  Print more detailed info'
-            write(*, '(A)') ' -m --mesh       mesh.h5     Mesh geometry'
-            write(*, '(A)') ' -T --Tmat       T.h5        T-matrix file'
-            write(*, '(A)') ' -l --log        out/log     Log to file'
-            write(*, '(A)') ' -M --Mueller    out/mueller Mueller matrix to file'
-            write(*, '(A)') ' -p --paramsfile params.in   Read input parameters from file'
-            write(*, '(A)') '    --refr       0.0         Real part of refractive index'
-            write(*, '(A)') '    --refi       0.0         Imaginary part of refractive index'
-            write(*, '(A)') ' -w --wavelen    0           Choose wavelength from the T-matrix'
-            write(*, '(A)') ' -S --singleT    0           Calculate only one T-matrix, of wb'
-            write(*, '(A)') ' -s --seed       0           RNG seed'
-            write(*, '(A)') '    --Mie        1           Use the Mie sphere'
-            write(*, '(A)') ' -B              1           Use external magnetic field'
+         case ('-h', '--help')
+            write (*, '(A)') ' Commands        Value       Description'
+            write (*, '(A)') '---------------------------------------'
+            write (*, '(A)') ' -d --debug                  Print more detailed info'
+            write (*, '(A)') ' -m --mesh       mesh.h5     Mesh geometry'
+            write (*, '(A)') ' -T --Tmat       T.h5        T-matrix file'
+            write (*, '(A)') ' -l --log        out/log     Log to file'
+            write (*, '(A)') ' -M --Mueller    out/mueller Mueller matrix to file'
+            write (*, '(A)') ' -p --paramsfile params.in   Read input parameters from file'
+            write (*, '(A)') '    --refr       0.0         Real part of refractive index'
+            write (*, '(A)') '    --refi       0.0         Imaginary part of refractive index'
+            write (*, '(A)') ' -w --wavelen    0           Choose wavelength from the T-matrix'
+            write (*, '(A)') ' -S --singleT    0           Calculate only one T-matrix, of wb'
+            write (*, '(A)') ' -s --seed       0           RNG seed'
+            write (*, '(A)') '    --Mie        1           Use the Mie sphere'
+            write (*, '(A)') ' -B              1           Use external magnetic field'
 
             stop
          case default
@@ -438,15 +438,15 @@ contains
                t, dummy, R
             w_av = w_av + w
             if (t > t2) then
-            ! print*, line
+               ! print*, line
                t2 = tf
             end if
             if (t > t1) then
-            ! print*, line
+               ! print*, line
                t1 = tf
             end if
             if (i == firstlineno) then
-            ! print*, line
+               ! print*, line
                n1 = line
             end if
          else

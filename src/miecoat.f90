@@ -141,7 +141,7 @@ contains
    end subroutine bhcoat
 
 !****************************************************************************80
-!* Mie scattering routine for coated spheres from BH 
+!* Mie scattering routine for coated spheres from BH
    subroutine coated_mie_coeff_nm(N, x, mr, a_nm, b_nm, c_nm, d_nm)
       integer :: N
       real(dp) :: x(2)

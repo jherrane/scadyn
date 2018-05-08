@@ -45,19 +45,19 @@ contains
    subroutine tests()
       call polarization()
       call allocate_inc_wave()
-  
+
       if (mesh%is_mesh == 1) then
          call vie_params()
       else if (use_mie == 1) then
          call mie_params()
-      else 
+      else
          call aggr_params()
       end if
 
       matrices%x_CM = mesh%CM
       call diagonalize_inertia()
       call init_values()
-      
+
       if (beam_shape == 1) call gaussian_beams()
       if (beam_shape == 2) call laguerre_gaussian_beams(p, l)
       if (beam_shape == 3) call bessel_beams()

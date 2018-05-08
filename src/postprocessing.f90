@@ -144,7 +144,7 @@ contains
       psis = [0d0, 30d0, 60d0, 80d0, 90d0]
 
       allocate (F_coll(6, Nang*size(psis, 1)))
-      allocate(points(3,Bang))
+      allocate (points(3, Bang))
       F_coll(:, :) = 0d0
       ind = 0
 
@@ -155,17 +155,17 @@ contains
          x_B = [0d0, 1d0, 0d0]
 
 ! Rotation axis for precession averaging
-         nphi = matmul(R_aa(x_B,psi),k0) ! Is actually B
+         nphi = matmul(R_aa(x_B, psi), k0) ! Is actually B
 
 ! Second, set up rotation from a_3 to new B
          R_B = rotate_a_to_b(matrices%P(1:3, 3), nphi)
-         
+
 ! Xi loop
          do i = 0, Nang - 1
             xi = thetas(i + 1)
 
-! Rotation to xi of a_3 is a combined rotation of angle psi+xi 
-            R_xi = matmul(R_aa(x_B, xi),R_B)
+! Rotation to xi of a_3 is a combined rotation of angle psi+xi
+            R_xi = matmul(R_aa(x_B, xi), R_B)
 
 ! Beta averaging loop
             do j = 0, Bang - 1
@@ -191,14 +191,14 @@ contains
                end if
 
                Q_t = matmul(matrices%R, Q_t)
-               
+
                F_coll(3, ind + 1) = F_coll(3, ind + 1) + F_align(Q_t, xi, phi, psi)/Bang
                F_coll(4, ind + 1) = F_coll(4, ind + 1) + H_align(Q_t, xi, phi, psi)/Bang
                F_coll(5, ind + 1) = F_coll(5, ind + 1) + G_align(Q_t, phi, psi)/Bang
             end do
 
             F_coll(1:2, ind + 1) = [xi, psi]
-            call print_bar(ind+1, size(F_coll, 2))
+            call print_bar(ind + 1, size(F_coll, 2))
             ind = ind + 1
 
          end do

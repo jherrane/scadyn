@@ -26,7 +26,7 @@ contains
       E = matrices%E_rel(ii)*matrices%E
       mesh%k = mesh%ki(ii)
 
-      select case (trim(matrices%mueller_mode))
+      select case (trim (matrices%mueller_mode))
       case ('ave')
          call compute_ave_mueller(180, 1, ii, E, S)
       case ('ori')
@@ -46,7 +46,7 @@ contains
       real(dp) :: E, vec(3)
       real(dp), dimension(:, :), allocatable :: S
       complex(dp), dimension(:), allocatable :: p, q, p90, q90
-      
+
       N_points = 720 ! Number of averaging directions
 
       allocate (S(N_theta*N_phi, 18))
@@ -70,7 +70,7 @@ contains
    end subroutine compute_ave_mueller
 
 !****************************************************************************80
-! Compute the Mueller matrix of a perfectly aligned particle. The alignment 
+! Compute the Mueller matrix of a perfectly aligned particle. The alignment
 ! direction is fixed so that the major axis of inertia is always in the
 ! +z-direction.
    subroutine compute_aligned_mueller(N_theta, N_phi, ii, E, S)
@@ -111,7 +111,7 @@ contains
 ! particle alignment state is taken from the logged orientations. Thus, the
 ! situation may be aligned or not.
    subroutine compute_log_mueller(N_theta, N_phi, ii, E, S)
-      integer :: i, ii, N_points, N_theta, N_phi 
+      integer :: i, ii, N_points, N_theta, N_phi
       real(dp) :: E, RR(3, 3)
       real(dp), dimension(:, :), allocatable :: S
       complex(dp), dimension(:), allocatable :: p, q, p90, q90
@@ -120,7 +120,7 @@ contains
       N_points = size(matrices%RRR, 3)
 
       allocate (S(N_theta*N_phi, 18))
-      S = 0d0      
+      S = 0d0
 
       do i = 1, N_points
          RR = transpose(matmul(matrices%R_al, matrices%RRR(:, :, i)))
@@ -136,7 +136,7 @@ contains
 !****************************************************************************80
 ! Updates the Mueller matrix average.
    function update_mueller(N_theta, N_phi, ii, E, p, q, p90, q90) result(S)
-      integer :: N_theta, N_phi , ii
+      integer :: N_theta, N_phi, ii
       real(dp) :: E
       real(dp), dimension(:, :), allocatable :: S
       complex(dp), dimension(:), allocatable :: p, q, p90, q90
@@ -151,8 +151,8 @@ contains
 
    subroutine scattering_extinction_matrices(a_dist, points, al_direction)
       integer :: i, ind, ii, N_points, N_size, N_ia
-      real(dp) :: al_direction(3), inc_angles(2), K(4,4)
-      complex(dp) :: Kevals(4), Kevecs(4,4)
+      real(dp) :: al_direction(3), inc_angles(2), K(4, 4)
+      complex(dp) :: Kevals(4), Kevecs(4, 4)
       real(dp), dimension(:), allocatable :: a_dist
       real(dp), dimension(:, :), allocatable :: SS, SSS, KK, KKK, points
       CHARACTER(LEN=80) :: mueller_out, extinction_out
@@ -206,7 +206,7 @@ contains
             KKK(ind/N_points, 2) = N_ia
             KKK(ind/N_points, 3) = 1
             KKK(ind/N_points, 4:19) = KK(1, 3:18)
-            
+
          end do
       end do
       call write_RT_matrix(SSS, mueller_out, 1)

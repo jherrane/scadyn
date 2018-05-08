@@ -513,33 +513,33 @@ contains
       integer :: i, n, size_param, ind
 
 ! Add 100 nm spike to the spectrum
-      if(2*pi/mesh%ki(1)/1d-6 < 0.15d0) matrices%E_rel(1) = maxval(matrices%E_rel)*1.33d0
+      if (2*pi/mesh%ki(1)/1d-6 < 0.15d0) matrices%E_rel(1) = maxval(matrices%E_rel)*1.33d0
       call read_mesh()
 
-      size_param = size(mesh%params,1)
-      if(allocated(mesh%params)) deallocate(mesh%params)
+      size_param = size(mesh%params, 1)
+      if (allocated(mesh%params)) deallocate (mesh%params)
       allocate (mesh%params(size_param, matrices%bars))
-      
+
 ! Read the astrosilicate data
-      open (unit=15, file="examples/eps_Sil", status='old',    &
-            access='sequential', form='formatted', action='read' )
+      open (unit=15, file="examples/eps_Sil", status='old', &
+            access='sequential', form='formatted', action='read')
 
-      read(15, *)  n
-      read(15,*)
-      allocate(w(n),epsr(n),epsi(n))
+      read (15, *) n
+      read (15, *)
+      allocate (w(n), epsr(n), epsi(n))
 
-      do i = 1,n
-         read(15,*) w(i), epsr(i), epsi(i)
+      do i = 1, n
+         read (15, *) w(i), epsr(i), epsi(i)
          epsr(i) = epsr(i) + 1
       end do
 
-      close(15)
+      close (15)
 
-! Find the closest values for dielectric constant according to 
-! the wavelength band 
+! Find the closest values for dielectric constant according to
+! the wavelength band
       do i = 1, matrices%bars
-         ind = minloc(abs(w-2d0*pi/mesh%ki(i)/1d-6),1)
-         mesh%params(:,i) = dcmplx(epsr(ind), epsi(ind))
+         ind = minloc(abs(w - 2d0*pi/mesh%ki(i)/1d-6), 1)
+         mesh%params(:, i) = dcmplx(epsr(ind), epsi(ind))
       end do
 
    end subroutine band_astrosilicate

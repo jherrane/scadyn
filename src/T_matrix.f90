@@ -10,7 +10,7 @@ module T_matrix
 contains
 
 !****************************************************************************80
-! The main calculation routine for the T-matrices. Uses the celebrated 
+! The main calculation routine for the T-matrices. Uses the celebrated
 ! JVIE-methodology.
    subroutine calc_T()
       integer :: i, ii, nm, sz
@@ -23,9 +23,9 @@ contains
       if (matrices%waves == 'sil') call band_astrosilicate()
 
       write (*, '(3(A,I0))') ' Construct matrices for ', sz, ' wavelengths...'
-      if(matrices%singleT == 1) then
-         write(*,'(2(A, F8.3))') ' Wavelength now is ', &
-         2d0*pi/mesh%ki(matrices%whichbar)/1d-6, ' um.'
+      if (matrices%singleT == 1) then
+         write (*, '(2(A, F8.3))') ' Wavelength now is ', &
+            2d0*pi/mesh%ki(matrices%whichbar)/1d-6, ' um.'
       end if
       if (use_mie == 1) then
          call mie_T_matrix()
@@ -33,7 +33,7 @@ contains
          do i = 1, sz
             if (size(mesh%params, 2) > 1) mesh%param = mesh%params(:, matrices%whichbar)
             ii = i
-            if (matrices%singleT == 1) then 
+            if (matrices%singleT == 1) then
                ii = matrices%whichbar
                write (*, '(3(A,I0))') ' Step ', ii
             else
@@ -72,7 +72,7 @@ contains
    end subroutine calc_T
 
 !****************************************************************************80
-! Allocate space for the currently used T-matrix, thus deallocation if 
+! Allocate space for the currently used T-matrix, thus deallocation if
 ! necessary.
    subroutine allocate_T(i)
       integer :: Nmax, i
@@ -90,8 +90,8 @@ contains
    end subroutine allocate_T
 
 !****************************************************************************80
-! Allocate memory for the collection of T-matrices. Wastes space as the 
-! largest T-matrix usually is much larger than the others. Must be allocated 
+! Allocate memory for the collection of T-matrices. Wastes space as the
+! largest T-matrix usually is much larger than the others. Must be allocated
 ! before anything else is done with T-matrices.
    subroutine allocate_Ti()
       integer :: Nmax
@@ -111,7 +111,7 @@ contains
    end subroutine allocate_Ti
 
 !****************************************************************************80
-! The T-matrix of a sphere. Fast, accurate, yet not very usable. Unless 
+! The T-matrix of a sphere. Fast, accurate, yet not very usable. Unless
 ! combined with layered sphere codes and aggregation.
    subroutine mie_T_matrix()
       integer :: i, j, ci, nm, Nmax
@@ -122,7 +122,7 @@ contains
       do i = 1, size(mesh%ki)
          if (allocated(a_n)) deallocate (a_n, b_n, j0, j1, h0, j0d, j1d, h0d)
 
-         if(debug==1) write(*,'(3(A,I0))') ' Step ', i, '/', size(mesh%ki), ''
+         if (debug == 1) write (*, '(3(A,I0))') ' Step ', i, '/', size(mesh%ki), ''
 
          k = mesh%ki(i)
          ka = k*mesh%a
@@ -153,9 +153,9 @@ contains
    end subroutine mie_T_matrix
 
 !****************************************************************************80
-! Orientation averaged T-matrix of the current particle in question. Assumes 
-! that the T-matrix of the particle is already calculated. Usable for coherent 
-! field applications. 
+! Orientation averaged T-matrix of the current particle in question. Assumes
+! that the T-matrix of the particle is already calculated. Usable for coherent
+! field applications.
    subroutine ori_ave_T()
       integer :: i, ii, nm, sz, n, m, Nmax
       complex(dp), dimension(:, :), allocatable :: Taa, Tab, Tba, Tbb, &
@@ -240,16 +240,16 @@ contains
          matrices%rhs = mat(:, nm)
 ! Redirect terminal output to trash unless debug mode is on. Maybe
 ! not very portable...
-         if(debug==0) open(unit=6, file="/dev/null", form="formatted")
+         if (debug == 0) open (unit=6, file="/dev/null", form="formatted")
          call gmres(matrices, mesh)
          T_mat(:, nm) = matmul(transpose(conjg(mat)), matrices%x)
-         if(debug==0) then
-            open(unit=6, file="/dev/stdout", form="formatted")
+         if (debug == 0) then
+            open (unit=6, file="/dev/stdout", form="formatted")
          else
-            print*, nm,'/',size(mat,2) 
+            print *, nm, '/', size(mat, 2)
          end if
          call print_bar(nm, size(mat, 2))
-         
+
       end do
 
       nm = (Nmax + 1)**2 - 1

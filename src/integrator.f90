@@ -284,8 +284,8 @@ contains
          hel = matmul(matrices%I, matrices%w) - Jw + PxW - 0.25d0*dt**2*Ff*wnh + 0.5d0*dt*matrices%N
          if (vlen(hel) < iterstop) then
             exit
-         ! else if(i1==maxiter) then
-         !    print*, ' Maximum number of VLV Newton iterations exceeded...'
+            ! else if(i1==maxiter) then
+            !    print*, ' Maximum number of VLV Newton iterations exceeded...'
          end if
 
          Jac = -matrices%I + 0.5d0*dt*(reshape( &
@@ -460,7 +460,7 @@ contains
 !         mesh%I = The moment of inertia tensor
 !****************************************************************************80
    subroutine vie_params()
-      real(dp) :: rho, V, totV, mass, totMass,detJ, &
+      real(dp) :: rho, V, totV, mass, totMass, detJ, &
                   a, b, c, ap, bp, cp
       integer  :: i1
       real(dp), dimension(3) :: p0, p1, p2, p3, COM, CM

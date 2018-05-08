@@ -1324,7 +1324,7 @@ contains
 !**************************************************************
       integer lwork, info, i
       real(dp), intent(inout) :: a(4, 4)
-      complex(dp), intent(out) :: eig(4), eigenvectors(4,4)
+      complex(dp), intent(out) :: eig(4), eigenvectors(4, 4)
       real(dp) :: eigr(4), eigi(4), V(4, 4), VR(4, 4)
       real(dp) :: work(136)
 
@@ -1334,15 +1334,15 @@ contains
       if (info /= 0) then
          print *, "Something wrong with diagonalization! Regards, dgeev (Lapack)"
       end if
-      eig = dcmplx(eigr,eigi)
+      eig = dcmplx(eigr, eigi)
       eigenvectors = VR
 
-      ! If any consequent eigenvalues are complex conjugate, then eigenvectors 
+      ! If any consequent eigenvalues are complex conjugate, then eigenvectors
       ! must be adjusted
-      do i = 1,3
-         if (eig(i) == dconjg(eig(i+1))) then
-            eigenvectors(:,i) = VR(:,i) + i1*VR(:,i+1)
-            eigenvectors(:,i+1) = VR(:,i)
+      do i = 1, 3
+         if (eig(i) == dconjg(eig(i + 1))) then
+            eigenvectors(:, i) = VR(:, i) + i1*VR(:, i + 1)
+            eigenvectors(:, i + 1) = VR(:, i)
          end if
       end do
    end subroutine diagen
@@ -1422,7 +1422,7 @@ contains
       a_1 = matrices%P(1:3, 1)
       a_2 = matrices%P(1:3, 2)
       a_3 = matrices%P(1:3, 3)
-      
+
 ! Rotation of a_3 to k
       theta0 = dacos(dot_product(k, a_3))
       if (theta0 > 1d-6) then

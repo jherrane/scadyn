@@ -275,11 +275,11 @@ contains
       end do
 
       ! if(vlen(offset)>1d-9)
-            ! Phase shift is exp(-i*k * offset.rhat)
-            ! rhat = rtpv2xyzv( ones(size(theta)), zeros(size(theta)), zeros(size(theta)), ones(size(theta)), theta, phi );
-            ! [offset,rhat] = matchsize(offset,rhat);
-            ! phase_shift = exp( -i * k * dot(offset,rhat,2) );
-            ! beam_envelope = beam_envelope .* phase_shift;
+      ! Phase shift is exp(-i*k * offset.rhat)
+      ! rhat = rtpv2xyzv( ones(size(theta)), zeros(size(theta)), zeros(size(theta)), ones(size(theta)), theta, phi );
+      ! [offset,rhat] = matchsize(offset,rhat);
+      ! phase_shift = exp( -i * k * dot(offset,rhat,2) );
+      ! beam_envelope = beam_envelope .* phase_shift;
       ! endif
 
       Ex = x*beam_envelope
