@@ -7,64 +7,6 @@ module shapebeam
 contains
 
 !****************************************************************************80
-! The routine computes the SVWF expansion coefficients
-! for a time harmonic x-polarized planewave
-! propagating +z-direction  with the wave number k
-   subroutine pw(Nmax, k, a_nm, b_nm)
-      integer :: Nmax, ind, n, m
-      complex(dp), dimension((Nmax + 1)**2 - 1) :: a_nm, b_nm
-      real(dp) :: k, C
-
-      ind = 0
-
-      a_nm = dcmplx(0.0, 0.0)*k
-      b_nm = dcmplx(0.0, 0.0)
-
-      do n = 1, Nmax
-         do m = -n, n
-            ind = ind + 1
-
-            C = sqrt(pi*(2*n + 1d0))
-
-            if (abs(m) == 1) then
-               a_nm(ind) = sign(1, m)*dcmplx(0.0, 1.0)**(n + 1.0)*C
-               b_nm(ind) = dcmplx(0.0, 1.0)**(n + 1.0)*C
-            end if
-
-         end do
-      end do
-
-   end subroutine pw
-
-!****************************************************************************80
-! The routine computes the SVWF expansion coefficients
-! for a time harmonic x-and y-polarized planewave
-! propagating +z-direction  with the wave number k
-   subroutine pw2(Nmax, k, a_nm, b_nm, a_nm2, b_nm2)
-      integer :: Nmax, n, las, nm_in
-      complex(dp), dimension((Nmax + 1)**2 - 1) :: a_nm, b_nm, a_nm2, b_nm2
-      real(dp) :: k
-
-      complex(dp), dimension(:), allocatable :: rotD
-      integer, dimension(:, :), allocatable :: indD
-
-      call pw(Nmax, k, a_nm, b_nm)
-
-      las = 0
-      do n = 1, Nmax
-         las = las + (2*n + 1)**2
-      end do
-
-      allocate (rotD(las))
-      allocate (indD(las, 2))
-
-      call sph_rotation_sparse(0.0d0, -pi/2.0d0, Nmax, rotD, indD)
-      a_nm2 = sparse_matmul(rotD, indD, a_nm, nm_in)
-      b_nm2 = sparse_matmul(rotD, indD, b_nm, nm_in)
-
-   end subroutine pw2
-
-!****************************************************************************80
 ! The Gaussian amplitude profile in localized approximation (kw0>=5) a'la
 ! MSTM 3.0 (Mackowski et al 2013)
    subroutine gaussian_beams()

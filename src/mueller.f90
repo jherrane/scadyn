@@ -6,20 +6,12 @@ module mueller
 contains
 
 !****************************************************************************80
-! Compute the mueller matrix. Bad code ahead.
+! Compute the mueller matrix according to the mode chosen.
    subroutine compute_mueller()
-      integer :: iii1, iii2
-      complex(dp), dimension(:), allocatable :: p, q, p90, q90
-      integer :: Nmax, ii, las, nm, N_points, halton_init, N_avgs, N_theta, N_phi, everyn
-      real(dp) :: E, vec(3), phi, R0(3, 3), Qt(3, 3), omega(3), aproj(3), RR(3, 3), theta
-      real(dp), dimension(:, :), allocatable :: SS, SSS
+      integer :: ii
+      real(dp) :: E
       CHARACTER(LEN=80) :: mueller_out
-
-      N_points = 500 ! Number of points to calculate the perfect orientations
-      N_theta = 180 ! Theta range in Mueller matrices
-      N_avgs = 1 ! Used in randomly oriented (RO) averages
-      N_phi = 90 ! Number of phi-angles between 0 and 2pi for non-RO cases
-      everyn = 1
+      real(dp), dimension(:, :), allocatable :: S
 
       mueller_out = trim(matrices%mueller)//'-'//trim(matrices%mueller_mode)
       if (file_exists(mueller_out)) then
@@ -27,88 +19,134 @@ contains
          stop
       end if
 
-      select case (trim (matrices%mueller_mode))
-      case ('ave')
-         ! Note: Averaging could be done by summing phi-variations, when rotations
-         ! of the particle are handled in systematic fashion, which may be more
-         ! computationally efficient.
-         matrices%R = eye(3)
-         N_avgs = 720 ! Number of averaging directions
-         N_points = 1 ! N_avgs replaces this
-         N_phi = 1 ! Averaging occurs, so phi-dependency is lost
-      case ('ori')
-         call read_log()
-         everyn = 1
-      end select
-
-      allocate (SSS(N_theta*N_phi, 18))
-      SSS = 0d0
-      halton_init = 0
-
-! Choose wavelength
+      ! Choose wavelength
       ii = matrices%whichbar
       if (ii == 0) ii = 1
 
       E = matrices%E_rel(ii)*matrices%E
       mesh%k = mesh%ki(ii)
 
-      Nmax = matrices%Nmaxs(ii)
-      las = (Nmax + 1)*(2*Nmax + 1)*(2*Nmax + 3)/3 - 1
-      nm = (Nmax + 1)**2 - 1
-
-      select case (trim (matrices%mueller_mode))
+      select case (trim(matrices%mueller_mode))
+      case ('ave')
+         call compute_ave_mueller(180, 1, ii, E, S)
+      case ('ori')
+         call compute_log_mueller(180, 90, ii, E, S)
       case ('perf_ori')
-         ! Hard coded orientation data
-         omega = [1d0, 0d0, 0d0]
-         omega = omega/vlen(omega)
-         R0 = rotate_a_to_b(matrices%P(:, 3), omega)
-         Qt = matmul(R0, matrices%P)
-         aproj = [Qt(1, 3), Qt(2, 3), 0d0]
-         aproj = aproj/vlen(aproj)
-      case ('ori'); N_points = size(matrices%RRR, 3)
+         call compute_aligned_mueller(180, 90, ii, E, S)
       end select
 
-      do iii2 = 1, N_points, everyn
-         do iii1 = 1, N_avgs
-            if (trim(matrices%mueller_mode) == 'ave') then
-               vec(1) = 1d0
-               vec(2) = acos(2d0*halton_seq(halton_init + iii1, 2) - 1d0)
-               vec(3) = halton_seq(halton_init + iii1, 3)*2d0*pi
-               matrices%khat = [dsin(vec(2))*dcos(vec(3)), dsin(vec(2))*dsin(vec(3)), dcos(vec(2))]
-            else if (trim(matrices%mueller_mode) == 'ori') then
-               RR = transpose(matmul(matrices%R_al, matrices%RRR(:, :, iii2)))
-               matrices%khat = matmul(RR, [0d0, 0d0, 1d0])
-            else if (trim(matrices%mueller_mode) == 'perf_ori') then
-               theta = dble(iii2 - 1)*2d0*pi/(N_points - 1)
-               RR = matmul(transpose(R_aa(omega, theta)), transpose(R0))
-               if (N_avgs == 1) then
-                  phi = dacos(aproj(1))
-               else
-                  phi = dble(i1 - 1)*pi/2d0/(N_avgs - 1)
-               end if
-               matrices%khat = matmul(RR, [0d0, 0d0, 1d0])
-            end if
-
-            matrices%khat = -matrices%khat/vlen(matrices%khat)
-            matrices%R_fixk = transpose(rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0]))
-
-            if (trim(matrices%mueller_mode) == 'perf_ori') matrices%R = R_aa(matrices%khat, phi)
-
-            call rot_setup()
-            call scattered_fields(E, p, q, p90, q90, ii)
-            if (allocated(SS)) deallocate (SS)
-            call mueller_matrix_coeff(p, q, p90, q90, dcmplx(mesh%k), N_theta, N_phi, SS)
-            SSS = SSS + SS
-            if (trim(matrices%mueller_mode) == 'ave') call print_bar(iii1, N_avgs)
-         end do
-         call print_bar(iii2, N_points)
-      end do
-
-      SSS = everyn*SSS/N_points/N_avgs
-      call write_mueller(SSS, mueller_out)
-
+      call write_mueller(S, mueller_out)
    end subroutine compute_mueller
 
+!****************************************************************************80
+! Compute orientation averaged Mueller matrices for given number of theta, phi.
+! The phi-dependency is lost due to averaging, so no need to give N_phi /= 1.
+   subroutine compute_ave_mueller(N_theta, N_phi, ii, E, S)
+      integer :: i, ii, halton_init, N_points, N_theta, N_phi
+      real(dp) :: E, vec(3)
+      real(dp), dimension(:, :), allocatable :: S
+      complex(dp), dimension(:), allocatable :: p, q, p90, q90
+      
+      N_points = 720 ! Number of averaging directions
+
+      allocate (S(N_theta*N_phi, 18))
+      S = 0d0
+
+      matrices%R = eye(3)
+      halton_init = 0
+
+      do i = 1, N_points
+         vec(1) = 1d0
+         vec(2) = acos(2d0*halton_seq(halton_init + i, 2) - 1d0)
+         vec(3) = halton_seq(halton_init + i, 3)*2d0*pi
+         matrices%khat = [dsin(vec(2))*dcos(vec(3)), dsin(vec(2))*dsin(vec(3)), dcos(vec(2))]
+
+         matrices%khat = -matrices%khat/vlen(matrices%khat)
+         matrices%R_fixk = transpose(rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0]))
+
+         S = S + update_mueller(N_theta, N_phi, ii, E, p, q, p90, q90)/N_points
+         call print_bar(i, N_points)
+      end do
+   end subroutine compute_ave_mueller
+
+!****************************************************************************80
+! Compute the Mueller matrix of a perfectly aligned particle. The alignment 
+! direction is fixed so that the major axis of inertia is always in the
+! +z-direction.
+   subroutine compute_aligned_mueller(N_theta, N_phi, ii, E, S)
+      integer :: i, ii, N_points, N_theta, N_phi
+      real(dp) :: E, vec(3), phi, R0(3, 3), Qt(3, 3), omega(3), aproj(3), RR(3, 3), theta
+      real(dp), dimension(:, :), allocatable :: S
+      complex(dp), dimension(:), allocatable :: p, q, p90, q90
+
+      N_points = 500 ! Number of points to calculate the perfect orientations
+
+      allocate (S(N_theta*N_phi, 18))
+      S = 0d0
+
+      ! Hard coded orientation data
+      omega = [1d0, 0d0, 0d0]
+      R0 = rotate_a_to_b(matrices%P(:, 3), omega)
+      Qt = matmul(R0, matrices%P)
+      aproj = [Qt(1, 3), Qt(2, 3), 0d0]
+      aproj = aproj/vlen(aproj)
+
+      do i = 1, N_points
+         theta = dble(i - 1)*2d0*pi/(N_points - 1)
+         RR = matmul(transpose(R_aa(omega, theta)), transpose(R0))
+         phi = dacos(aproj(1))
+
+         matrices%khat = matmul(RR, [0d0, 0d0, 1d0])
+         matrices%khat = -matrices%khat/vlen(matrices%khat)
+         matrices%R_fixk = transpose(rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0]))
+         matrices%R = R_aa(matrices%khat, phi)
+
+         S = S + update_mueller(N_theta, N_phi, ii, E, p, q, p90, q90)/N_points
+         call print_bar(i, N_points)
+      end do
+   end subroutine compute_aligned_mueller
+
+!****************************************************************************80
+! Compute the Mueller matrix from the data from the dynamical simulation. The
+! particle alignment state is taken from the logged orientations. Thus, the
+! situation may be aligned or not.
+   subroutine compute_log_mueller(N_theta, N_phi, ii, E, S)
+      integer :: i, ii, N_points, N_theta, N_phi 
+      real(dp) :: E, RR(3, 3)
+      real(dp), dimension(:, :), allocatable :: S
+      complex(dp), dimension(:), allocatable :: p, q, p90, q90
+
+      call read_log()
+      N_points = size(matrices%RRR, 3)
+
+      allocate (S(N_theta*N_phi, 18))
+      S = 0d0      
+
+      do i = 1, N_points
+         RR = transpose(matmul(matrices%R_al, matrices%RRR(:, :, i)))
+         matrices%khat = matmul(RR, [0d0, 0d0, 1d0])
+         matrices%khat = -matrices%khat/vlen(matrices%khat)
+         matrices%R_fixk = transpose(rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0]))
+
+         S = S + update_mueller(N_theta, N_phi, ii, E, p, q, p90, q90)/N_points
+         call print_bar(i, N_points)
+      end do
+   end subroutine compute_log_mueller
+
+!****************************************************************************80
+! Updates the Mueller matrix average.
+   function update_mueller(N_theta, N_phi, ii, E, p, q, p90, q90) result(S)
+      integer :: N_theta, N_phi , ii
+      real(dp) :: E
+      real(dp), dimension(:, :), allocatable :: S
+      complex(dp), dimension(:), allocatable :: p, q, p90, q90
+
+      call rot_setup()
+      call scattered_fields(E, p, q, p90, q90, ii)
+      call mueller_matrix_coeff(p, q, p90, q90, dcmplx(mesh%k), N_theta, N_phi, S)
+   end function update_mueller
+
+! Below are WIP functionalities for the SOCpol application
 !****************************************************************************80
 
    subroutine scattering_extinction_matrices(a_dist, points, al_direction)
@@ -169,11 +207,6 @@ contains
             KKK(ind/N_points, 3) = 1
             KKK(ind/N_points, 4:19) = KK(1, 3:18)
             
-            ! K = reshape(KK(1, 3:18),[4,4])/KK(1,3)
-            ! call print_mat(K,'K')
-            ! call diagen(K,Kevals,Kevecs)
-            ! write(*, '(F8.3,SP,F8.3,"i")') Kevals
-            ! call print_cmat(Kevecs,'Kevecs')
          end do
       end do
       call write_RT_matrix(SSS, mueller_out, 1)

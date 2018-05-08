@@ -1,10 +1,10 @@
 #####  Physical setup   #######################################################
-R0 i                    # r = random matrix, i = identity matrix
+R0 i                    # r = random matrix, i = identity matrix*
 v0 0d0 0d0 0d0          # Initial velocity
 w0 0d0 0d0 0d0          # Initial angular velocity
 
 a 2d-7                  # Equivalent radius
-rho 3000d0              # Density
+rho 3d3                 # Density
 
 T 5800                  # Black body temperature (K)
 khat 0 0 1              # Wave vector direction
@@ -16,8 +16,8 @@ refi 0.0
 E 1d0                   # Amplitude of E at its maximum
 
 #####  Run parameters   #######################################################
-waves sil               # Wavelength band options lin, inv, log, bnd, sil
-mueller_mode none       # Mueller matrix type, none, ave, ori, perf_ori
+waves bnd               # Wavelength band options lin, inv, log, bnd*, sil
+mueller_mode ave       # Mueller matrix type, none*, ave, ori, perf_ori
 test_forces 1           # 0 = integrate, 1 = test methods, 2 = calc Qt, 
                         # 3 = stability analysis, 4 = write fields to file
                         # 5 = SOCpol-averaging of Mueller matrices
@@ -25,17 +25,17 @@ int_mode 0              # 0 = normal scattering dynamics integration,
                         # 1 = external alignment integration, 2 = both 
                         # sequentially
 
-Tmat 0                  # 1 = file is usable / 0 = force T-matrix calculation
-polarization 2          # 1 = lin / 2 = un
-bars 10                 # in range lmb1-lmb2 nm
-lambda1 120
-lambda2 1720
-whichbar 0              # 0 = use all
-beam_shape 0            # 0 = plane wave, 1 = Gaussian, 2 = LG, 3 = Bessel
+Tmat 1                  # 1 = file is usable / 0 = force T-matrix calculation
+polarization 2          # 1 = lin / 2 = un*
+bars 10                 # Number of wavelengths in range lmb1-lmb2 nm
+lambda1 200
+lambda2 2000
+whichbar 0              # 0 = use all*
+beam_shape 0            # 0 = plane wave*, 1 = Gaussian, 2 = LG, 3 = Bessel
 pl 0 0                  # Laguerre-Gaussian beam mode
 
-choose_integrator 2     # 1 = RK4, 2 = VLV, 3 = PCDM
-it_max 10000
+choose_integrator 2     # 1 = RK4, 2 = VLV*, 3 = PCDM
+it_max 100000
 it_log 0                # From end backwards, 0 = log every step
 dt 1d0
 rot_max 1d-3
