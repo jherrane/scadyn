@@ -410,10 +410,8 @@ contains
 
       numlines = no
       lastlineno = get_last_line_no(matrices%out)
-
       if(numlines>=lastlineno-23) numlines = lastlineno-23
       firstlineno = lastlineno-numlines
-
       open (fh, file=trim(matrices%out))
       do i = 1, lastlineno-1
          read (fh, *)
@@ -468,7 +466,7 @@ contains
 
       open (fh, file=trim(matrices%out))
       do i = 1, lastlineno
-         if (i >= firstlineno) then
+         if (i > firstlineno) then
             read (fh, *) line, x, v, w, J, N, F, t, R
             matrices%RRR(:, :, i - firstlineno) = reshape(R, [3, 3])
             matrices%www(:, i - firstlineno) = w
@@ -651,7 +649,7 @@ contains
       integer :: n, i, md, ind
       character(len=80) :: fname, fmt
 
-      fmt = '(I0, 6(3ES11.3), 1ES16.8, 9f7.3)'
+      fmt = '(I0, 6(3ES11.3), 10ES16.8)'
       md = mod(n+1, 1000)
 
 ! If the simulation has run for long enough and the particle spins stably, 

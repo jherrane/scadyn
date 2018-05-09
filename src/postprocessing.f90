@@ -116,9 +116,9 @@ contains
 ! Torque efficiency calculations as in Lazarian2007b
       write (*, '(A)') '  Starting the calculation of beta-averaged torque efficiency:'
 ! Theta loop
-      do i = 0, Nang - 1
+      do i = 1, Nang
          Q_t = 0d0
-         theta = thetas(i + 1)
+         theta = thetas(i)
          ! Beta averaging loop
          do j = 0, Bang - 1
             ! Find rotation of angle beta around the rotated a_3-axis
@@ -127,9 +127,9 @@ contains
             Q_t = matmul(matrices%Rkt, get_Qt(theta, 0d0, beta))
 
             Q_t = [dot_product(Q_t, k0), dot_product(Q_t, E0), dot_product(Q_t, E90)]
-            Q_coll(:, i + 1) = Q_coll(:, i + 1) + Q_t/Bang
+            Q_coll(:, i) = Q_coll(:, i) + Q_t/Bang
          end do
-         call print_bar(i + 1, Nang)
+         call print_bar(i, Nang)
       end do
 
       open (unit=1, file="out/Q.out", ACTION="write", STATUS="replace")
@@ -161,8 +161,8 @@ contains
          R_B = rotate_a_to_b(matrices%P(1:3, 3), nphi)
 
 ! Xi loop
-         do i = 0, Nang - 1
-            xi = thetas(i + 1)
+         do i = 1, Nang
+            xi = thetas(i)
 
 ! Rotation to xi of a_3 is a combined rotation of angle psi+xi
             R_xi = matmul(R_aa(x_B, xi), R_B)

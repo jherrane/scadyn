@@ -32,7 +32,7 @@ program main
 
    if (run_test == 0) then
       call integrate()
-      if (int_mode == 1) then
+      if (int_mode >= 1) then
          call compute_log_RAT()
       end if
    else

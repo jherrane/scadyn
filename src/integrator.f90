@@ -11,22 +11,18 @@ contains
    subroutine integrate()
       integer :: t1, t2, rate
 
-      print *, 'Integration in progress...'
+      write(*,'(A)') ' Integration in progress...'
       call system_clock(t1, rate)
-      call solve_eoms() ! integrator
+      call initialize()
+      if(int_mode < 2) call solve_eoms()
       call system_clock(t2, rate)
-      print *, ' Done in', real(T2 - T1)/real(rate), 'seconds'
+      write(*,'(2(A,ES8.2))') '  Done in ', real(T2 - T1)/real(rate), ' seconds'
 
    end subroutine integrate
 
-!****************************************************************************80
-! Calculates grain dynamics. All radiative torques are calculated in so
-! called scattering frame, and all ! dynamics are integrated in principal frame.
-   subroutine solve_eoms()
-      integer :: i
-      character(len=80) :: lg
-
-      lg = matrices%out
+!****************************************************************************
+! Do the mandatory setup
+   subroutine initialize()
 
 ! Calculates the mass parameters for the mesh
       if (use_mie == 1) then
@@ -39,13 +35,23 @@ contains
 
       call polarization()
       call init_values()
-      call start_log(lg)
 
       call allocate_inc_wave()
 
       if (beam_shape == 1) call gaussian_beams()
       if (beam_shape == 2) call laguerre_gaussian_beams(p, l)
       if (beam_shape == 3) call bessel_beams()
+   end subroutine initialize
+
+!****************************************************************************80
+! Calculates grain dynamics. All radiative torques are calculated in so
+! called scattering frame, and all ! dynamics are integrated in principal frame.
+   subroutine solve_eoms()
+      integer :: i
+      character(len=80) :: lg
+
+      lg = matrices%out
+      call start_log(lg)
 
 ! Iteration of optical force calculation
       do i = 0, it_max-1
@@ -70,17 +76,20 @@ contains
    end subroutine solve_eoms
 
 !****************************************************************************80
-
+! Somehow, if the particle movement is almost periodic, the averaged RAT should
+! be calculated over one quasiperiod. Otherwise results will be more skewed.
    subroutine compute_log_RAT()
-      integer :: i, j, k, Nang, ind, N_points, numlines
+      integer :: i, j, k, Nang, ind, N_points, numlines, last
+      integer :: t1, t2, rate
       real(dp) :: E, RR(3, 3)
       complex(dp), dimension(:), allocatable :: p, q, p90, q90
-      real(dp), dimension(3, 3) :: R_B, R_xi
-      real(dp), dimension(3) :: k0, E0, E90, Q_t, nphi, a_3, x_B
-      real(dp) :: xi, phi, psi
+      real(dp), dimension(3, 3) :: R_B, R_xi, R_init
+      real(dp), dimension(3) :: k0, E0, E90, Q_t, nphi, a_3, x_B, w_init, w_now
+      real(dp) :: xi, phi, psi, tol
       real(dp), dimension(:, :), allocatable :: F_coll
       real(dp), dimension(:), allocatable :: thetas
 
+      tol = 5d-2
       numlines = it_log
       if(it_log == 0) numlines = it_max
       call read_log(numlines)
@@ -91,6 +100,8 @@ contains
       k0 = matrices%khat
       E0 = real(matrices%E0hat)
       E90 = real(matrices%E90hat)
+      R_init = transpose(matrices%RRR(:, :, 1))
+      w_init = matrices%www(:,1)/vlen(matrices%www(:,1))
       a_3 = matmul(transpose(matmul(matrices%R_al, matrices%RRR(:, :, 1))),matrices%P(1:3,3))
 
       Nang = 60 ! Angle of rotation of a_3 about e_1 (when psi=0)
@@ -112,23 +123,33 @@ contains
 ! Second, set up rotation from a_3 to new B
       R_B = rotate_a_to_b(a_3, nphi)
 
+      call system_clock(t1, rate)
+      do i = 1, numlines
+         w_now = matrices%www(:,1)/vlen(matrices%www(:,i))
+         if(near_identity(matmul(matrices%RRR(:, :, i),R_init), tol ) .AND. i>100) then
+            write(*, '(A,I0)') '  Periodicity detected at step ', i 
+            last = i
+            exit
+         end if
+         RR = transpose(matmul(matrices%R_al, matrices%RRR(:, :, i)))
+         matrices%khat = matmul(RR, [0d0, 0d0, 1d0])
+         matrices%khat = -matrices%khat/vlen(matrices%khat)
+         matrices%R_fixk = transpose(rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0]))
+         ind = 0
 ! Xi loop
-      do i = 0, Nang - 1
-         xi = thetas(i + 1)
-
+         do j = 1, Nang
+            xi = thetas(j)
 ! Rotation to xi of a_3 is a combined rotation of angle psi+xi
-         R_xi = matmul(R_aa(x_B, xi), R_B)
+            R_xi = matmul(R_aa(x_B, xi), R_B)
 
-         do j = 1, numlines
-            RR = transpose(matmul(matrices%R_al, matrices%RRR(:, :, j)))
-            matrices%khat = matmul(RR, [0d0, 0d0, 1d0])
-            matrices%khat = -matrices%khat/vlen(matrices%khat)
-            matrices%R_fixk = transpose(rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0]))
-            Q_t = 0d0
-
-            matrices%R = matmul(RR, R_xi) ! First a_3 to xi, then beta about a_3
+            matrices%R = matmul(RR, R_xi) 
+            a_3 = matmul(matrices%R, matrices%P(:,3))
+            a_3 = [a_3(1), a_3(2), 0d0]
+            a_3 = a_3/vlen(a_3)
+            phi = dacos(a_3(1))
             call rot_setup()
 
+            Q_t = 0d0
             if (matrices%whichbar == 0) then
                do k = 1, matrices%bars
                   call forcetorque(k)
@@ -142,17 +163,21 @@ contains
 
             Q_t = matmul(matrices%R, Q_t)
 
-            F_coll(3, ind + 1) = F_coll(3, ind + 1) + F_align(Q_t, xi, phi, psi)/numlines
-            F_coll(4, ind + 1) = F_coll(4, ind + 1) + H_align(Q_t, xi, phi, psi)/numlines
-            F_coll(5, ind + 1) = F_coll(5, ind + 1) + G_align(Q_t, phi, psi)/numlines
+            F_coll(3, ind + 1) = F_coll(3, ind + 1) + F_align(Q_t, xi, phi, psi)/Nang
+            F_coll(4, ind + 1) = F_coll(4, ind + 1) + H_align(Q_t, xi, phi, psi)/Nang
+            F_coll(5, ind + 1) = F_coll(5, ind + 1) + G_align(Q_t, phi, psi)/Nang
+            F_coll(1:2, ind + 1) = [xi, psi]
 
+            ind = ind + 1
          end do
-
-         F_coll(1:2, ind + 1) = [xi, psi]
-         call print_bar(ind + 1, size(F_coll, 2))
-         ind = ind + 1
-
+         if(i==numlines) last = i
+         call print_bar(i,numlines)
       end do
+
+      F_coll(3:5, :) = F_coll(3:5, :)/last
+
+      call system_clock(t2, rate)
+      write(*,'(2(A,ES8.2))') 'Done in ', real(T2 - T1)/real(rate), ' seconds'
 
       open (unit=1, file="out/F.out", ACTION="write", STATUS="replace")
       write (1, '(A)') 'xi   psi   F  H  G'

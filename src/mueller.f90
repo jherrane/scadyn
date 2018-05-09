@@ -90,11 +90,11 @@ contains
       Qt = matmul(R0, matrices%P)
       aproj = [Qt(1, 3), Qt(2, 3), 0d0]
       aproj = aproj/vlen(aproj)
+      phi = dacos(aproj(1))
 
       do i = 1, N_points
          theta = dble(i - 1)*2d0*pi/(N_points - 1)
          RR = matmul(transpose(R_aa(omega, theta)), transpose(R0))
-         phi = dacos(aproj(1))
 
          matrices%khat = matmul(RR, [0d0, 0d0, 1d0])
          matrices%khat = -matrices%khat/vlen(matrices%khat)
@@ -123,8 +123,8 @@ contains
       S = 0d0
 
       do i = 1, N_points
-         RR = transpose(matmul(matrices%R_al, matrices%RRR(:, :, i)))
-         matrices%khat = matmul(RR, [0d0, 0d0, 1d0])
+         matrices%R = transpose(matmul(matrices%R_al, matrices%RRR(:, :, i)))
+         matrices%khat = matmul(transpose(matrices%R), [0d0, 0d0, 1d0])
          matrices%khat = -matrices%khat/vlen(matrices%khat)
          matrices%R_fixk = transpose(rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0]))
 
@@ -159,12 +159,8 @@ contains
 
       N_points = size(points, 2) ! Number of points to calculate the perfect orientations
 
-      mueller_out = trim(matrices%mueller)
+      mueller_out = 'mueller'
       extinction_out = 'extinction_matrix'
-      if (file_exists(mueller_out)) then
-         print *, ' Mueller matrix already exists, quitting...'
-         stop
-      end if
 
       inc_angles = [90d0, 180d0]
       allocate (SSS(N_points*size(a_dist, 1)*size(inc_angles), 19))
@@ -226,8 +222,6 @@ contains
       N_avgs = 360 ! Number of averaging directions
       halton_init = 0
       E = matrices%E_rel(ii)*matrices%E
-      Nmax = matrices%Nmaxs(ii)
-      nm = (Nmax + 1)**2 - 1
 
       do i = 1, N_avgs
          vec(1) = 1d0
@@ -253,13 +247,12 @@ contains
 !****************************************************************************80
 
    subroutine mueller_align(SS, KK, points, ii, al_direction)
-      integer :: i, ii, N_avgs, nm, Nmax
+      integer :: i, ii, N_avgs
       real(dp) :: E, omega(3), al_direction(3), theta, phi, RR(3, 3), Qt(3, 3), R0(3, 3), &
                   aproj(3), k_sph(3)
       real(dp), dimension(:, :), allocatable :: S, SS, K, KK, points
       complex(dp), dimension(:), allocatable :: p, q, p90, q90
 
-      matrices%R = eye(3)
       N_avgs = 36 ! Number of averaging directions
 
       E = matrices%E_rel(ii)*matrices%E
@@ -270,15 +263,12 @@ contains
       aproj = [Qt(1, 3), Qt(2, 3), 0d0]
       aproj = aproj/vlen(aproj)
       phi = dacos(aproj(1))
-      Nmax = matrices%Nmaxs(ii)
-      nm = (Nmax + 1)**2 - 1
 
       do i = 1, N_avgs
          theta = dble(i - 1)*2d0*pi/dble(N_avgs - 1)
          RR = matmul(transpose(R_aa(omega, theta)), transpose(R0))
 
          matrices%khat = matmul(RR, [0d0, 0d0, 1d0])
-
          matrices%khat = -matrices%khat/vlen(matrices%khat)
          k_sph = cart2sph(matrices%khat)
 

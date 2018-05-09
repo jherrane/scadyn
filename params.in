@@ -21,8 +21,9 @@ mueller_mode none       # Mueller matrix type, none*, ave, ori, perf_ori
 test_forces 0           # 0 = integrate, 1 = test methods, 2 = calc Qt, 
                         # 3 = stability analysis, 4 = write fields to file
                         # 5 = SOCpol-averaging of Mueller matrices
-int_mode 1              # 0 = normal scattering dynamics integration,
+int_mode 2              # 0 = normal scattering dynamics integration,
                         # 1 = external alignment integration after normal
+                        # 2 = only alignment integration by reading log file
 
 Tmat 1                  # 1 = file is usable / 0 = force T-matrix calculation
 polarization 2          # 1 = lin / 2 = un*
@@ -34,8 +35,8 @@ beam_shape 0            # 0 = plane wave*, 1 = Gaussian, 2 = LG, 3 = Bessel
 pl 0 0                  # Laguerre-Gaussian beam mode
 
 choose_integrator 2     # 1 = RK4, 2 = VLV*, 3 = PCDM
-it_max 1050
-it_log 0                # From end backwards, 0 = log every step
+it_max 500000
+it_log 7500                # From end backwards, 0 = log every step
 dt 1d0
 rot_max 1d-3
 

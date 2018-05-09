@@ -1176,6 +1176,21 @@ contains
    end function alignment_state
 
 !****************************************************************************80
+! Tests whether a 3x3-matrix is near identity. Whether or not naive testing of
+! components is sensible in general, it must be quite efficient now.
+   logical function near_identity(mat, tol) result(tf)
+      real(dp) :: mat(3,3), tol
+
+      tf = .FALSE.
+
+      if( 1d0-mat(1,1) < tol .AND. 1d0-mat(2,2) < tol .AND. 1d0-mat(3,3) < tol .AND. &
+          dabs(mat(1,2)) < tol .AND. dabs(mat(1,3)) < tol .AND. dabs(mat(2,3)) < tol .AND. &
+          dabs(mat(2,1)) < tol .AND. dabs(mat(3,1)) < tol .AND. dabs(mat(3,2)) < tol) then
+         tf = .TRUE.
+      end if
+   end function near_identity
+
+!****************************************************************************80
    function file_exists(fname) result(exists)
       logical :: exists
       CHARACTER(LEN=80) :: fname
