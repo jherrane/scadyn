@@ -31,8 +31,6 @@
 *.out
 *.app
 
-*params*
-
 */ext/**
 /ext/
 */data/**
