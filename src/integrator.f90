@@ -16,7 +16,7 @@ contains
       call initialize()
       if(int_mode < 2) call solve_eoms()
       call system_clock(t2, rate)
-      write(*,'(2(A,ES8.2))') '  Done in ', real(T2 - T1)/real(rate), ' seconds'
+      write(*,'(2(A,g0))') '  Done in ', real(T2 - T1)/real(rate), ' seconds'
 
    end subroutine integrate
 
@@ -177,7 +177,7 @@ contains
       F_coll(3:5, :) = F_coll(3:5, :)/last
 
       call system_clock(t2, rate)
-      write(*,'(2(A,ES8.2))') 'Done in ', real(T2 - T1)/real(rate), ' seconds'
+      write(*,'(2(A,g0))') 'Done in ', real(T2 - T1)/real(rate), ' seconds'
 
       open (unit=1, file="out/F.out", ACTION="write", STATUS="replace")
       write (1, '(A)') 'xi   psi   F  H  G'
@@ -559,6 +559,8 @@ contains
 
    end subroutine diagonalize_inertia
 
+!****************************************************************************80
+
    subroutine mie_params()
       mesh%V = 4d0/3d0*pi*mesh%a**3
       mesh%mass = mesh%V*mesh%rho
@@ -652,59 +654,6 @@ contains
       matrices%x_CM = mesh%CM
 
    end subroutine vie_params
-
-!****************************************************************************80
-! Mass parameters for spherical aggregate
-! output: mesh%V = volume of the geometry
-!         mesh%mass = mass of the geometry
-!         mesh%CM = coordinates of the center of mass
-!         mesh%I = The moment of inertia tensor
-!****************************************************************************80
-   subroutine aggr_params()
-      real(dp), dimension(:, :), allocatable :: coord
-      real(dp), dimension(:), allocatable :: radius
-      real(dp) :: rho, V, totV, mass, totMass
-
-      integer :: i1
-
-      real(dp), dimension(3) :: COM, CM
-      real(dp), dimension(3, 3) :: I, E
-
-      coord = mesh%coord
-      radius = mesh%radius
-      rho = mesh%rho ! currently density not in tetrahedral element data
-
-      I = 0.d0
-      totV = 0.d0
-      totMass = 0.d0
-      CM = 0.d0
-
-      do i1 = 1, size(radius)
-         COM = coord(:, i1)
-         V = 4d0/3d0*pi*radius(i1)**3
-         mass = rho*V
-
-         totV = totV + V
-         totMass = totMass + mass
-         CM = CM + mass*COM
-         I = I + E + mass*(dot_product(COM, COM)*eye(3) - &
-                           real_outer_product(COM, COM))
-
-      end do
-
-      mesh%V = totV
-      mesh%mass = totMass
-      mesh%CM = CM/totMass
-      mesh%I = I
-
-      coord(1, :) = coord(1, :) - mesh%CM(1)
-      coord(2, :) = coord(2, :) - mesh%CM(2)
-      coord(3, :) = coord(3, :) - mesh%CM(3)
-      matrices%CM = mesh%CM ! Save real CM if it happens to be not near origin
-      mesh%CM = dble([0d0, 0d0, 0d0])
-      matrices%x_CM = mesh%CM
-
-   end subroutine aggr_params
 
 !****************************************************************************80
 

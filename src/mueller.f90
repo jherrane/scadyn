@@ -13,6 +13,8 @@ contains
       CHARACTER(LEN=80) :: mueller_out
       real(dp), dimension(:, :), allocatable :: S
 
+      if (trim(matrices%mueller_mode) == 'none') return
+
       mueller_out = trim(matrices%mueller)//'-'//trim(matrices%mueller_mode)
       if (file_exists(mueller_out)) then
          print *, ' Mueller matrix already exists, quitting...'

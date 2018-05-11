@@ -6,7 +6,7 @@ program main
 
    implicit none
 
-   call splash()
+   call splash('v0.4')
 
    call check_paramsfile()
    call read_params()
@@ -21,9 +21,8 @@ program main
       call read_T()
       call fix_band()
    else
-      write (*, '(A,1ES8.2)') '  a = ', mesh%a
       if (matrices%singleT == 1) then
-         if (.NOT. file_exists(matrices%tname)) call T_empty()
+         call T_empty()
       end if
 
       call calc_T()
@@ -39,7 +38,7 @@ program main
       call tests()
    end if
 
-   if (trim(matrices%mueller_mode) /= 'none') call compute_mueller()
+   call compute_mueller()
 
 contains
 
@@ -53,8 +52,6 @@ contains
          call vie_params()
       else if (use_mie == 1) then
          call mie_params()
-      else
-         call aggr_params()
       end if
 
       matrices%x_CM = mesh%CM

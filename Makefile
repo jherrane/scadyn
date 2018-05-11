@@ -30,6 +30,7 @@ INCS = -I/usr/include -I/usr/local/include/ -I/usr/include/hdf5/serial/ -J${BIND
 # Dependency tree
 OBJECTS = ${BINDIR}/common.o \
 ${BINDIR}/sfunctions.o \
+${BINDIR}/h5io.o \
 ${BINDIR}/io.o \
 ${BINDIR}/gaussquad.o \
 ${BINDIR}/integration_points.o \
