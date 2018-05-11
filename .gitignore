@@ -31,6 +31,8 @@
 *.out
 *.app
 
+*params*
+
 */ext/**
 /ext/
 */data/**
@@ -42,3 +44,4 @@ scadyn
 */bin/**
 /bin/
 *log*
+*mueller*
