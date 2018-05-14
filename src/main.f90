@@ -48,10 +48,10 @@ contains
       call polarization()
       call allocate_inc_wave()
 
-      if (mesh%is_mesh == 1) then
-         call vie_params()
-      else if (use_mie == 1) then
+      if (use_mie == 1) then
          call mie_params()
+      else if (mesh%is_mesh == 1) then
+         call vie_params()
       end if
 
       matrices%x_CM = mesh%CM

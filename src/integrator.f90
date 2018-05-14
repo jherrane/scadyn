@@ -83,8 +83,8 @@ contains
       integer :: t1, t2, rate
       real(dp) :: E, RR(3, 3)
       complex(dp), dimension(:), allocatable :: p, q, p90, q90
-      real(dp), dimension(3, 3) :: R_B, R_xi, R_init
-      real(dp), dimension(3) :: k0, E0, E90, Q_t, nphi, a_3, x_B, w_init, w_now
+      real(dp), dimension(3, 3) :: R_B, R_xi, R_init, RP
+      real(dp), dimension(3) :: k0, E0, E90, Q_t, nphi, a_3, x_B
       real(dp) :: xi, phi, psi, tol
       real(dp), dimension(:, :), allocatable :: F_coll
       real(dp), dimension(:), allocatable :: thetas
@@ -100,9 +100,6 @@ contains
       k0 = matrices%khat
       E0 = real(matrices%E0hat)
       E90 = real(matrices%E90hat)
-      R_init = transpose(matrices%RRR(:, :, 1))
-      w_init = matrices%www(:,1)/vlen(matrices%www(:,1))
-      a_3 = matmul(transpose(matmul(matrices%R_al, matrices%RRR(:, :, 1))),matrices%P(1:3,3))
 
       Nang = 60 ! Angle of rotation of a_3 about e_1 (when psi=0)
       allocate (thetas(Nang))
@@ -120,18 +117,22 @@ contains
 ! Rotation axis for precession averaging
       nphi = matmul(R_aa(x_B, psi), k0) ! Is actually B
 
-! Second, set up rotation from a_3 to new B
-      R_B = rotate_a_to_b(a_3, nphi)
-
       call system_clock(t1, rate)
       do i = 1, numlines
-         w_now = matrices%www(:,1)/vlen(matrices%www(:,i))
-         if(near_identity(matmul(matrices%RRR(:, :, i),R_init), tol ) .AND. i>100) then
+         if(near_identity(matmul(matrices%RRR(:, :, i),&
+            transpose(matrices%RRR(:, :, 1))), tol ) .AND. i>100) then
             write(*, '(A,I0)') '  Periodicity detected at step ', i 
             last = i
             exit
          end if
-         RR = transpose(matmul(matrices%R_al, matrices%RRR(:, :, i)))
+         RR = transpose(matrices%RRR(:, :, i))
+         RP = matmul(RR, transpose(matrices%P(:,:)))
+! If stable rotation about a_3, this a_3 will be almost (anti/)paraller
+! to w
+         a_3 = RP(3,:) 
+! Set up rotation from a_3 to new B
+         R_B = rotate_a_to_b(a_3, nphi)
+
          matrices%khat = matmul(RR, [0d0, 0d0, 1d0])
          matrices%khat = -matrices%khat/vlen(matrices%khat)
          matrices%R_fixk = transpose(rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0]))
@@ -141,12 +142,14 @@ contains
             xi = thetas(j)
 ! Rotation to xi of a_3 is a combined rotation of angle psi+xi
             R_xi = matmul(R_aa(x_B, xi), R_B)
-
             matrices%R = matmul(RR, R_xi) 
-            a_3 = matmul(matrices%R, matrices%P(:,3))
+            RP = matmul(matrices%R, transpose(matrices%P(:,:)))
+! Find the current orientation of a_3 and from there the current phi
+            a_3 = RP(3,:)
             a_3 = [a_3(1), a_3(2), 0d0]
             a_3 = a_3/vlen(a_3)
             phi = dacos(a_3(1))
+
             call rot_setup()
 
             Q_t = 0d0
@@ -556,7 +559,7 @@ contains
 
       forall (i=1:3) matrices%I(i, i) = matrices%Ip(i)
       forall (i=1:3) matrices%I_inv(i, i) = 1d0/matrices%Ip(i)
-
+      
    end subroutine diagonalize_inertia
 
 !****************************************************************************80

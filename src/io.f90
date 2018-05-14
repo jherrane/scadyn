@@ -442,7 +442,6 @@ contains
             read (fh, *)
          end if
       end do
-
       close (fh)
 
    end subroutine read_log
@@ -571,15 +570,10 @@ contains
 !****************************************************************************80
 
    subroutine start_log(fname)
-      integer :: i1
+      integer :: i
       character(len=80) :: fname
 
       matrices%buffer = 0
-
-      !if(file_exists(fname)) then
-      ! print*, "Log exists, shutting down... (Remember to disable this later!)"
-      ! stop
-      !end if
 
       open (unit=1, file=fname, ACTION="write", STATUS="replace")
 
@@ -601,8 +595,8 @@ contains
       write (1, '(A)') 'Ip       = '
       write (1, '(9ES11.3)') matrices%Ip(:)
       write (1, '(A)') 'Q        = '
-      do i1 = 1, 3
-         write (1, '(9f7.3)') matrices%P(i1, :)
+      do i = 1, 3
+         write (1, '(3f7.3)') matrices%P(i, :)
       end do
       write (1, '(A)') ' Log: n x(1:3) v(1:3) w(1:3) J(1:3) N(1:3) F(1:3) t R(1:9) '
       write (1, '(A)') ' '

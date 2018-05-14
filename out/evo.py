@@ -46,16 +46,6 @@ def make_sure_path_exists(path):
       if exception.errno != errno.EEXIST:
          raise
 
-def Round_To_n(x, n):
-   return round(x, -int(np.floor(np.sign(x) * np.log10(abs(x)))) + n)
-
-def file_len(fname):
-   with open(fname) as f:
-      i = -1
-      for i, l in enumerate(f):
-         pass
-   return i + 1
-
 def plot_orbit(orbit1, orbit2, orbit3,w, k):
    MAP = 'winter'
    COLOR1 = 'cyan'
@@ -72,16 +62,10 @@ def plot_orbit(orbit1, orbit2, orbit3,w, k):
    ax = fig.add_subplot(111, projection='3d')
    ax.set_aspect('equal')
    step = N/50 + 1
-   for i in xrange(0,N-1,N/50):
-      alphastep = 0.5*math.log10(i+1)/math.log10(2*N)
-      ax.plot(x1[i:i+step], x2[i:i+step], x3[i:i+step], color=COLOR1, 
-      alpha = 0.25 + alphastep)
-      ax.plot(y1[i:i+step], y2[i:i+step], y3[i:i+step], color=COLOR2, 
-      alpha = 0.25 + alphastep)
-      ax.plot(z1[i:i+step], z2[i:i+step], z3[i:i+step], color=COLOR3, 
-      alpha = 0.25 + alphastep)
-      ax.plot(w1[i:i+step], w2[i:i+step], w3[i:i+step], color=COLOR4, 
-      alpha = 0.25 + alphastep)
+   ax.plot(x1, x2, x3, color=COLOR1)
+   ax.plot(y1, y2, y3, color=COLOR2)
+   ax.plot(z1, z2, z3, color=COLOR3)
+   ax.plot(w1, w2, w3, color=COLOR4)
    a = Arrow3D([0,k[0]],[0,k[1]],[0,k[2]], mutation_scale=20, lw=3, arrowstyle="-|>", color="k")
    ax.add_artist(a)
 
@@ -135,27 +119,16 @@ if __name__ == "__main__":
    make_sure_path_exists(pth)
    splt = inputfile.split("log")
    fileQ = fileQ + splt[-1]
-   numlines = file_len(inputfile) -22
 
    log = open(inputfile,'r')
    lines = np.loadtxt(inputfile, skiprows=22)
-
-   magtol = 1e-3
-
-   string = log.readlines()[3]
-   Nmax = [int(s) for s in string.split() if s.isdigit()]
-   Nmax = Nmax[0]
-   log.seek(0)
+   
    string = log.readlines()[1]
    k = [float(s) for s in string.split()[2:5]]
    log.seek(0)
    Q = np.genfromtxt(islice(log,17,20))
    log.close()
 
-   markevery = round(Nmax/1000)
-   mav = int(round(Nmax/100))
-   if mav < 2: mav = 2
-   if markevery < 1: markevery = 1
    x = lines[:,1:4]
    v = lines[:,4:7]
    w = lines[:,7:10]
@@ -164,17 +137,6 @@ if __name__ == "__main__":
    F = lines[:,16:19]
    t = lines[:,19]
    R = lines[:,20:30]
-   Jb = np.zeros(J.shape)
-   wb = np.zeros(w.shape)
-   for i in np.arange(R.shape[0]):
-      wlen = np.linalg.norm(w[i,:])
-      RR = R[i,:].reshape(3,3)
-      if wlen != 0:
-         wb[i,:] = (RR.dot(Q)).T.dot(w[i,:])/wlen
-         Jb[i,:] = (RR.dot(Q)).T.dot(J[i,:])/np.linalg.norm(J[i,:])
-      else:
-         wb[i,:] = [0, 0, 0]
-         Jb[i,:] = [0, 0, 0]
    
    log.close()
    with cd(pth):
