@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+from cd import *
+from arrow import *
 import sys, getopt
 import matplotlib as mpl
 mpl.use('Agg')
@@ -8,43 +10,9 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import numpy as np
 import math
-import os
-import errno
 from itertools import islice
-from matplotlib.patches import FancyArrowPatch
-from mpl_toolkits.mplot3d import proj3d
 
 fileQ = "Qt"
-
-class Arrow3D(FancyArrowPatch):
-   def __init__(self, xs, ys, zs, *args, **kwargs):
-      FancyArrowPatch.__init__(self, (0,0), (0,0), *args, **kwargs)
-      self._verts3d = xs, ys, zs
-
-   def draw(self, renderer):
-      xs3d, ys3d, zs3d = self._verts3d
-      xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
-      self.set_positions((xs[0],ys[0]),(xs[1],ys[1]))
-      FancyArrowPatch.draw(self, renderer)
-
-class cd:
-   """Context manager for changing the current working directory"""
-   def __init__(self, newPath):
-      self.newPath = os.path.expanduser(newPath)
-
-   def __enter__(self):
-      self.savedPath = os.getcwd()
-      os.chdir(self.newPath)
-
-   def __exit__(self, etype, value, traceback):
-      os.chdir(self.savedPath)
-
-def make_sure_path_exists(path):
-   try:
-      os.makedirs(path)
-   except OSError as exception:
-      if exception.errno != errno.EEXIST:
-         raise
 
 def plot_orbit(orbit1, orbit2, orbit3,w, k):
    MAP = 'winter'
@@ -101,6 +69,7 @@ if __name__ == "__main__":
    pth = 'figs'
    #plt.xkcd()
    #plt.rc('font',family='Times New Roman')
+   
    argv = sys.argv[1:]
    try:
       opts, args = getopt.getopt(argv,"hl:p:",["log=", "path="])
@@ -109,14 +78,14 @@ if __name__ == "__main__":
       sys.exit(2)
    for opt, arg in opts:
       if opt == '-h' or opt == '--help':
-         print 'evo.py -log <inputfile>'
+         print 'evo.py -l --log <inputfile>'
+         print '       -p --path <path>'
          sys.exit()
       elif opt in ("-l", "--log"):
          inputfile = arg
       elif opt in ("-p", "--path"):
          pth = arg
    
-   make_sure_path_exists(pth)
    splt = inputfile.split("log")
    fileQ = fileQ + splt[-1]
 
@@ -138,6 +107,5 @@ if __name__ == "__main__":
    t = lines[:,19]
    R = lines[:,20:30]
    
-   log.close()
    with cd(pth):
 		plot_R(R,w,Q,k)

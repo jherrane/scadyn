@@ -1,5 +1,6 @@
 # Module to plot the results of T-VIEDYN integration (WIP)
-#from cd import cd, make_sure_path_exists
+from cd import *
+from arrow import *
 import StringIO
 import matplotlib as mpl
 mpl.use('Agg')
@@ -7,41 +8,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import numpy as np
 import math
-import os
-import errno
 from itertools import islice
-from matplotlib.patches import FancyArrowPatch
-from mpl_toolkits.mplot3d import proj3d
-
-class Arrow3D(FancyArrowPatch):
-   def __init__(self, xs, ys, zs, *args, **kwargs):
-      FancyArrowPatch.__init__(self, (0,0), (0,0), *args, **kwargs)
-      self._verts3d = xs, ys, zs
-
-   def draw(self, renderer):
-      xs3d, ys3d, zs3d = self._verts3d
-      xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
-      self.set_positions((xs[0],ys[0]),(xs[1],ys[1]))
-      FancyArrowPatch.draw(self, renderer)
-
-class cd:
-   """Context manager for changing the current working directory"""
-   def __init__(self, newPath):
-      self.newPath = os.path.expanduser(newPath)
-
-   def __enter__(self):
-      self.savedPath = os.getcwd()
-      os.chdir(self.newPath)
-
-   def __exit__(self, etype, value, traceback):
-      os.chdir(self.savedPath)
-
-def make_sure_path_exists(path):
-   try:
-      os.makedirs(path)
-   except OSError as exception:
-      if exception.errno != errno.EEXIST:
-         raise
 
 def Round_To_n(x, n):
    return round(x, -int(np.floor(np.sign(x) * np.log10(abs(x)))) + n)
@@ -117,31 +84,11 @@ def plot_mav(x,y,n,title,xlabel,ylabel,figname):
    plt.savefig(figname)
    plt.close(fig)
 
-def plot_R(R_list,Q,k,title,figname):
-   font = {'weight' : 'bold', 'size' : 18}
-   fig = plt.figure(figsize=(12,12))
-   # Set up test vector
-   #v_test = (Q[:,0]+Q[:,1]+Q[:,2])/np.sqrt(3)
-   v1 = []
-   v2 = []
-   v3 = []
-   for R1 in R_list: 
-    R = np.asarray(R1).reshape((3,3))
-    RQ = np.dot(R,np.transpose(Q))
-    v1.append(RQ[0,:])
-    v2.append(RQ[1,:])
-    v3.append(RQ[2,:])
-   plot_orbit2(v1,k,title+' a_1' ,'a_1'+figname)
-   plot_orbit2(v2,k,title+' a_2' ,'a_2'+figname)
-   plot_orbit2(v3,k,title+' a_3' ,'a_3'+figname)
-
 if __name__ == "__main__":
    #This block will be evaluated if this script is called as the main routine
    #and will be ignored if this file is imported from another script.
 
    pth = 'figs'
-   make_sure_path_exists(pth)
-   
    #plt.xkcd()
    
    log = open('log','r')
@@ -193,7 +140,6 @@ if __name__ == "__main__":
       plot_orbit(wb,'Spin of angular velocity in body frame','wborbit.png')
       plot_orbit(J,'Time evolution of angular momentum','Jorbit.png')
       plot_orbit(Jb,'Angular momentum direction in body frame','Jborbit.png')
-      plot_R(R,Q,k,'Time evolution of','.png')
       plot_mav(t,F,mav,'Running average of Force vs. Time','t (s)','F (Nm)','Fav.png')
       plot_mav(t,w,mav,'Running average of angular velocity vs. Time','t (s)','\omega (rad/s)','wav.png')
       plot_mav(t,N,mav,'Running average of torque vs. Time','t (s)','N (Nm)','Nav.png')

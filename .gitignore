@@ -43,3 +43,4 @@ scadyn
 /bin/
 *log*
 *mueller*
+*.pyc*
