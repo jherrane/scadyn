@@ -509,16 +509,16 @@ contains
          write (1, '(19A)') ' N_size ', '     N_ia ', '    N_pts ', '      S11  ', '         S12  ', &
             '         S13  ', '         S14  ', '         S21  ', '         S22  ', '         S23  ', &
             '         S24  ', '         S31  ', '         S32  ', '         S33  ', '         S34  ', &
-            '         S41  ', '         S42  ', '         S43  ', '         S44  '
+            '         S41  ', '         S42  ', '         S43  ', '         S44  ', '        Csca  '
       else if (type == 2) then
          write (1, '(19A)') ' N_size ', '     N_ia ', '    N_pts ', '      K11  ', '         K12  ', &
             '         K13  ', '         K14  ', '         K21  ', '         K22  ', '         K23  ', &
             '         K24  ', '         K31  ', '         K32  ', '         K33  ', '         K34  ', &
-            '         K41  ', '         K42  ', '         K43  ', '         K44  '
+            '         K41  ', '         K42  ', '         K43  ', '         K44  ', '        Cext  '
       end if
 
       do i = 1, int(dims(1))
-         write (1, '(3I8,16ES14.6)') int(A(i, 1:3)), A(i, 4:19)
+         write (1, '(3I8,19ES14.6)') int(A(i, 1:3)), A(i, 4:20)
       end do
 
       close (1)

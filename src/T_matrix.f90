@@ -262,6 +262,26 @@ contains
    end subroutine compute_T_matrix
 
 !****************************************************************************80
+! Return the precalculated fields a and b, given electric field amplitude E and
+! the current wavelength index ii
+   subroutine incident_fields(E, a_in, b_in, ii)
+      real(dp) :: E
+      complex(dp), dimension(:), allocatable :: a_in, b_in
+      integer :: nm, las, ii, Nmax
+
+      Nmax = matrices%Nmaxs(ii)
+      las = (Nmax + 1)*(2*Nmax + 1)*(2*Nmax + 3)/3 - 1
+      nm = (Nmax + 1)**2 - 1
+
+      if(allocated(a_in)) deallocate(a_in, b_in)
+      allocate (a_in(nm), b_in(nm))
+
+      a_in = E*matrices%as(1:nm, ii)
+      b_in = E*matrices%bs(1:nm, ii)
+
+   end subroutine incident_fields
+
+!****************************************************************************80
 ! Solve the scattered fields p and q, given electric field amplitude E and
 ! the current wavelength index ii
    subroutine scattered_fields(E, p, q, p90, q90, ii)

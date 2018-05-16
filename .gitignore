@@ -44,3 +44,5 @@ scadyn
 *log*
 *mueller*
 *.pyc*
+
+extinction_matrix
