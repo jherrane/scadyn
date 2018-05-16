@@ -7,23 +7,15 @@ contains
 
 !****************************************************************************80
 ! Calculate forces and torques during single step
-   function get_forces() result(FN)
+   subroutine get_forces()
       real(dp), dimension(3, 3) :: RT, R_k, R_k90
+      real(dp), dimension(3) :: Q_t
       complex(dp), dimension(3) :: F, N, N_DG, N_B
-      complex(dp), dimension(6) :: FN
       integer :: i
 
-      RT = transpose(matrices%R)
-      R_k = matmul(RT, matrices%R_fixk)
-      R_k90 = matmul(R_k, matrices%R90_init)
+      call rot_setup()
 
-      call gen_rotations(R_k, R_k90)
-
-      matrices%khat = matmul(RT, matrices%k_orig)
-      matrices%E0hat = dcmplx(matmul(R_k, matrices%E0_orig), 0.0d0)
-      matrices%E90hat = dcmplx(matmul(R_k90, matrices%E90_orig), 0.0d0)
-
-      FN = dcmplx(0.0d0, 0.0d0)
+      Q_t = 0d0
       N = dcmplx(0.0d0, 0.0d0)
       F = dcmplx(0.0d0, 0.0d0)
 
@@ -33,11 +25,13 @@ contains
             call forcetorque(i)
             F = F + matrices%force
             N = N + matrices%torque
+            Q_t = Q_t + matrices%Q_t/matrices%bars
          end do
       else
          call forcetorque(matrices%whichbar)
          F = F + matrices%force
          N = N + matrices%torque
+         Q_t = Q_t + matrices%Q_t
       end if
 
       if (calc_extra_torques == 1) then
@@ -47,10 +41,11 @@ contains
          N = N + N_B + N_DG
       end if
 
-      FN(1:3) = dcmplx(matmul(matrices%R, real(F))) ! {x}_sca -> {x}_lab
-      FN(4:6) = dcmplx(matmul(transpose(matrices%P), real(N))) ! {N}_sca -> {N}_b
+      matrices%F = matmul(matrices%R, real(F)) ! {x}_sca -> {x}_lab
+      matrices%N = matmul(transpose(matrices%P), real(N)) ! {N}_sca -> {N}_b
+      matrices%Q_t = Q_t/matrices%polarization
 
-   end function get_forces
+   end subroutine get_forces
 
 !****************************************************************************80
 ! Calculate forces and torques using numerical integration of Maxwell stress
@@ -412,14 +407,30 @@ contains
    end function G_align
 
 !****************************************************************************80
-! Torque efficiency as a function of capital theta and phi (as in the works of
-! Draine and Weingartner)
-   function get_Qt(theta, phi, beta) result(Q)
-      real(dp) :: R_thta(3, 3), nbeta(3), R_beta(3, 3), Q(3), theta, beta, phi, &
-                  a_3(3), R_phi(3, 3)
-      integer :: k
+! Beta (rotation about a_3) averaged torque efficiency as a function of 
+! capital theta and phi (as in the works of Draine and Weingartner)
+   function get_Qav(theta, phi) result(Q)
+      real(dp) :: Q(3), theta, phi, beta
+      integer :: i, Nbeta
 
       Q = 0d0
+      Nbeta = 20
+
+      do i = 1,Nbeta
+         beta = dble(i)*pi*2d0/Nbeta
+         Q = Q + matmul(matrices%Rkt,get_Q(theta,phi,beta))/Nbeta
+      end do
+
+   end function get_Qav
+
+!****************************************************************************80
+! Torque efficiency as a function of capital theta, phi and beta (as in the 
+! works of Draine and Weingartner)
+   function get_Q(theta, phi, beta) result(Q)
+      real(dp) :: R_thta(3, 3), nbeta(3), R_beta(3, 3), Q(3), theta, beta, phi, &
+                  a_3(3), R_phi(3, 3)
+      complex(dp) :: call(6)
+      integer :: k
 
       a_3 = matrices%P(1:3, 3)
 
@@ -435,30 +446,39 @@ contains
 ! The ultimate rotation matrices for scattering event
       matrices%R = matmul(R_beta, R_thta) ! First a_3 to theta, then beta about a_3
 
-      call rot_setup()
+      call get_forces()
+      Q = matrices%Q_t
 
-      if (matrices%whichbar == 0) then
-         do k = 1, matrices%bars
-            call forcetorque(k)
-            Q = Q + matrices%Q_t/matrices%bars/matrices%polarization
-         end do
-      else
-         k = matrices%whichbar
-         call forcetorque(k)
-         Q = Q + matrices%Q_t/matrices%polarization
-      end if
-
-   end function get_Qt
+   end function get_Q
 
 !****************************************************************************80
 ! Calculates orientation angles in terms of alignment angles xi, psi and phi
-   function thetaphi(xi, psi, phi) result(tp)
+   function get_thetaphi(xi, psi, phi) result(tp)
       real(dp) :: xi, psi, phi, tp(2)
 
       tp(1) = dacos(cos(psi)*cos(xi) - sin(psi)*sin(xi)*cos(phi))
       tp(2) = 2d0*datan2(sin(tp(1)) - sin(psi)*cos(xi) - &
                          cos(psi)*sin(xi)*cos(phi), sin(xi)*sin(phi))
 
-   end function thetaphi
+   end function get_thetaphi
+
+!****************************************************************************80
+! Calculates alignment angles xi and phi from a given rotation vector
+   function get_xiphi(R) result(xp)
+      real(dp) :: R(3,3), xi, phi, xp(2), B(3), a_3_perp_z(3)
+
+      B = matrices%B/vlen(matrices%B)
+      a_3_perp_z = matrices%P(:,3)
+      xi = dacos(dot_product(B, matmul(R,a_3_perp_z)))
+
+      a_3_perp_z(3) = 0d0
+      a_3_perp_z = a_3_perp_z/vlen(a_3_perp_z)
+
+      phi = dacos(dot_product([1d0,0d0,0d0],a_3_perp_z))
+      if(a_3_perp_z(2)<0d0) phi = phi + pi
+
+      xp = [xi,phi]
+
+   end function get_xiphi
 
 end module forces

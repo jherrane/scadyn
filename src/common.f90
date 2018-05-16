@@ -1412,7 +1412,32 @@ contains
 
    end subroutine angular_grid
 
-!****************************************************************************80*
+!****************************************************************************80
+
+subroutine remove_duplicates(arr,k)
+   integer :: i,j,k
+   real(dp), dimension(:), allocatable :: arr, out
+   allocate(out(size(arr)))
+
+   out = -1d0
+   out(1) = arr(1)
+   k = 1
+
+   outer: do i = 2,size(arr,1)
+      do j = 1, k
+         if(out(j)==arr(i)) then
+            cycle outer
+         end if
+      end do 
+      k = k + 1
+      out(k) = arr(i)
+   end do outer
+
+   arr = out
+
+end subroutine remove_duplicates
+
+!****************************************************************************80
 
    function choose(n, k) result(res)
       implicit none
@@ -1424,7 +1449,7 @@ contains
 
    end function choose
 
-!****************************************************************************80*
+!****************************************************************************80
 
    function R_theta(theta) result(R)
       real(dp), dimension(3, 3) ::  R_init, R_thta, R, R_pol

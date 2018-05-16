@@ -281,9 +281,7 @@ contains
 
       P = matrices%P
 
-      FN = get_forces()
-      matrices%F = real(FN(1:3))
-      matrices%N = real(FN(4:6))
+      call get_forces()
       call adaptive_step()
 
       wn = .5d0*matrices%dt*get_dotw(matrices%N, matrices%w, matrices%I, matrices%I_inv)
@@ -307,7 +305,6 @@ contains
       real(dp), dimension(4) :: qn
       real(dp) :: dt, k_q(4, 4), k_w(3, 4), coeffs(4), &
                   k_v(3, 4), k_x(3, 4), R(3, 3), wn(3), P(3, 3)
-      real(dp), dimension(6) :: FN
 
       R = matrices%R
       P = matrices%P
@@ -316,9 +313,8 @@ contains
 
       coeffs = [1d0, 2d0, 2d0, 1d0]
 
-      FN = real(get_forces())
-      matrices%F = FN(1:3)
-      matrices%N = FN(4:6)
+      call get_forces()
+
       call adaptive_step()
 
       dt = matrices%dt
@@ -330,32 +326,26 @@ contains
       k_q(:, 1) = dt*get_dotq(matrices%w, matrices%q)
       matrices%R = quat2mat(matrices%q + 0.5d0*k_q(:, 1))
 
-      FN = real(get_forces())
-      matrices%F = FN(1:3)
+      call get_forces()
       k_v(:, 2) = dt*matrices%F/mesh%mass
       k_x(:, 2) = dt*(matrices%v_CM + k_v(:, 1)*0.5d0)
 
-      matrices%N = FN(4:6)
       k_w(:, 2) = dt*get_dotw(matrices%N, matrices%w + 0.5d0*k_w(:, 1), matrices%I, matrices%I_inv)
       k_q(:, 2) = dt*get_dotq(matrices%w + 0.5d0*k_w(:, 1), matrices%q + 0.5d0*k_q(:, 1))
       matrices%R = quat2mat(matrices%q + 0.5d0*k_q(:, 2))
 
-      FN = real(get_forces())
-      matrices%F = FN(1:3)
+      call get_forces()
       k_v(:, 3) = dt*matrices%F/mesh%mass
       k_x(:, 3) = dt*(matrices%v_CM + k_v(:, 2)*0.5d0)
 
-      matrices%N = FN(4:6)
       k_w(:, 3) = dt*get_dotw(matrices%N, matrices%w + 0.5d0*k_w(:, 2), matrices%I, matrices%I_inv)
       k_q(:, 3) = dt*get_dotq(matrices%w + 0.5d0*k_w(:, 2), matrices%q + 0.5d0*k_q(:, 2))
       matrices%R = quat2mat(matrices%q + 0.5d0*k_q(:, 3))
 
-      FN = real(get_forces())
-      matrices%F = FN(1:3)
+      call get_forces()
       k_v(:, 4) = dt*matrices%F/mesh%mass
       k_x(:, 4) = dt*(matrices%v_CM + k_v(:, 3))
 
-      matrices%N = FN(4:6)
       k_w(:, 4) = dt*get_dotw(matrices%N, matrices%w + k_w(:, 3), matrices%I, matrices%I_inv)
       k_q(:, 4) = dt*get_dotq(matrices%w + k_w(:, 3), matrices%q + k_q(:, 3))
 
@@ -385,13 +375,14 @@ contains
 
 ! First force calculation for getting a reasonable value for dt
       if (matrices%tt == 0d0 .AND. .NOT. matrices%E < 1d-7) then
-         FN = get_forces()
-         matrices%F = real(FN(1:3))
-         matrices%N = real(FN(4:6))
+         call get_forces()
       end if
       call adaptive_step()
       dt = matrices%dt
-      if (matrices%E < 1d-7) matrices%N = 0d0
+      if (matrices%E < 1d-7) then 
+         matrices%N = 0d0
+         matrices%F = 0d0
+      end if
 
 ! Step 1) Newton solve
       wnh = matrices%w ! Body angular velocity
@@ -425,10 +416,12 @@ contains
       matrices%Rn = quat2mat(matrices%qn)
 
       matrices%R = matrices%Rn
-      if (.NOT. matrices%E < 1d-7) FN = get_forces()
-      if (matrices%E < 1d-7) FN = dcmplx(0d0)
-      matrices%F = real(FN(1:3))
-      matrices%N = real(FN(4:6))
+      if (matrices%E > 1d-7) then 
+         call get_forces()
+      else
+         matrices%F = 0d0
+         matrices%N = 0d0
+      end if
 
 ! Step 3) Explicit angular velocity update
       Jwn = Jw + PxW + 0.25d0*dt**2d0*dot_product(wnh, Jw)*wnh + 0.5d0*dt*matrices%N
@@ -449,9 +442,7 @@ contains
       real(dp) ::  w(3), wn(3), Imat(3, 3), Imat_inv(3, 3), dwb(3), wb(3), wbn(3), dt
       complex(dp), dimension(6) :: FN
 
-      FN = get_forces()
-      matrices%F = real(FN(1:3))
-      matrices%N = real(FN(4:6))
+      call get_forces()
       call adaptive_step()
 
       dt = matrices%dt
@@ -477,8 +468,7 @@ contains
       wn = quat_rotation(qn, wbn) ! body->lab frame
 
 ! New torque with predicted values
-      FN = get_forces()
-      matrices%N = real(FN(4:6))
+      call get_forces()
 
 ! Corrected new values
       matrices%dw = matmul(Imat_inv, matrices%N - crossRR(wbn, matmul(Imat, wbn)))

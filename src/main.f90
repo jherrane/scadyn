@@ -63,10 +63,13 @@ contains
       if (beam_shape == 3) call bessel_beams()
 
       if (run_test == 1) call test_methods()
-      if (run_test == 2) call torque_efficiency()
+      if (run_test == 2) then
+         ! call torque_efficiency()
+         call RAT_efficiency(60, 20, 10)
+      end if 
       if (run_test == 3) call stability_analysis()
       if (run_test == 4) call write_fields()
-      if (run_test == 5) call test_mueller()
+      if (run_test == 5) call test_mueller(9, 18)
 
    end subroutine tests
 

@@ -8,7 +8,9 @@ module postprocessing
 contains
 
 !****************************************************************************80
-
+! Test the numerical and analytical methods of calculating scattering forces. 
+! When incident field is planewave, the results should match always. Numerical
+! shenanigans seem to occur with other beams. PSA: Fixing it can be a hassle.
    subroutine test_methods()
       integer :: i, j, ii, range(2)
       real(dp), dimension(:, :), allocatable :: Q_fcoll, Q_tcoll
@@ -93,114 +95,85 @@ contains
 ! about its major axis of inertia (a_3) for angles 0 to pi between
 ! a_3 and incident k0. Results are automatically comparable with DDSCAT.
    subroutine torque_efficiency()
-      integer :: i, j, k, Nang, Bang, psi_deg, ind
-      real(dp), dimension(3, 3) :: R_phi, R_B, R_xi
-      real(dp), dimension(3) :: k0, E0, E90, Q_t, nphi, a_3, x_B
-      real(dp) :: theta, beta, xi, phi, psi
-      real(dp), dimension(:, :), allocatable :: Q_coll, F_coll, points
-      real(dp), dimension(:), allocatable :: psis, thetas
+      integer :: i, Ntheta
+      real(dp), dimension(3) :: Q_t
+      real(dp) :: theta
+      real(dp), dimension(:), allocatable :: thetas
+      real(dp), dimension(:, :), allocatable :: Q_coll
 
-      call rot_setup()
+      Ntheta = 60 ! Angle of rotation of a_3 about e_1 (when psi=0)
 
-      k0 = matrices%khat
-      E0 = real(matrices%E0hat)
-      E90 = real(matrices%E90hat)
-
-      Nang = 60 ! Angle of rotation of a_3 about e_1 (when psi=0)
-      Bang = 20 ! Angle of averaging over beta
-
-      allocate (thetas(Nang), Q_coll(3, Nang))
-      call linspace(0d0, pi, Nang, thetas)
-      Q_coll(:, :) = 0d0
+      allocate (thetas(Ntheta), Q_coll(3, Ntheta))
+      call linspace(0d0, pi, Ntheta, thetas)
 
 ! Torque efficiency calculations as in Lazarian2007b
       write (*, '(A)') '  Starting the calculation of beta-averaged torque efficiency:'
 ! Theta loop
-      do i = 1, Nang
+      do i = 1, Ntheta
          Q_t = 0d0
          theta = thetas(i)
-         ! Beta averaging loop
-         do j = 0, Bang - 1
-            ! Find rotation of angle beta around the rotated a_3-axis
-            beta = dble(j)*pi*2d0/Bang
-            ! Flip the coordinate labels to match Lazarian2007b
-            Q_t = matmul(matrices%Rkt, get_Qt(theta, 0d0, beta))
-
-            Q_t = [dot_product(Q_t, k0), dot_product(Q_t, E0), dot_product(Q_t, E90)]
-            Q_coll(:, i) = Q_coll(:, i) + Q_t/Bang
-         end do
-         call print_bar(i, Nang)
+         Q_t = get_Qav(theta, 0d0)
+! Flip the coordinate labels to match Lazarian2007b: In this code, k is along 
+! z instead of x, 0-polarization is the y of L2007b. So, inverse that next.
+         Q_coll(:, i) = [Q_t(3),Q_t(1),Q_t(2)]
+         call print_bar(i, Ntheta)
       end do
 
       open (unit=1, file="out/Q.out", ACTION="write", STATUS="replace")
       write (1, '(A)') 'cos(theta)  Q_{t,1} Q_{t,2} Q_{t,3}'
-      do i = 0, Nang - 1
+      do i = 0, Ntheta - 1
          write (1, '(4E12.3)') dcos(thetas(i + 1)), Q_coll(:, i + 1)
       end do
       close (1)
+   end subroutine torque_efficiency
 
-! Radiative torque calculations, emulating work of Draine & Weingartner (1997), ApJ 480:633
-      allocate (psis(5))
-      psis = [0d0, 30d0, 60d0, 80d0, 90d0]
+!****************************************************************************80
+! Calculates the torque efficiency of a particle averaged over rotation
+! about its major axis of inertia (a_3) for angles 0 to pi between
+! a_3 and incident k0. Results are automatically comparable with DDSCAT.
+   subroutine RAT_efficiency(Nxi, Nphi, Npsi)
+      integer :: i, j, k, l, Nxi, Nphi, Npsi, ind
+      real(dp), dimension(3) :: Q_t, n_phi
+      real(dp), dimension(:, :), allocatable :: F_coll
+      real(dp), dimension(3,3) :: R_B, R_phi, R_xi
+      real(dp), dimension(:), allocatable :: psi, xi, phi
 
-      allocate (F_coll(6, Nang*size(psis, 1)))
-      allocate (points(3, Bang))
+      allocate (xi(Nxi), phi(Nphi), psi(Npsi), F_coll(6, Nxi*Npsi))
+      call linspace(0d0, pi, Nxi, xi)
+      call linspace(0d0, pi/2d0, Npsi, psi)
+      call linspace(0d0, pi*2d0, Nphi, phi)
       F_coll(:, :) = 0d0
+
+! Radiative torque calculations, emulating work of Draine & Weingartner (1997), ApJ 480:633  
       ind = 0
-
       write (*, '(A)') '  Starting the calculation of phi-averaged radiative torques:'
-      do psi_deg = 1, size(psis, 1)
-! First, set up B in the direction of psi (B still lies in the xz-plane)
-         psi = dble(psis(psi_deg))*pi/180d0
-         x_B = [0d0, 1d0, 0d0]
 
-! Rotation axis for precession averaging
-         nphi = matmul(R_aa(x_B, psi), k0) ! Is actually B
-
-! Second, set up rotation from a_3 to new B
-         R_B = rotate_a_to_b(matrices%P(1:3, 3), nphi)
-
-! Xi loop
-         do i = 1, Nang
-            xi = thetas(i)
+! First, set up rotation axis for precession averaging in the direction of psi (B)     
+      do i = 1, Npsi
+         n_phi = matmul(R_aa([0d0, 1d0, 0d0], psi(i)), [0d0,0d0,1d0]) ! Is actually B
+         R_B = rotate_a_to_b(matrices%P(1:3, 3), n_phi)
 
 ! Rotation to xi of a_3 is a combined rotation of angle psi+xi
-            R_xi = matmul(R_aa(x_B, xi), R_B)
+         do j = 1, Nxi
+            R_xi = matmul(R_aa([0d0, 1d0, 0d0], xi(j)), R_B)
 
-! Beta averaging loop
-            do j = 0, Bang - 1
-               Q_t = 0d0
-
-! Find rotation of angle beta around the rotated a_3-axis
-               phi = dble(j)*pi*2d0/Bang
-               R_phi = R_aa(nphi, phi)
-
-! The ultimate rotation matrices for scattering event
+! Find rotation of angle phi around the rotated a_3-axis and the whole rotation
+            do k = 1, Nphi
+               R_phi = R_aa(n_phi, phi(k))
                matrices%R = matmul(R_phi, R_xi) ! First a_3 to xi, then beta about a_3
-               call rot_setup()
+               
+               call get_forces()
 
-               if (matrices%whichbar == 0) then
-                  do k = 1, matrices%bars
-                     call forcetorque(k)
-                     Q_t = Q_t + matrices%Q_t/matrices%bars
-                  end do
-               else
-                  k = matrices%whichbar
-                  call forcetorque(k)
-                  Q_t = Q_t + matrices%Q_t
-               end if
+               Q_t = matmul(matrices%R,matrices%Q_t)/Nphi
 
-               Q_t = matmul(matrices%R, Q_t)
-
-               F_coll(3, ind + 1) = F_coll(3, ind + 1) + F_align(Q_t, xi, phi, psi)/Bang
-               F_coll(4, ind + 1) = F_coll(4, ind + 1) + H_align(Q_t, xi, phi, psi)/Bang
-               F_coll(5, ind + 1) = F_coll(5, ind + 1) + G_align(Q_t, phi, psi)/Bang
+               F_coll(3, ind + 1) = F_coll(3, ind + 1) + F_align(Q_t, xi(j), phi(k), psi(i))
+               F_coll(4, ind + 1) = F_coll(4, ind + 1) + H_align(Q_t, xi(j), phi(k), psi(i))
+               F_coll(5, ind + 1) = F_coll(5, ind + 1) + G_align(Q_t, phi(k), psi(i))
             end do
 
-            F_coll(1:2, ind + 1) = [xi, psi]
+            F_coll(1:2, ind + 1) = [xi(j), psi(i)]
             call print_bar(ind + 1, size(F_coll, 2))
             ind = ind + 1
-
          end do
       end do
 
@@ -210,8 +183,7 @@ contains
          write (1, '(6ES12.3)') dcos(F_coll(1:2, i)), F_coll(3:5, i)
       end do
       close (1)
-
-   end subroutine torque_efficiency
+   end subroutine RAT_efficiency
 
 !****************************************************************************80
 
@@ -348,23 +320,20 @@ contains
 
 !****************************************************************************80
 
-   subroutine test_mueller()
-      integer :: i, j, ind, halton_init, N_points, N_phi, N_theta
+   subroutine test_mueller(Ntheta, Nphi)
+      integer :: i, j, ind, halton_init, Nphi, Ntheta
       real(dp) :: al_direction(3)
       real(dp), dimension(:), allocatable :: a_dist
-      real(dp), dimension(:, :), allocatable :: points
+      real(dp), dimension(:,:), allocatable :: points
 
       halton_init = 0
-      N_theta = 9
-      N_phi = 18
-      N_points = N_theta*N_phi
-      allocate (points(2, N_points))
+      allocate(points(2,Ntheta*Nphi))
 
       ind = 1
-      do i = 1, N_theta
-         do j = 1, N_phi
-            points(1, ind) = pi*(i - 1)/(N_theta) + pi/N_theta/2.0
-            points(2, ind) = 2*pi*(j - 1)/N_phi
+      do i = 1, Ntheta
+         do j = 1, Nphi
+            points(1, ind) = pi*(i - 1)/(Ntheta) + pi/Ntheta/2.0
+            points(2, ind) = 2*pi*(j - 1)/Nphi
             ind = ind + 1
          end do
       end do
