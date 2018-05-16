@@ -64,7 +64,7 @@ contains
 
       if (run_test == 1) call test_methods()
       if (run_test == 2) then
-         ! call torque_efficiency()
+         call torque_efficiency()
          call RAT_efficiency(60, 20, 10)
       end if 
       if (run_test == 3) call stability_analysis()

@@ -97,22 +97,19 @@ contains
    subroutine torque_efficiency()
       integer :: i, Ntheta
       real(dp), dimension(3) :: Q_t
-      real(dp) :: theta
-      real(dp), dimension(:), allocatable :: thetas
+      real(dp), dimension(:), allocatable :: theta
       real(dp), dimension(:, :), allocatable :: Q_coll
 
       Ntheta = 60 ! Angle of rotation of a_3 about e_1 (when psi=0)
 
-      allocate (thetas(Ntheta), Q_coll(3, Ntheta))
-      call linspace(0d0, pi, Ntheta, thetas)
+      allocate (theta(Ntheta), Q_coll(3, Ntheta))
+      call linspace(0d0, pi, Ntheta, theta)
 
 ! Torque efficiency calculations as in Lazarian2007b
       write (*, '(A)') '  Starting the calculation of beta-averaged torque efficiency:'
 ! Theta loop
       do i = 1, Ntheta
-         Q_t = 0d0
-         theta = thetas(i)
-         Q_t = get_Qav(theta, 0d0)
+         Q_t = get_Qav(theta(i), 0d0)
 ! Flip the coordinate labels to match Lazarian2007b: In this code, k is along 
 ! z instead of x, 0-polarization is the y of L2007b. So, inverse that next.
          Q_coll(:, i) = [Q_t(3),Q_t(1),Q_t(2)]
@@ -121,8 +118,8 @@ contains
 
       open (unit=1, file="out/Q.out", ACTION="write", STATUS="replace")
       write (1, '(A)') 'cos(theta)  Q_{t,1} Q_{t,2} Q_{t,3}'
-      do i = 0, Ntheta - 1
-         write (1, '(4E12.3)') dcos(thetas(i + 1)), Q_coll(:, i + 1)
+      do i = 1, Ntheta
+         write (1, '(4E12.3)') dcos(theta(i)), Q_coll(:, i)
       end do
       close (1)
    end subroutine torque_efficiency
@@ -188,16 +185,13 @@ contains
 !****************************************************************************80
 
    subroutine stability_analysis()
-      integer :: i, j, k, ind, Npoints, Nang, Bang, N_J, Nphi, Ntheta
-      real(dp), dimension(3, 3) ::  R_beta, R_thta
-      real(dp), dimension(3) :: Q_t, nbeta
-      real(dp) :: thta, beta
-      real(dp), dimension(:, :), allocatable :: Q_coll, vec
-      real(dp) :: res, res1, res2, res3, mx
-      real(dp), dimension(3) :: k0, a_1, a_2, a_3, knew, NN, maxdir, anew
-      complex(dp), dimension(3) :: N
-      real(dp), dimension(:), allocatable :: theta, costheta, phi
-
+      integer :: i, j, k, ind, Npoints, Nphi, Ntheta, Nbeta
+      real(dp), dimension(3, 3) ::  Rbeta, Rtheta
+      real(dp), dimension(3) :: n_beta, k0, a_1, a_2, a_3, N, maxdir, a
+      real(dp) :: mx, tmp
+      real(dp), dimension(:, :), allocatable :: Q_coll, vec 
+      real(dp), dimension(:), allocatable :: theta, costheta, phi, beta
+      
       call rot_setup()
 
       k0 = matrices%khat
@@ -226,95 +220,26 @@ contains
       write (1, '(A)') '  x   y   z   N.a_1   N.a_2   N.a_3'
 
       do i = 1, Npoints
-         N = dcmplx(0d0)
-         knew = vec(:, i)
          ! The ultimate rotation matrices for scattering event
-         matrices%R = rotate_a_to_b(k0, knew)
-         call rot_setup()
+         matrices%R = rotate_a_to_b(k0, vec(:, i))
+         call get_forces()
 
-         if (matrices%whichbar == 0) then
-            do k = 1, matrices%bars
-               call forcetorque(k)
-               N = N + matrices%Q_t
-            end do
-         else
-            k = matrices%whichbar
-            call forcetorque(k)
-            N = N + matrices%Q_t
+         a = matmul(transpose(matrices%R), a_3)
+         N = matmul(transpose(matrices%P), matrices%Q_t)
+         tmp = dot_product(N, a_3)
+         if (tmp > mx) then
+            mx = tmp
+            maxdir = a
          end if
-         anew = matmul(transpose(matrices%R), a_3)
-         NN = matmul(transpose(matrices%P), real(N))
-         res1 = dot_product(NN, a_1)
-         res2 = dot_product(NN, a_2)
-         res3 = dot_product(NN, a_3)
-         if (res3 > mx) then
-            mx = res3
-            maxdir = anew
-         end if
-         write (1, '(6E12.3)') anew(1), anew(2), anew(3), res1, res2, res3
+         write (1, '(6E12.3)') a(1), a(2), a(3), &
+                dot_product(N, a_1), dot_product(N, a_2), tmp
          call print_bar(i + 1, Npoints)
       end do
-
       close (1)
-      res = dacos(dot_product([0d0, 0d0, 1d0], maxdir/vlen(maxdir)))*180d0/pi
-      write (*, '(A,3F7.3,A,F7.3)') 'Stablest direction = (', maxdir, ' ), angle between a_3 and k = ', res
 
-      N_J = 5
-      Nang = 180 ! Angle of rotation of a_3 about e_1 (when psi=0)
-      Bang = 360 ! Angle of averaging over beta
-
-      allocate (Q_coll(3, Nang))
-      Q_coll(:, :) = 0d0
-      ind = 0
-
-      open (unit=1, file="out/N.out", ACTION="write", STATUS="replace")
-      write (1, '(A)') 'cos(theta)  N_k   N_E0    N_E90'
-
-! Theta loop
-      do i = 0, Nang - 1
-         thta = dble(i)*pi/180d0
-         R_thta = R_theta(thta)
-         N = dcmplx(0d0)
-
-! Rotation axis for beta averaging for current theta
-         nbeta = matmul(R_thta, a_3) ! Beta rotation about a_3
-         nbeta = nbeta/vlen(nbeta) ! Ensure unit length of axis vector
-
-! Beta averaging loop
-         do j = 0, Bang - 1
-            Q_t = 0d0
-
-! Find rotation of angle beta around the rotated a_3-axis
-            beta = dble(j)*pi*2d0/Bang
-            R_beta = R_aa(nbeta, beta)
-
-! The ultimate rotation matrices for scattering event
-            matrices%R = matmul(R_beta, R_thta) ! First a_3 to theta, then beta about a_3
-            call rot_setup()
-            if (matrices%whichbar == 0) then
-               do k = 1, matrices%bars
-                  call forcetorque(k)
-                  N = N + matrices%torque
-               end do
-            else
-               k = matrices%whichbar
-               call forcetorque(k)
-               N = N + matrices%torque
-            end if
-! Flip the coordinate labels to match Lazarian2007b
-            NN = matmul(matrices%Rkt, real(N))
-            NN = [dot_product(NN, matrices%khat), &
-                  dot_product(NN, real(matrices%E0hat)), dot_product(NN, real(matrices%E90hat))]
-            Q_coll(:, i + 1) = Q_coll(:, i + 1) + NN
-         end do
-
-         ind = ind + 1
-         call print_bar(ind, Nang)
-
-         write (1, '(4E14.5)') dcos(thta), Q_coll(:, i + 1)
-
-      end do
-      close (1)
+      tmp = dacos(dot_product(k0, maxdir/vlen(maxdir)))*180d0/pi
+      write (*, '(A,3F7.3,A,F7.3)') 'Stablest direction = (', maxdir, &
+                                    ' ), angle between a_3 and k = ', tmp
 
    end subroutine stability_analysis
 

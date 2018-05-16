@@ -43,7 +43,7 @@ contains
 
       matrices%F = matmul(matrices%R, real(F)) ! {x}_sca -> {x}_lab
       matrices%N = matmul(transpose(matrices%P), real(N)) ! {N}_sca -> {N}_b
-      matrices%Q_t = Q_t/matrices%polarization
+      matrices%Q_t = Q_t
 
    end subroutine get_forces
 
