@@ -87,7 +87,7 @@ contains
       Tab = matrices%Tabi(1:nm, 1:nm, j)
       Tba = matrices%Tbai(1:nm, 1:nm, j)
       Tbb = matrices%Tbbi(1:nm, 1:nm, j)
-
+      
       a_in = E*matrices%as(1:nm, j)
       b_in = E*matrices%bs(1:nm, j)
 
