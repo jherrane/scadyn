@@ -31,8 +31,10 @@ program main
 
    if (run_test == 0) then
       call integrate()
-      if (int_mode >= 1) then
+      if (int_mode >= 1 .AND. int_mode < 3) then
          call compute_log_RAT()
+      else if(int_mode ==3 ) then
+         call stable_particle_RAT()
       end if
    else
       call tests()
@@ -65,7 +67,7 @@ contains
       if (run_test == 1) call test_methods()
       if (run_test == 2) then
          call torque_efficiency()
-         call RAT_efficiency(60, 20, 10)
+         call RAT_efficiency(60, 20, Npsi_in = 10)
       end if 
       if (run_test == 3) call stability_analysis()
       if (run_test == 4) call write_fields()

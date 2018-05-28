@@ -275,6 +275,16 @@ contains
 
 !****************************************************************************80
 
+   function get_dxiw(xi, w) result(dxiw)
+
+      real(dp) :: dxiw(2), xi, w
+
+      dxiw = 0d0
+
+   end function get_dxiw
+
+!****************************************************************************80
+
    subroutine euler_update()
       real(dp) :: qn(4), wn(3), vn(3), xn(3), P(3, 3)
       complex(dp), dimension(6) :: FN

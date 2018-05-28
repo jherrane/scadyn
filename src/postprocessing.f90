@@ -128,16 +128,26 @@ contains
 ! Calculates the torque efficiency of a particle averaged over rotation
 ! about its major axis of inertia (a_3) for angles 0 to pi between
 ! a_3 and incident k0. Results are automatically comparable with DDSCAT.
-   subroutine RAT_efficiency(Nxi, Nphi, Npsi)
+   subroutine RAT_efficiency(Nxi, Nphi, Npsi_in, FGH)
       integer :: i, j, k, l, Nxi, Nphi, Npsi, ind
+      integer, optional :: Npsi_in
       real(dp), dimension(3) :: Q_t, n_phi
       real(dp), dimension(:, :), allocatable :: F_coll
+      real(dp), dimension(:, :), allocatable, optional, intent(out) :: FGH
       real(dp), dimension(3,3) :: R_B, R_phi, R_xi
       real(dp), dimension(:), allocatable :: psi, xi, phi
 
+      if(.NOT. present(Npsi_in)) then
+         Npsi = 1
+      else
+         Npsi = Npsi_in
+      end if
+
       allocate (xi(Nxi), phi(Nphi), psi(Npsi), F_coll(6, Nxi*Npsi))
+      if(present(FGH)) allocate(FGH(3,Nxi*Npsi))
       call linspace(0d0, pi, Nxi, xi)
       call linspace(0d0, pi/2d0, Npsi, psi)
+      if(.NOT. present(Npsi_in)) psi(1) = matrices%B_psi
       call linspace(0d0, pi*2d0, Nphi, phi)
       F_coll(:, :) = 0d0
 
@@ -148,7 +158,7 @@ contains
 ! First, set up rotation axis for precession averaging in the direction of psi (B)     
       do i = 1, Npsi
          n_phi = matmul(R_aa([0d0, 1d0, 0d0], psi(i)), [0d0,0d0,1d0]) ! Is actually B
-         R_B = rotate_a_to_b(matrices%P(1:3, 3), n_phi)
+         R_B = rotate_a_to_b(matrices%P(:, 3), n_phi)
 
 ! Rotation to xi of a_3 is a combined rotation of angle psi+xi
          do j = 1, Nxi
@@ -180,19 +190,26 @@ contains
          write (1, '(6ES12.3)') dcos(F_coll(1:2, i)), F_coll(3:5, i)
       end do
       close (1)
+
+      if(present(FGH)) then
+         FGH(1,:) = F_coll(3,:)
+         FGH(2,:) = F_coll(5,:)
+         FGH(3,:) = F_coll(4,:)
+      end if
    end subroutine RAT_efficiency
 
 !****************************************************************************80
 ! Calculate the torque efficiency projected on the inertia axes for all 
 ! possible direction of radiation incidence. Similar analysis can be done
 ! taking into account the particle orientations or spin state. 
-   subroutine stability_analysis()
+   subroutine stability_analysis(result)
       integer :: i, j, k, ind, Npoints, Nphi, Ntheta, Nbeta
       real(dp), dimension(3, 3) ::  Rbeta, Rtheta
       real(dp), dimension(3) :: n_beta, k0, a_1, a_2, a_3, N, maxdir, a
       real(dp) :: mx, tmp
       real(dp), dimension(:, :), allocatable :: Q_coll, vec 
       real(dp), dimension(:), allocatable :: theta, costheta, phi, beta
+      real(dp), dimension(3), optional :: result
       
       call rot_setup()
 
@@ -242,7 +259,7 @@ contains
       tmp = dacos(dot_product(k0, maxdir/vlen(maxdir)))*180d0/pi
       write (*, '(A,3F7.3,A,F7.3)') 'Stablest direction = (', maxdir, &
                                     ' ), angle between a_3 and k = ', tmp
-
+      if(present(result)) result = maxdir
    end subroutine stability_analysis
 
 !****************************************************************************80
@@ -270,5 +287,36 @@ contains
       call scattering_extinction_matrices(a_dist, points, al_direction)
 
    end subroutine test_mueller
+
+!****************************************************************************80
+! Calculate alignment of stably spinning particle. The stability direction is
+! determined by force analysis
+   subroutine stable_particle_RAT()
+      integer :: i, j, k, Nang, ind, N_points, numlines, last
+      integer :: t1, t2, rate
+      real(dp) :: E, RR(3, 3)
+      complex(dp), dimension(:), allocatable :: p, q, p90, q90
+      real(dp), dimension(3, 3) :: R_B, R_xi, R_init, RP
+      real(dp), dimension(3) :: k0, E0, E90, Q_t, nphi, a_3, x_B, xstable
+      real(dp) :: xi, phi, psi, tol
+      real(dp), dimension(:, :), allocatable :: FGH
+      real(dp), dimension(:), allocatable :: thetas
+
+      call stability_analysis(xstable)
+
+! Rotation like this is not strictly needed for the next steps, but P(:,3) 
+! gives now the internal alignment direction w.r.t. the incidence direction.
+      RP = rotate_a_to_b(matrices%P(:,3), xstable)
+      matrices%P = matmul(RP, matrices%P)
+      call RAT_efficiency(60,20,FGH=FGH)
+
+      ! open (unit=1, file="out/F.out", ACTION="write", STATUS="replace")
+      ! write (1, '(A)') 'xi   psi   F  H  G'
+      ! do i = 1, size(F_coll, 2)
+      !    write (1, '(6ES12.3)') dcos(F_coll(1:2, i)), F_coll(3:5, i)
+      ! end do
+      ! close (1)
+      
+   end subroutine stable_particle_RAT
 
 end module postprocessing

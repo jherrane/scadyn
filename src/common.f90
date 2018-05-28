@@ -1199,6 +1199,27 @@ contains
 
    end function file_exists
 
+!****************************************************************************80
+! A simple linear interpolation for 1D data
+   function interp1D(y,x,xp) result(yp)
+      integer :: i
+      real(dp), dimension(:), allocatable :: x, y
+      real(dp) :: xp, yp
+
+      i = minloc(abs(x-xp), 1)
+      if(x(i) > xp) i = i - 1
+      yp = lin_int(y(i), y(i+1), x(i), x(i+1), xp)
+
+   end function interp1D
+
+!****************************************************************************80
+   function lin_int(y0, y1, x0, x1, x) result(y)
+      real(dp) :: y0, y1, x0, x1, x, y
+
+      y = y0 + (x-x0)*(y1-y0)/(x1-x0)
+
+   end function lin_int
+
 ! LOWSUBROUTINES **************************************************************
 !****************************************************************************80
 
