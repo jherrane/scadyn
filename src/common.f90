@@ -79,7 +79,7 @@ module common
       complex(8), dimension(:, :), allocatable :: rotDs, rotD90s, rotYs, rotXs
 ! Collection of normal rotation matrices, other collections
       real(dp), dimension(:, :, :), allocatable :: RRR
-      real(dp), dimension(:, :), allocatable :: field_points, T, www
+      real(dp), dimension(:, :), allocatable :: field_points, T, www, FGH
 ! The incident field spectrum
       real(dp), dimension(:), allocatable :: E_rel
 ! Buffers for I/O

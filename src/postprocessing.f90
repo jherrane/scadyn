@@ -144,7 +144,7 @@ contains
       end if
 
       allocate (xi(Nxi), phi(Nphi), psi(Npsi), F_coll(6, Nxi*Npsi))
-      if(present(FGH)) allocate(FGH(3,Nxi*Npsi))
+      if(present(FGH)) allocate(FGH(4,Nxi*Npsi))
       call linspace(0d0, pi, Nxi, xi)
       call linspace(0d0, pi/2d0, Npsi, psi)
       if(.NOT. present(Npsi_in)) psi(1) = matrices%B_psi
@@ -192,9 +192,10 @@ contains
       close (1)
 
       if(present(FGH)) then
-         FGH(1,:) = F_coll(3,:)
-         FGH(2,:) = F_coll(5,:)
-         FGH(3,:) = F_coll(4,:)
+         FGH(1,:) = F_coll(1,:)
+         FGH(2,:) = F_coll(3,:)
+         FGH(3,:) = F_coll(5,:)
+         FGH(4,:) = F_coll(4,:)
       end if
    end subroutine RAT_efficiency
 
@@ -298,18 +299,29 @@ contains
       complex(dp), dimension(:), allocatable :: p, q, p90, q90
       real(dp), dimension(3, 3) :: R_B, R_xi, R_init, RP
       real(dp), dimension(3) :: k0, E0, E90, Q_t, nphi, a_3, x_B, xstable
-      real(dp) :: xi, phi, psi, tol
+      real(dp) :: xi, w, phi, psi, tol
       real(dp), dimension(:, :), allocatable :: FGH
       real(dp), dimension(:), allocatable :: thetas
 
-      call stability_analysis(xstable)
+!       call stability_analysis(xstable)
 
-! Rotation like this is not strictly needed for the next steps, but P(:,3) 
-! gives now the internal alignment direction w.r.t. the incidence direction.
-      RP = rotate_a_to_b(matrices%P(:,3), xstable)
-      matrices%P = matmul(RP, matrices%P)
+! ! Rotation like this is not strictly needed for the next steps, but P(:,3) 
+! ! gives now the internal alignment direction w.r.t. the incidence direction.
+!       RP = rotate_a_to_b(matrices%P(:,3), xstable)
+!       matrices%P = matmul(RP, matrices%P)
       call RAT_efficiency(60,20,FGH=FGH)
+      allocate(matrices%FGH(size(FGH, 1), size(FGH,2)))
+      matrices%FGH = FGH
 
+! Start integration
+
+      xi = pi/2d0
+      w = 1d0
+      ! print*, w, cos(xi)
+      do i = 1,3000
+         call ADE_update(w, xi)
+         ! print*, w, cos(xi)
+      end do
       ! open (unit=1, file="out/F.out", ACTION="write", STATUS="replace")
       ! write (1, '(A)') 'xi   psi   F  H  G'
       ! do i = 1, size(F_coll, 2)

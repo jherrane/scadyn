@@ -267,7 +267,6 @@ contains
 !****************************************************************************80
 
    function get_dotw(N, w, I, I_inv) result(dw)
-
       real(dp) :: N(3), w(3), dw(3), I(3, 3), I_inv(3, 3)
 
       dw = matmul(I_inv, N + crossRR(matmul(I, w), w))
@@ -277,10 +276,19 @@ contains
 !****************************************************************************80
 
    function get_dxiw(xi, w) result(dxiw)
+      real(dp) :: dxiw(2), xi, w, beta
+      real(dp), dimension(:), allocatable :: xis, F, H
 
-      real(dp) :: dxiw(2), xi, w
+      allocate(xis(size(matrices%FGH,2)), F(size(matrices%FGH,2)), H(size(matrices%FGH,2)))
+      xis = dcos(matrices%FGH(1,:))
+      F = matrices%FGH(2,:)
+      H = matrices%FGH(4,:)
 
-      dxiw = 0d0
+      beta = matrices%Tdrag/matrices%TDG
+      dxiw(1) = matrices%M*interp1D(F,xis,dcos(xi)) - &
+                  (1+beta*(dsin(xi))**2)*w
+      dxiw(2) = matrices%M*interp1D(H,xis,dcos(xi)) - &
+                  beta*dsin(xi)*dcos(xi)
 
    end function get_dxiw
 
@@ -311,7 +319,7 @@ contains
    end subroutine euler_update
 
 !****************************************************************************80
-
+! Runge-Kutta 4 update for the rotational equations of motion
    subroutine RK4_update()
       real(dp), dimension(4) :: qn
       real(dp) :: dt, k_q(4, 4), k_w(3, 4), coeffs(4), &
@@ -599,6 +607,34 @@ contains
       end if
 
    end subroutine interstellar_env
+
+!****************************************************************************80
+! Runge-Kutta 4 update for the alignment differential equation (ADE) pair
+   subroutine ADE_update(w, xi)
+      real(dp) :: dxiw(2), w, xi, dt, coeffs(4), k_w(4), k_xi(4)
+
+      dt = 1d-5
+
+      dxiw = get_dxiw(xi, w)
+      k_w(1) = dxiw(1)
+      k_xi(1) = dxiw(2)
+
+      dxiw = get_dxiw(xi + k_xi(1)*dt/2, w + k_w(1)*dt/2)
+      k_w(2) = dxiw(1)
+      k_xi(2) = dxiw(2)
+
+      dxiw = get_dxiw(xi + k_xi(2)*dt/2, w + k_w(2)*dt/2)
+      k_w(3) = dxiw(1)
+      k_xi(3) = dxiw(2)
+
+      dxiw = get_dxiw(xi + k_xi(3)*dt/2, w + k_w(3)*dt/2)
+      k_w(4) = dxiw(1)
+      k_xi(4) = dxiw(2)
+
+      w = w + dt*(k_w(1)+2*k_w(2)+2*k_w(3)+k_w(4))/6
+      xi = xi + dt*(k_xi(1)+2*k_xi(2)+2*k_xi(3)+k_xi(4))/6
+
+   end subroutine ADE_update
 
 !****************************************************************************80
 
