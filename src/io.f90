@@ -321,6 +321,15 @@ contains
                read (buffer, *, iostat=ios) p, l
             case ('int_mode')
                read (buffer, *, iostat=ios) int_mode
+            case ('Tp')
+               read (buffer, *, iostat=ios) matrices%Tp
+            case ('nH')
+               read (buffer, *, iostat=ios) matrices%nH
+            case ('Kw')
+               read (buffer, *, iostat=ios) matrices%Kw
+            case ('drag')
+               read (buffer, *, iostat=ios) mesh%drag
+               mesh%drag = mesh%drag*1d6
             case default
                !print *, 'Skipping invalid label at line', line
 

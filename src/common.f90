@@ -49,9 +49,9 @@ module common
 
       real(dp), dimension(:, :), allocatable  ::  coord, nodes, P
       real(dp), dimension(:), allocatable ::  ki, w, radius
-      real(dp), dimension(3)  ::  min_coord
+      real(dp), dimension(3)  ::  min_coord, alpha
       real(dp)  ::  delta, k, box_delta, tol, grid_size, rho, a, V, mass, CM(3), &
-                   I(3, 3), maxrad
+                   I(3, 3), maxrad, drag
 
       integer, dimension(:, :), allocatable :: etopol, etopol_box, tetras, etopol_edges, edges
       integer :: Nx, Ny, Nz, N_cubes, N_tet, N_tet_cube, M_ex, Nx_cube, Ny_cube, &
@@ -63,33 +63,38 @@ module common
    end type mesh_struct
 
    type data
+! VIE and T-matrix data
       complex, dimension(:, :, :), allocatable :: sp_mat
       complex(dp), dimension(:, :, :), allocatable :: Fg, listS, listSx, listSy, &
                                                       listSz, Taai, Tbbi, Tabi, Tbai, Ai
       complex(dp), dimension(:, :), allocatable :: S, Sx, Sy, Sz, E_field, &
                                                    Taa, Tbb, Tab, Tba, S_loc, Sx_loc, Sy_loc, Sz_loc, as, bs
       complex(dp), dimension(:), allocatable ::  x, Ax, rhs, rcs
+      integer, dimension(:, :, :), allocatable :: listindS, indDs, indD90s, indXs, indYs
+      integer, dimension(:, :), allocatable :: indS, T_ind, indS_loc, sp_ind
+      integer, dimension(:), allocatable :: S_tet_loc
+! Electric fields and forces, other complex vectors
       complex(dp), dimension(3) :: E0, E90, force, torque, E0hat, E90hat
+! Sparse rotation matrices
       complex(8), dimension(:, :), allocatable :: rotDs, rotD90s, rotYs, rotXs
-
+! Collection of normal rotation matrices, other collections
       real(dp), dimension(:, :, :), allocatable :: RRR
       real(dp), dimension(:, :), allocatable :: field_points, T, www
+! The incident field spectrum
       real(dp), dimension(:), allocatable :: E_rel
-
+! Buffers for I/O
       real(dp), dimension(3, 1000) :: x_buf, v_buf, w_buf, J_buf, N_buf, F_buf
       real(dp), dimension(3, 3, 1000) :: R_buf
       real(dp), dimension(1, 1000) :: t_buf
-
+! All physical quantities in human-readable form (more or less)
       real(dp), dimension(4) :: q, qn
       real(dp), dimension(3, 3) :: R, Rn, Rkt, P, I, I_inv, R_init, R90_init, R_fixk, R_al
       real(dp), dimension(3) :: khat, w, x_CM, v_CM, N, wn, xn, vn, J, F, Ip, CM, &
                                 dw, k_orig, E0_orig, E90_orig, Q_t, Q_f, B
-      real(dp) ::  khi_0, rot_max, lambda1, lambda2, temp, dt0, dt, tt, &
-                  E, refr, refi, tol_m, M1, M3, B_psi
-
-      integer, dimension(:, :, :), allocatable :: listindS, indDs, indD90s, indXs, indYs
-      integer, dimension(:, :), allocatable :: indS, T_ind, indS_loc, sp_ind
-      integer, dimension(:), allocatable :: S_tet_loc, Nmaxs
+      real(dp) ::  khi_0, rot_max, lambda1, lambda2, temp, dt0, dt, tt, M, &
+                  E, refr, refi, tol_m, M1, M3, B_psi, nH, Tp, Kw, wT, Tdrag, TDG
+! Run parameters and other auxiliary variables
+      integer, dimension(:), allocatable :: Nmaxs
       integer :: Nmax, polarization, bars, Tmat, which_int, &
                  is_aggr, whichbar, buffer, N_mean, is_aligned, alignment_found, &
                  singleT

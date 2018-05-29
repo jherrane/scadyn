@@ -32,6 +32,7 @@ contains
       end if
 
       call diagonalize_inertia()
+      call interstellar_env()
 
       call polarization()
       call init_values()
@@ -560,7 +561,44 @@ contains
       forall (i=1:3) matrices%I(i, i) = matrices%Ip(i)
       forall (i=1:3) matrices%I_inv(i, i) = 1d0/matrices%Ip(i)
       
+      mesh%alpha = matrices%Ip/(2d0/5d0*mesh%rho*mesh%V*mesh%a**2)
+
    end subroutine diagonalize_inertia
+
+!****************************************************************************80
+! Computes interstellar environment values needed to solve the equations of 
+! motion in the alignment problem
+   subroutine interstellar_env()
+      integer :: i
+      real(dp) :: urad, lambdamean
+      matrices%wT = (15d0/(8d0*pi*mesh%alpha(3))*k_b*matrices%Tp/ &
+                     (mesh%rho*mesh%a**5))**0.5
+      matrices%TDG = (2d0*mesh%alpha(3)*mesh%rho*mesh%a**2)/ &
+                     (5d0*matrices%Kw*matrices%B_len**2)/(4*pi/(mu))
+      matrices%Tdrag = (pi*mesh%alpha(3)*mesh%rho*mesh%a)/(3*mesh%drag*matrices%nH* &
+                        (2d0*pi*1.67d-27*k_b*matrices%Tp)**0.5)
+      urad = 0d0
+      lambdamean = 0d0
+      do i = 1,matrices%bars
+         urad = urad + (matrices%E_rel(i)*matrices%E)**2/sqrt(mu/epsilon)/2d0/cc
+         lambdamean = lambdamean + 1d0*pi/mesh%ki(i)
+      end do 
+      
+      lambdamean = lambdamean/matrices%bars
+      matrices%M =  urad*lambdamean*mesh%a**2*matrices%Tdrag/ &
+                     (2d0*matrices%Ip(3)*matrices%wT)
+
+      if(debug==1) then
+         print*, 'The interstellar environment values'
+         print*, 'lambda_mean = ', lambdamean
+         print*, 'u_rad = ', urad
+         print*, 'w_T = ', matrices%wT
+         print*, 'T_DG (years) = ', matrices%TDG/(60*60*24*365)
+         print*, 'T_drag (years) = ', matrices%Tdrag/(60*60*24*365)
+         print*, 'M = ', matrices%M
+      end if
+
+   end subroutine interstellar_env
 
 !****************************************************************************80
 
