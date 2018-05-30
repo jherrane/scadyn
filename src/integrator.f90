@@ -637,6 +637,37 @@ contains
    end subroutine ADE_update
 
 !****************************************************************************80
+! Compute trajectory map
+   subroutine trajectory_xi_w(Nxi, Nw, xi_grid, w_grid, dxi, dw, w_limits)
+! Arguments
+      integer, intent(in) :: Nw, Nxi
+      real(dp), optional :: w_limits(2)
+      real(dp), dimension(:,:), allocatable, intent(out) :: dxi, dw, w_grid, xi_grid
+! Local variables
+      integer :: i, j
+      real(dp), dimension(:), allocatable :: w, xi
+      real(dp) :: dxiw(2)
+      
+      allocate(w(Nw), xi(Nxi))
+      allocate(dxi(Nxi, Nw), dw(Nxi, Nw))
+      allocate(xi_grid(Nxi, Nw), w_grid(Nxi, Nw))
+
+      if(.NOT. present(w_limits)) w_limits = [-100d0,100d0]
+      call linspace(w_limits(1), w_limits(2), Nw, w)
+      call linspace(0d0,pi,Nxi,xi)
+
+      call meshgrid(xi_grid,w_grid,xi,w)
+      do i=1,Nxi
+         do j = 1,Nw
+            dxiw = get_dxiw(xi_grid(i,j), w_grid(i,j))
+            dxi(i,j) = dxiw(1)
+            dw(i,j) = dxiw(2)
+         end do
+      end do 
+
+   end subroutine trajectory_xi_w
+
+!****************************************************************************80
 
    subroutine mie_params()
       mesh%V = 4d0/3d0*pi*mesh%a**3

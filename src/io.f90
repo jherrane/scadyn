@@ -480,6 +480,26 @@ contains
 ! CLEARTEXT WRITE *************************************************************
 !****************************************************************************80
 
+   subroutine write_array(A, fname)
+      real(dp), intent(in) :: A(:, :)
+      character(len=8), intent(in) :: fname
+      integer(HSIZE_T), dimension(2) :: dims ! Dataset dimensions
+      integer     :: i
+
+      dims = [int(size(A, 1), 8), int(size(A, 2), 8)]
+
+      open (unit=1, file=trim(fname), ACTION="write", STATUS="replace")
+
+      do i = 1, int(dims(1))
+         write (1, '(1024ES14.6)') A(i, :)
+      end do
+
+      close (1)
+
+   end subroutine write_array
+
+!****************************************************************************80
+
    subroutine write_mueller(A, fname)
       real(dp), intent(in) :: A(:, :)
       character(len=80), intent(in) :: fname

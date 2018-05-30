@@ -1413,6 +1413,68 @@ contains
 
 !****************************************************************************80
 
+   subroutine meshgrid(x,y,xgv,ygv)
+     !..............................................................................
+     !meshgrid generate mesh grid over a rectangular domain of [xmin xmax, ymin, ymax]
+     ! Inputs:
+     !     xgv, ygv are grid vectors in form of full grid data
+     ! Outputs:
+     !     X and Y are matrix each of size [ny by nx] contains the grid data.
+     !     The coordinates of point (i,j) is [X(i,j), Y(i,j)]
+     !     """
+     !     # Example
+     !     # call meshgrid(X, Y, [0.,1.,2.,3.],[5.,6.,7.,8.])
+     !     # X
+     !     # [0.0, 1.0, 2.0, 3.0,
+     !     #  0.0, 1.0, 2.0, 3.0,
+     !     #  0.0, 1.0, 2.0, 3.0,
+     !     #  0.0, 1.0, 2.0, 3.0]
+     !     #
+     !     #Y
+     !     #[ 5.0, 5.0, 5.0, 5.0,
+     !     #  6.0, 6.0, 6.0, 6.0,
+     !     #  7.0, 7.0, 7.0, 7.0,
+     !     #  8.0, 8.0, 8.0, 8.0]
+
+     ! Arguments
+     real(dp), intent(out), allocatable  :: x(:,:)
+     real(dp), intent(out), allocatable  :: y(:,:)
+     real(dp), allocatable, intent(in)                :: xgv(:) ! x grid vector [start, stop, step] or [start, stop]
+     real(dp), allocatable, intent(in),  optional     :: ygv(:) ! y grid vector [start, stop, step] or [start, stop]
+
+     ! Local variables
+     integer:: sv
+     integer:: nx
+     integer:: ny
+     logical:: only_xgv_available
+
+     ! Initial setting
+     only_xgv_available  = .NOT. present(ygv)
+
+     nx=size(xgv, dim=1)
+
+     if (only_xgv_available) then
+         ny = nx
+     else
+         ny = size(ygv, dim=1)
+     end if
+
+     allocate(x(ny,nx),y(ny,nx))
+
+     x(1,:)    = xgv
+     x(2:ny,:) = spread(xgv, dim=1, ncopies=ny-1)
+
+     if (only_xgv_available) then
+         y=transpose(x)
+     else
+         y(:,1)    = ygv
+         y(:,2:nx) = spread(ygv,dim=2,ncopies=nx-1)
+     end if
+
+   end subroutine meshgrid
+
+!****************************************************************************80
+
    subroutine angular_grid(ntheta, nphi, theta, phi)
 
       implicit none

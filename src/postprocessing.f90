@@ -293,14 +293,14 @@ contains
 ! Calculate alignment of stably spinning particle. The stability direction is
 ! determined by force analysis
    subroutine stable_particle_RAT()
-      integer :: i, j, k, Nang, ind, N_points, numlines, last
+      integer :: i, j, k, Nang, ind, N_points, numlines, last, Nw, Nxi
       integer :: t1, t2, rate
       real(dp) :: E, RR(3, 3)
       complex(dp), dimension(:), allocatable :: p, q, p90, q90
       real(dp), dimension(3, 3) :: R_B, R_xi, R_init, RP
       real(dp), dimension(3) :: k0, E0, E90, Q_t, nphi, a_3, x_B, xstable
-      real(dp) :: xi, w, phi, psi, tol
-      real(dp), dimension(:, :), allocatable :: FGH
+      real(dp) :: phi, psi, tol
+      real(dp), dimension(:, :), allocatable :: FGH, xi, w, dxi, dw 
       real(dp), dimension(:), allocatable :: thetas
 
 !       call stability_analysis(xstable)
@@ -315,13 +315,22 @@ contains
 
 ! Start integration
 
-      xi = pi/2d0
-      w = 1d0
+      Nw = 11
+      Nxi = 11
+      call trajectory_xi_w(Nxi, Nw, xi, w, dxi, dw, w_limits=[-10d0,10d0])
+      dw = dw/maxval(abs(dw))
+      dxi = dxi/maxval(abs(dxi))
+
+      call write_array(cos(xi),'xi.out  ')
+      call write_array(w,'w.out   ')
+      call write_array(dxi,'dxi.out ')
+      call write_array(dw,'dw.out  ')
+
       ! print*, w, cos(xi)
-      do i = 1,3000
-         call ADE_update(w, xi)
-         ! print*, w, cos(xi)
-      end do
+      ! do i = 1,3000
+      !    call ADE_update(w, xi)
+      !    ! print*, w, cos(xi)
+      ! end do
       ! open (unit=1, file="out/F.out", ACTION="write", STATUS="replace")
       ! write (1, '(A)') 'xi   psi   F  H  G'
       ! do i = 1, size(F_coll, 2)
