@@ -1205,14 +1205,15 @@ contains
    end function file_exists
 
 !****************************************************************************80
-! A simple linear interpolation for 1D data
+! A simple linear interpolation for 1D data, with x going from 1 to -1 (flips 
+! all sign logic)
    function interp1D(y,x,xp) result(yp)
       integer :: i
       real(dp), dimension(:), allocatable :: x, y
       real(dp) :: xp, yp
 
       i = minloc(abs(x-xp), 1)
-      if(x(i) > xp) i = i - 1
+      if(abs(x(i))>abs(xp) .OR. abs(x(i+1))<abs(xp)) i = i-1
       yp = lin_int(y(i), y(i+1), x(i), x(i+1), xp)
 
    end function interp1D

@@ -315,13 +315,11 @@ contains
 
 ! Start integration
 
-      Nw = 11
-      Nxi = 11
-      call trajectory_xi_w(Nxi, Nw, xi, w, dxi, dw, w_limits=[-10d0,10d0])
-      dw = dw/maxval(abs(dw))
-      dxi = dxi/maxval(abs(dxi))
+      Nw = 50
+      Nxi = 50
+      call trajectory_xi_w(Nxi, Nw, xi, w, dxi, dw, w_limits=[-400d0,400d0])
 
-      call write_array(cos(xi),'xi.out  ')
+      call write_array(xi,'xi.out  ')
       call write_array(w,'w.out   ')
       call write_array(dxi,'dxi.out ')
       call write_array(dw,'dw.out  ')

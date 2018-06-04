@@ -285,10 +285,13 @@ contains
       H = matrices%FGH(4,:)
 
       beta = matrices%Tdrag/matrices%TDG
-      dxiw(1) = matrices%M*interp1D(F,xis,dcos(xi)) - &
-                  (1+beta*(dsin(xi))**2)*w
-      dxiw(2) = matrices%M*interp1D(H,xis,dcos(xi)) - &
+      beta = 0d0
+! dxi = MF/w -betasin(xi)cos(xi)
+      dxiw(1) = matrices%M*interp1D(F,xis,dcos(xi))/w - &
                   beta*dsin(xi)*dcos(xi)
+! dw = MH -(1+betasin^2(xi))w
+      dxiw(2) = matrices%M*interp1D(H,xis,dcos(xi)) - &
+                  (1+beta*(dsin(xi))**2)*w
 
    end function get_dxiw
 
