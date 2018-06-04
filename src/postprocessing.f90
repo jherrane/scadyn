@@ -131,6 +131,7 @@ contains
    subroutine RAT_efficiency(Nxi, Nphi, Npsi_in, FGH)
       integer :: i, j, k, l, Nxi, Nphi, Npsi, ind
       integer, optional :: Npsi_in
+      real(dp) :: F, G, H
       real(dp), dimension(3) :: Q_t, n_phi
       real(dp), dimension(:, :), allocatable :: F_coll
       real(dp), dimension(:, :), allocatable, optional, intent(out) :: FGH
@@ -172,10 +173,12 @@ contains
                call get_forces()
 
                Q_t = matmul(matrices%R,matrices%Q_t)/Nphi
-
-               F_coll(3, ind + 1) = F_coll(3, ind + 1) + F_align(Q_t, xi(j), phi(k), psi(i))
-               F_coll(4, ind + 1) = F_coll(4, ind + 1) + H_align(Q_t, xi(j), phi(k), psi(i))
-               F_coll(5, ind + 1) = F_coll(5, ind + 1) + G_align(Q_t, phi(k), psi(i))
+               F = dot_product(Q_t, xihat(xi(j), phi(k), psi(i)))
+               G = dot_product(Q_t, phihat(xi(j), phi(k), psi(i)))
+               H = dot_product(Q_t, rhat(xi(j), phi(k), psi(i)))
+               F_coll(3, ind + 1) = F_coll(3, ind + 1) + F
+               F_coll(4, ind + 1) = F_coll(4, ind + 1) + H
+               F_coll(5, ind + 1) = F_coll(5, ind + 1) + G
             end do
 
             F_coll(1:2, ind + 1) = [xi(j), psi(i)]

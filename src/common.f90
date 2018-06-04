@@ -1205,6 +1205,40 @@ contains
    end function file_exists
 
 !****************************************************************************80
+! Return unit vector hat(xi), when given alignment coordinates xi, psi, phi
+   function xihat(xi,phi,psi) result(x)
+      real(dp) :: xi, phi, psi, x(3)
+      x = [cos(xi)*cos(psi)*cos(phi)-sin(xi)*sin(psi),&
+         cos(xi)*sin(phi), &
+         -(cos(xi)*sin(psi)*cos(phi)+sin(xi)*cos(psi))]
+      x = x/vlen(x)
+   end function xihat
+
+!****************************************************************************80
+! Return unit vector hat(phi), when given alignment coordinates xi, psi, phi
+   function phihat(xi,phi,psi) result(x)
+      real(dp) :: xi, phi, psi, x(3)
+      if(xi<1d-16) then
+         x = [sin(psi),0d0,cos(psi)]
+      else
+         x = [-sin(xi)*cos(psi)*sin(phi), &
+            sin(xi)*cos(phi), &
+            sin(xi)*sin(psi)*sin(phi)]
+      end if
+      x = x/vlen(x)
+   end function phihat
+
+!****************************************************************************80
+! Return unit vector hat(r), when given alignment coordinates xi, psi, phi
+   function rhat(xi,phi,psi) result(x)
+      real(dp) :: xi, phi, psi, x(3)
+      x = [cos(xi)*sin(psi) + sin(xi)*cos(psi)*cos(phi), &
+         sin(xi)*sin(phi), &
+         cos(xi)*cos(psi) - sin(xi)*sin(psi)*cos(phi)]
+      x = x/vlen(x)
+   end function rhat
+
+!****************************************************************************80
 ! A simple linear interpolation for 1D data, with x going from 1 to -1 (flips 
 ! all sign logic)
    function interp1D(y,x,xp) result(yp)
