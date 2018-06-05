@@ -167,9 +167,9 @@ contains
 
             Q_t = matmul(matrices%R, Q_t)
 
-            F_coll(3, ind + 1) = F_coll(3, ind + 1) + F_align(Q_t, xi, phi, psi)/Nang
-            F_coll(4, ind + 1) = F_coll(4, ind + 1) + H_align(Q_t, xi, phi, psi)/Nang
-            F_coll(5, ind + 1) = F_coll(5, ind + 1) + G_align(Q_t, phi, psi)/Nang
+            F_coll(3, ind + 1) = F_coll(3, ind + 1) + dot_product(Q_t, xihat(xi, phi, psi))/Nang
+            F_coll(4, ind + 1) = F_coll(4, ind + 1) + dot_product(Q_t, phihat(xi, phi, psi))/Nang
+            F_coll(5, ind + 1) = F_coll(5, ind + 1) + dot_product(Q_t, rhat(xi, phi, psi))/Nang
             F_coll(1:2, ind + 1) = [xi, psi]
 
             ind = ind + 1

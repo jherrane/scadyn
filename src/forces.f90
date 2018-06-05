@@ -371,42 +371,6 @@ contains
    end function DG_torque
 
 !****************************************************************************80
-! The radiative alignment torque, from Draine & Weingartner (1997). Components are
-! calculated using vector \hat{\xi} = \partial_\xi \hat{X_\psi}, where X_\psi is
-! the position vector in terms of alignment directions \xi and \phi rotated amount
-! \psi about the y-axis. Same is done in DW1997 for different axis notation.
-   function F_align(Qt, xi, phi, psi) result(F)
-      real(dp) :: Qt(3), xi, phi, psi, F
-
-      F = Qt(1)*(cos(psi)*cos(xi)*cos(phi) - sin(psi)*sin(xi)) &
-          + Qt(2)*cos(xi)*sin(phi) &
-          - Qt(3)*(sin(psi)*cos(xi)*cos(phi) + cos(psi)*sin(xi))
-
-   end function F_align
-
-!****************************************************************************80
-! The radiative spin-up torque, from Draine & Weingartner (1997)
-   function H_align(Qt, xi, phi, psi) result(H)
-      real(dp) :: Qt(3), xi, phi, psi, H
-
-      H = Qt(1)*(sin(psi)*cos(xi) + cos(psi)*sin(xi)*cos(phi)) &
-          + Qt(2)*sin(xi)*sin(phi) & 
-          + Qt(3)*(cos(psi)*cos(xi) - sin(psi)*sin(xi)*cos(phi))
-
-   end function H_align
-
-!****************************************************************************80
-! The radiative precession torque, from Draine & Weingartner (1997)
-   function G_align(Qt, phi, psi) result(G)
-      real(dp) :: Qt(3), phi, psi, G
-
-      G = -Qt(1)*cos(psi)*sin(phi) &
-          + Qt(2)*cos(phi) &
-          + Qt(3)*sin(psi)*sin(phi) 
-
-   end function G_align
-
-!****************************************************************************80
 ! Beta (rotation about a_3) averaged torque efficiency as a function of 
 ! capital theta and phi (as in the works of Draine and Weingartner)
    function get_Qav(theta, phi) result(Q)
