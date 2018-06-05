@@ -76,7 +76,7 @@ module common
       integer, dimension(:, :), allocatable :: indS, T_ind, indS_loc, sp_ind
       integer, dimension(:), allocatable :: S_tet_loc
 ! Electric fields and forces, other complex vectors
-      complex(dp), dimension(3) :: E0, E90, force, torque, E0hat, E90hat
+      complex(dp), dimension(3) :: E0, E90, E0hat, E90hat
 ! Sparse rotation matrices
       complex(8), dimension(:, :), allocatable :: rotDs, rotD90s, rotYs, rotXs
 ! Collection of normal rotation matrices, other collections
@@ -91,10 +91,11 @@ module common
 ! All physical quantities in human-readable form (more or less)
       real(dp), dimension(4) :: q, qn
       real(dp), dimension(3, 3) :: R, Rn, Rk, P, I, I_inv, R_al, R90_init
-      real(dp), dimension(3) :: khat, w, x_CM, v_CM, N, wn, xn, vn, J, F, Ip, CM, &
+      real(dp), dimension(3) :: force, torque, khat, w, x_CM, v_CM, N, wn, xn, vn, J, F, Ip, CM, &
                                 dw, k_orig, E0_orig, E90_orig, Q_t, Q_f, B
       real(dp) ::  khi_0, rot_max, lambda1, lambda2, temp, dt0, dt, tt, M, &
-                  E, refr, refi, tol_m, M1, M3, B_psi, nH, Tp, Kw, wT, Tdrag, TDG
+                  E, refr, refi, tol_m, M1, M3, B_psi, nH, Td, Tgas, &
+                  Kw, wT, Tdrag, TDG
 ! Run parameters and other auxiliary variables
       integer, dimension(:), allocatable :: Nmaxs
       integer :: Nmax, polarization, bars, Tmat, which_int, &

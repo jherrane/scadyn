@@ -14,7 +14,8 @@ contains
    subroutine test_methods()
       integer :: i, j, ii, range(2)
       real(dp), dimension(:, :), allocatable :: Q_fcoll, Q_tcoll
-      complex(dp), dimension(3) :: F, N, FF, NN, N_B, N_DG
+      real(dp), dimension(3) :: F, N, FF, NN, N_B, N_DG
+      real(dp) :: urad
 
       call rot_setup()
 
@@ -45,8 +46,11 @@ contains
             if (matrices%whichbar > 0) ii = matrices%whichbar
             F = F + matrices%force
             N = N + matrices%torque
-            Q_fcoll(:, ii) = matmul(matrices%R, matrices%Q_f)
-            Q_tcoll(:, ii) = matmul(matrices%R, matrices%Q_t)
+            urad = epsilon*(matrices%E_rel(ii)*matrices%E)**2/2d0
+            Q_fcoll(:, ii) = matmul(matrices%R, &
+               matrices%force/urad/pi/mesh%a**2)
+            Q_tcoll(:, ii) = matmul(matrices%R, &
+               matrices%torque*(mesh%ki(ii))/urad/pi/mesh%a**2)
          end do
 
          NN = matmul(matrices%R, N)
@@ -142,6 +146,9 @@ contains
          Npsi = Npsi_in
       end if
 
+! Add 100 nm spike to the spectrum'
+      if (2*pi/mesh%ki(1)/1d-6 < 0.2d0) matrices%E_rel(1) = maxval(matrices%E_rel)*2d0
+    
       allocate (xi(Nxi), phi(Nphi), psi(Npsi), F_coll(6, Nxi*Npsi))
       if(present(FGH)) allocate(FGH(4,Nxi*Npsi))
       call linspace(0d0, pi, Nxi, xi)
@@ -153,12 +160,10 @@ contains
 ! Radiative torque calculations, emulating work of Draine & Weingartner (1997), ApJ 480:633  
       ind = 0
       write (*, '(A)') '  Starting the calculation of phi-averaged radiative torques:'
-
 ! First, set up rotation axis for precession averaging in the direction of psi (B)     
       do i = 1, Npsi
          n_phi = matmul(R_aa([0d0, 1d0, 0d0], psi(i)), [0d0,0d0,1d0]) ! Is actually B
          R_B = rotate_a_to_b(matrices%P(:, 3), n_phi)
-
 ! Rotation to xi of a_3 is a combined rotation of angle psi+xi
          do j = 1, Nxi
             R_xi = matmul(R_aa([0d0, 1d0, 0d0], xi(j)), R_B)
@@ -167,8 +172,8 @@ contains
             do k = 1, Nphi
                R_phi = R_aa(n_phi, phi(k))
                matrices%R = matmul(R_phi, R_xi) ! First a_3 to xi, then beta about a_3
-               
-               call get_forces()
+
+               call get_forces(1)
 
                Q_t = matmul(matrices%R,matrices%Q_t)/Nphi
                F = dot_product(Q_t, xihat(xi(j), phi(k), psi(i)))
@@ -184,13 +189,14 @@ contains
             ind = ind + 1
          end do
       end do
+      close(1)
 
-      open (unit=1, file="out/F.out", ACTION="write", STATUS="replace")
+      open(unit=1, file="out/F.out", ACTION="write", STATUS="replace")
       write (1, '(A)') 'xi   psi   F  H  G'
       do i = 1, size(F_coll, 2)
          write (1, '(6ES12.3)') dcos(F_coll(1:2, i)), F_coll(3:5, i)
       end do
-      close (1)
+      close(1)
 
       if(present(FGH)) then
          FGH(1,:) = F_coll(1,:)

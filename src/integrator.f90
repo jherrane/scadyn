@@ -86,7 +86,7 @@ contains
       complex(dp), dimension(:), allocatable :: p, q, p90, q90
       real(dp), dimension(3, 3) :: R_B, R_xi, R_init, RP
       real(dp), dimension(3) :: k0, E0, E90, Q_t, nphi, a_3, x_B
-      real(dp) :: xi, phi, psi, tol
+      real(dp) :: xi, phi, psi, tol, urad
       real(dp), dimension(:, :), allocatable :: F_coll
       real(dp), dimension(:), allocatable :: thetas
 
@@ -157,12 +157,14 @@ contains
             if (matrices%whichbar == 0) then
                do k = 1, matrices%bars
                   call forcetorque(k)
-                  Q_t = Q_t + matrices%Q_t/matrices%bars
+                  urad = epsilon*(matrices%E_rel(k)*matrices%E)**2/2d0
+                  Q_t = Q_t + matrices%torque*(mesh%k)/urad/pi/mesh%a**2/matrices%bars
                end do
             else
                k = matrices%whichbar
                call forcetorque(k)
-               Q_t = Q_t + matrices%Q_t
+               urad = epsilon*(matrices%E_rel(k)*matrices%E)**2/2d0
+               Q_t = Q_t + matrices%torque*(mesh%k)/urad/pi/mesh%a**2
             end if
 
             Q_t = matmul(matrices%R, Q_t)
@@ -582,12 +584,12 @@ contains
    subroutine interstellar_env()
       integer :: i
       real(dp) :: urad, lambdamean
-      matrices%wT = (15d0/(8d0*pi*mesh%alpha(3))*k_b*matrices%Tp/ &
+      matrices%wT = (15d0/(8d0*pi*mesh%alpha(3))*k_b*matrices%Td/ &
                      (mesh%rho*mesh%a**5))**0.5
       matrices%TDG = (2d0*mesh%alpha(3)*mesh%rho*mesh%a**2)/ &
                      (5d0*matrices%Kw*matrices%B_len**2)/(4*pi/(mu))
       matrices%Tdrag = (pi*mesh%alpha(3)*mesh%rho*mesh%a)/(3*mesh%drag*matrices%nH* &
-                        (2d0*pi*1.67d-27*k_b*matrices%Tp)**0.5)
+                        (2d0*pi*1.67d-27*k_b*matrices%Tgas)**0.5)
       urad = 0d0
       lambdamean = 0d0
       do i = 1,matrices%bars

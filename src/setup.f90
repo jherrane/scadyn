@@ -58,8 +58,6 @@ contains
             matrices%Nmaxs(i) = truncation_order(ka)
          end do
 
-         write (*, '(A, 20F6.3)') ' Wavelengths in um: ', 2d6*pi/mesh%ki
-
       else if (use_mie .NE. 1) then !* SPHERICAL AGGREGATE *******************
          call read_aggr()
          Nspheres = size(mesh%radius)
@@ -511,8 +509,6 @@ contains
       real(dp), dimension(:), allocatable :: c, diff, absdif, w, epsr, epsi
       integer :: i, n, size_param, ind
 
-! Add 100 nm spike to the spectrum
-      if (2*pi/mesh%ki(1)/1d-6 < 0.15d0) matrices%E_rel(1) = maxval(matrices%E_rel)*1.33d0
       call read_mesh()
 
       size_param = size(mesh%params, 1)

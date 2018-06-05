@@ -20,11 +20,12 @@ program main
    if (matrices%Tmat == 1 .AND. file_exists(matrices%tname)) then
       call read_T()
       call fix_band()
+      write (*, '(A, 20F6.3)') ' Wavelengths in um: ', 2d6*pi/mesh%ki
    else
       if (matrices%singleT == 1) then
          call T_empty()
       end if
-
+      write (*, '(A, 20F6.3)') ' Wavelengths in um: ', 2d6*pi/mesh%ki
       call calc_T()
       call write_T()
    end if
@@ -67,7 +68,7 @@ contains
       if (run_test == 1) call test_methods()
       if (run_test == 2) then
          call torque_efficiency()
-         call RAT_efficiency(60, 20, Npsi_in = 10)
+         call RAT_efficiency(60, 20, Npsi_in = 4)
       end if 
       if (run_test == 3) call stability_analysis()
       if (run_test == 4) call write_fields()

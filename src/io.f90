@@ -321,8 +321,10 @@ contains
                read (buffer, *, iostat=ios) p, l
             case ('int_mode')
                read (buffer, *, iostat=ios) int_mode
-            case ('Tp')
-               read (buffer, *, iostat=ios) matrices%Tp
+            case ('Td')
+               read (buffer, *, iostat=ios) matrices%Td
+            case ('Tgas')
+               read (buffer, *, iostat=ios) matrices%Tgas
             case ('nH')
                read (buffer, *, iostat=ios) matrices%nH
             case ('Kw')

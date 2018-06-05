@@ -7,11 +7,13 @@ contains
 
 !****************************************************************************80
 ! Calculate forces and torques during single step
-   subroutine get_forces()
+   subroutine get_forces(mode)
       real(dp), dimension(3, 3) :: RT, R_k, R_k90
       real(dp), dimension(3) :: Q_t
-      complex(dp), dimension(3) :: F, N, N_DG, N_B
+      real(dp) :: u, wl, wl0, u0
+      real(dp), dimension(3) :: F, N, N_DG, N_B
       integer :: i
+      integer, optional :: mode
 
       call rot_setup()
 
@@ -19,19 +21,39 @@ contains
       N = dcmplx(0.0d0, 0.0d0)
       F = dcmplx(0.0d0, 0.0d0)
 
+      if(present(mode)) then
+         u = 0d0
+         wl = 0d0
+         do i = 1, matrices%bars
+            u = u + (matrices%E*matrices%E_rel(i))**2
+            wl = wl + 2d0*pi/mesh%ki(i)
+         end do
+      end if
+
 ! Iteration of a single wavelength
       if (matrices%whichbar == 0) then
          do i = 1, matrices%bars
             call forcetorque(i)
             F = F + matrices%force
             N = N + matrices%torque
-            Q_t = Q_t + matrices%Q_t/matrices%bars
+
+            if(present(mode))then
+               wl0 = 2d0*pi/mesh%ki(i)
+               u0 = (matrices%E*matrices%E_rel(i))**2
+               Q_t = Q_t + (wl0*u0)/(wl*u)* &
+               matrices%torque*(mesh%ki(i))/&
+               (epsilon*(matrices%E_rel(i)*matrices%E)**2/2d0)/pi/mesh%a**2/matrices%bars
+            else
+               Q_t = Q_t + matrices%torque*(mesh%ki(i))/&
+               (epsilon*(matrices%E_rel(i)*matrices%E)**2/2d0)/pi/mesh%a**2/matrices%bars
+            end if
          end do
       else
          call forcetorque(matrices%whichbar)
          F = F + matrices%force
          N = N + matrices%torque
-         Q_t = Q_t + matrices%Q_t
+         Q_t = Q_t + matrices%torque*(mesh%ki(i))/&
+               (epsilon*(matrices%E_rel(i)*matrices%E)**2/2d0)/pi/mesh%a**2/matrices%bars
       end if
 
       if (calc_extra_torques == 1) then
@@ -41,8 +63,8 @@ contains
          N = N + N_B + N_DG
       end if
 
-      matrices%F = matmul(matrices%R, real(F)) ! {x}_sca -> {x}_lab
-      matrices%N = matmul(transpose(matrices%P), real(N)) ! {N}_sca -> {N}_b
+      matrices%F = matmul(matrices%R, F) ! {x}_sca -> {x}_lab
+      matrices%N = matmul(transpose(matrices%P), N) ! {N}_sca -> {N}_b
       matrices%Q_t = Q_t
 
    end subroutine get_forces
@@ -60,7 +82,7 @@ contains
       integer :: Nmax, j, las, nm
 
       integer :: i1
-      real(dp) :: r(3), n(3), E, Pow
+      real(dp) :: r(3), n(3), E
       complex(dp) :: E1(3), H1(3), E2(3), H2(3), T1(3, 3), ED1(3, 3), &
                      HB1(3, 3), T2(3, 3), ED2(3, 3), HB2(3, 3), I(3, 3), H0(3), &
                      H90(3)
@@ -71,8 +93,6 @@ contains
       matrices%E0 = E*matrices%E0hat
       matrices%E90 = E*matrices%E90hat
       mesh%k = mesh%ki(j)
-
-      Pow = E**2/sqrt(mu/epsilon)/2d0/cc
 
       Nmax = matrices%Nmaxs(j)
       las = (Nmax + 1)*(2*Nmax + 1)*(2*Nmax + 3)/3 - 1
@@ -106,8 +126,8 @@ contains
       a_nm90 = matmul(Taa, a90) + matmul(Tab, b90)
       b_nm90 = matmul(Tbb, b90) + matmul(Tba, a90)
 
-      matrices%force = dcmplx(0.0d0, 0.0d0)
-      matrices%torque = dcmplx(0.0d0, 0.0d0)
+      matrices%force = 0.0d0
+      matrices%torque = 0.0d0
 
       H0 = crossCC(dcmplx(matrices%khat, 0.0d0), matrices%E0)*dcmplx(sqrt(epsilon/mu))
       H90 = crossCC(dcmplx(matrices%khat, 0.0d0), matrices%E90)*dcmplx(sqrt(epsilon/mu))
@@ -164,13 +184,11 @@ contains
       end do
 
 ! The total optical force is the average of the forces, according to the number of polarizations
-      force = (force1 + force2)/matrices%polarization
-      torque = (torque1 + torque2)/matrices%polarization
+      force = real(force1 + force2)/matrices%polarization
+      torque = real(torque1 + torque2)/matrices%polarization
 
       matrices%force = force
       matrices%torque = torque
-      matrices%Q_t = dble(torque)*(mesh%k)/Pow/pi/mesh%a**2
-      matrices%Q_f = dble(force)/Pow/pi/mesh%a**2
 
    end subroutine forcetorque_num
 
@@ -183,7 +201,7 @@ contains
       complex(8), dimension(:), allocatable :: rotD, rotD90
       integer, dimension(:, :), allocatable :: indD, indD90
       integer :: Nmax, i, las, nm
-      real(dp) :: tx, ty, tz, fx, fy, fz, Pow, E
+      real(dp) :: tx, ty, tz, fx, fy, fz, E
 
       E = matrices%E_rel(i)*matrices%E
       mesh%k = mesh%ki(i)
@@ -206,8 +224,6 @@ contains
 
       a_in = E*matrices%as(1:nm, i)/sqrt(2d0*sqrt(mu/epsilon)*mesh%k**2)/2d0
       b_in = E*matrices%bs(1:nm, i)/sqrt(2d0*sqrt(mu/epsilon)*mesh%k**2)/2d0
-
-      Pow = E**2/sqrt(mu/epsilon)/2d0/cc
 
       a = sparse_matmul(rotD, indD, a_in, nm)
       b = sparse_matmul(rotD, indD, b_in, nm)
@@ -259,10 +275,8 @@ contains
       ty = T_z(Nmax, a2, b2, p2, q2) + T_z(Nmax, a290, b290, p290, q290)
 
 ! Averaging now, thus division by the number of polarization states
-      matrices%force = dcmplx([fx, fy, fz]/cc/matrices%polarization)
-      matrices%torque = dcmplx([tx, ty, tz]/(cc*mesh%k)/matrices%polarization)
-      matrices%Q_t = dble(matrices%torque)*(mesh%k)/Pow/pi/mesh%a**2
-      matrices%Q_f = dble(matrices%force)/Pow/pi/mesh%a**2
+      matrices%force = [fx, fy, fz]/cc/matrices%polarization
+      matrices%torque = [tx, ty, tz]/(cc*mesh%k)/matrices%polarization
 
    end subroutine forcetorque
 
