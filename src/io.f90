@@ -563,8 +563,6 @@ contains
 
       matrices%M1 = 0d0
       matrices%M3 = 0d0
-      matrices%is_aligned = 0
-      matrices%alignment_found = 0
 
       matrices%xn = matrices%x_CM ! Input in lab frame (if needed)
       matrices%vn = matrices%v_CM ! Input in lab frame
@@ -575,11 +573,7 @@ contains
       matrices%N = dble([0d0, 0d0, 0d0])
       matrices%F = dble([0d0, 0d0, 0d0])
       matrices%J = matmul(matmul(matrices%P, matrices%R), matmul(matrices%I, matrices%w)) ! In lab frame!
-
-! R_expansion, for planewave expansion rotation from (0, 0, 1) position to khat
-      matrices%R_fixk = transpose(rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0]))
       matrices%R90_init = reshape(dble([0d0, 1d0, 0d0, -1d0, 0d0, 0d0, 0d0, 0d0, 1d0]), [3, 3])
-
    end subroutine init_values
 
 !****************************************************************************80
@@ -646,12 +640,12 @@ contains
 ! If the simulation has run for long enough and the particle spins stably, 
 ! flag the calculation to end (by changing the it_stop value).
       if (n >= 100000) then
-         if (matrices%is_aligned == 0) then
-            matrices%is_aligned = alignment_state()
-         else if (matrices%alignment_found == 0) then
+         if (is_aligned == 0) then
+            is_aligned = alignment_state()
+         else if (alignment_found == 0) then
             print *, " ******************* HEY, IT'S ALIGNED! ********************"
             it_stop = n + it_log + 1
-            matrices%alignment_found = 1
+            alignment_found = 1
          end if
       end if
 

@@ -327,7 +327,7 @@ contains
       p90temp = matmul(Taa, a90) + matmul(Tab, b90)
       q90temp = matmul(Tbb, b90) + matmul(Tba, a90)
 
-      call sph_rotation_sparse_gen(mat2euler(matrices%Rkt), Nmax, rbak, ibak)
+      call sph_rotation_sparse_gen(mat2euler(matrices%Rk), Nmax, rbak, ibak)
 
       p = sparse_matmul(rbak, ibak, ptemp, nm)
       q = sparse_matmul(rbak, ibak, qtemp, nm)

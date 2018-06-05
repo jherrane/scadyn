@@ -263,18 +263,17 @@ contains
 !****************************************************************************80
 
    subroutine rot_setup()
-      real(dp), dimension(3, 3) ::  RT, R_k, R_k90
+      real(dp), dimension(3, 3) ::  RT, RT90
 
       RT = transpose(matrices%R)
-      R_k = matmul(RT, matrices%R_fixk)
-      R_k90 = matmul(R_k, matrices%R90_init)
+      RT90 = matmul(RT, matrices%R90_init)
 
-      matrices%Rkt = transpose(R_k)
-      matrices%khat = matmul(R_k, [0d0, 0d0, 1d0])
-      matrices%E0hat = dcmplx(matmul(R_k, [1d0, 0d0, 0d0]))
-      matrices%E90hat = dcmplx(matmul(R_k, [0d0, 1d0, 0d0]))
+      matrices%Rk = matrices%R
+      matrices%khat = matmul(RT, [0d0, 0d0, 1d0])
+      matrices%E0hat = dcmplx(matmul(RT, [1d0, 0d0, 0d0]))
+      matrices%E90hat = dcmplx(matmul(RT, [0d0, 1d0, 0d0]))
 
-      call gen_rotations(R_k, R_k90)
+      call gen_rotations(RT, RT90)
 
    end subroutine rot_setup
 

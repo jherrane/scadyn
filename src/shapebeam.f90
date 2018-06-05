@@ -385,7 +385,7 @@ contains
       grid = field_grid()
 
 ! Ensure that directions are ok. They might already be...
-      matrices%Rkt = eye(3)
+      matrices%Rk = eye(3)
       allocate (E(3, nn))
       call rot_setup()
       call scattered_fields(1d0, p, q, p90, q90, which)

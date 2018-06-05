@@ -16,8 +16,6 @@ contains
       real(dp), dimension(:, :), allocatable :: Q_fcoll, Q_tcoll
       complex(dp), dimension(3) :: F, N, FF, NN, N_B, N_DG
 
-      matrices%R_fixk = transpose(rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0]))
-
       call rot_setup()
 
       allocate (Q_fcoll(3, matrices%bars))

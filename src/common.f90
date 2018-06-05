@@ -39,6 +39,8 @@ module common
    integer :: p = 0
    integer :: l = 0
    integer :: debug = 0
+   integer :: is_aligned = 0
+   integer :: alignment_found = 0
 
 ! TYPES ***********************************************************************
 !****************************************************************************80
@@ -88,7 +90,7 @@ module common
       real(dp), dimension(1, 1000) :: t_buf
 ! All physical quantities in human-readable form (more or less)
       real(dp), dimension(4) :: q, qn
-      real(dp), dimension(3, 3) :: R, Rn, Rkt, P, I, I_inv, R_init, R90_init, R_fixk, R_al
+      real(dp), dimension(3, 3) :: R, Rn, Rk, P, I, I_inv, R_al, R90_init
       real(dp), dimension(3) :: khat, w, x_CM, v_CM, N, wn, xn, vn, J, F, Ip, CM, &
                                 dw, k_orig, E0_orig, E90_orig, Q_t, Q_f, B
       real(dp) ::  khi_0, rot_max, lambda1, lambda2, temp, dt0, dt, tt, M, &
@@ -96,8 +98,7 @@ module common
 ! Run parameters and other auxiliary variables
       integer, dimension(:), allocatable :: Nmaxs
       integer :: Nmax, polarization, bars, Tmat, which_int, &
-                 is_aggr, whichbar, buffer, N_mean, is_aligned, alignment_found, &
-                 singleT
+                 is_aggr, whichbar, buffer, N_mean, singleT
 
       character(len=38) :: waves = 'band'
       character(len=38) :: paramsfile = 'params.in'

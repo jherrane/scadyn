@@ -136,7 +136,7 @@ contains
 
          matrices%khat = matmul(RR, [0d0, 0d0, 1d0])
          matrices%khat = -matrices%khat/vlen(matrices%khat)
-         matrices%R_fixk = transpose(rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0]))
+         matrices%R = transpose(rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0]))
          ind = 0
 ! Xi loop
          do j = 1, Nang

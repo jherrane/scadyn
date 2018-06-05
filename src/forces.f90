@@ -382,7 +382,7 @@ contains
 
       do i = 1,Nbeta
          beta = dble(i)*pi*2d0/Nbeta
-         Q = Q + matmul(matrices%Rkt,get_Q(theta,phi,beta))/Nbeta
+         Q = Q + matmul(matrices%Rk,get_Q(theta,phi,beta))/Nbeta
       end do
 
    end function get_Qav

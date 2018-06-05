@@ -64,7 +64,7 @@ contains
          matrices%khat = [dsin(vec(2))*dcos(vec(3)), dsin(vec(2))*dsin(vec(3)), dcos(vec(2))]
 
          matrices%khat = -matrices%khat/vlen(matrices%khat)
-         matrices%R_fixk = transpose(rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0]))
+         matrices%R = rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0])
 
          S = S + update_mueller(N_theta, N_phi, ii, E, p, q, p90, q90)/N_points
          call print_bar(i, N_points)
@@ -98,10 +98,11 @@ contains
          theta = dble(i - 1)*2d0*pi/(N_points - 1)
          RR = matmul(transpose(R_aa(omega, theta)), transpose(R0))
 
-         matrices%khat = matmul(RR, [0d0, 0d0, 1d0])
-         matrices%khat = -matrices%khat/vlen(matrices%khat)
-         matrices%R_fixk = transpose(rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0]))
-         matrices%R = R_aa(matrices%khat, phi)
+         matrices%khat = -matmul(RR, [0d0, 0d0, 1d0])
+         matrices%khat = matrices%khat/vlen(matrices%khat)
+
+         matrices%R = rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0])
+         matrices%R = matmul(matrices%R,R_aa(matrices%khat, phi))
 
          S = S + update_mueller(N_theta, N_phi, ii, E, p, q, p90, q90)/N_points
          call print_bar(i, N_points)
@@ -128,7 +129,7 @@ contains
          matrices%R = transpose(matmul(matrices%R_al, matrices%RRR(:, :, i)))
          matrices%khat = matmul(transpose(matrices%R), [0d0, 0d0, 1d0])
          matrices%khat = -matrices%khat/vlen(matrices%khat)
-         matrices%R_fixk = transpose(rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0]))
+         matrices%R = transpose(rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0]))
 
          S = S + update_mueller(N_theta, N_phi, ii, E, p, q, p90, q90)/N_points
          call print_bar(i, N_points)
@@ -240,7 +241,7 @@ contains
 
          matrices%khat = -matrices%khat/vlen(matrices%khat)
          k_sph = cart2sph(matrices%khat)
-         matrices%R_fixk = transpose(rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0]))
+         matrices%R = rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0])
 
          call rot_setup()
          call incident_fields(E, a_in, b_in, ii)
@@ -284,12 +285,12 @@ contains
          theta = dble(i - 1)*2d0*pi/dble(N_avgs - 1)
          RR = matmul(transpose(R_aa(omega, theta)), transpose(R0))
 
-         matrices%khat = matmul(RR, [0d0, 0d0, 1d0])
-         matrices%khat = -matrices%khat/vlen(matrices%khat)
+         matrices%khat = -matmul(RR, [0d0, 0d0, 1d0])
+         matrices%khat = matrices%khat/vlen(matrices%khat)
          k_sph = cart2sph(matrices%khat)
 
-         matrices%R_fixk = transpose(rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0]))
-         matrices%R = R_aa(matrices%khat, phi)
+         matrices%R = rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0])
+         matrices%R = matmul(matrices%R,R_aa(matrices%khat, phi))
 
          call rot_setup()
          call incident_fields(E, a_in, b_in, ii)
