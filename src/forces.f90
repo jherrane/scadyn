@@ -10,7 +10,7 @@ contains
    subroutine get_forces(mode)
       real(dp), dimension(3, 3) :: RT, R_k, R_k90
       real(dp), dimension(3) :: Q_t
-      real(dp) :: u, wl, wl0, u0
+      real(dp) :: u, wl
       real(dp), dimension(3) :: F, N, N_DG, N_B
       integer :: i
       integer, optional :: mode
@@ -38,14 +38,9 @@ contains
             N = N + matrices%torque
 
             if(present(mode))then
-               wl0 = 2d0*pi/mesh%ki(i)
-               u0 = (matrices%E*matrices%E_rel(i))**2
-               Q_t = Q_t + (wl0*u0)/(wl*u)* &
-               matrices%torque*(mesh%ki(i))/&
-               (epsilon*(matrices%E_rel(i)*matrices%E)**2/2d0)/pi/mesh%a**2/matrices%bars
+               Q_t = Q_t + matrices%torque/epsilon/mesh%a**2/(wl*u)/matrices%bars
             else
-               Q_t = Q_t + matrices%torque*(mesh%ki(i))/&
-               (epsilon*(matrices%E_rel(i)*matrices%E)**2/2d0)/pi/mesh%a**2/matrices%bars
+               Q_t = Q_t + matrices%torque/((matrices%E*matrices%E_rel(i))**2*2d0*pi/mesh%ki(i)*epsilon*mesh%a**2)/matrices%bars
             end if
          end do
       else
