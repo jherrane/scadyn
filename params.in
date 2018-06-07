@@ -5,11 +5,16 @@ w0 0d0 0d0 0d0          # Initial angular velocity
 
 a 2d-7                  # Equivalent radius
 rho 3d3                 # Density
+drag 1                  # Mesh "drag coefficient", for sphere = 1
 
-T 5800                  # Black body temperature (K)
-khat 0 0 1              # Wave vector direction
-B 0d-9                  # External magnetic field (lies in x,z-plane) magnitude
+T 5800                  # Black body temperature (K) of the incident radiation
+Td 20                   # Mean temperature of the dust particles
+Tgas 100                # Mean temperature of the gas
+nH 30                   # Number density of hydrogen in cubic cm
+khat 0 0 1              # Wave vector direction (currently disabled)
+B 1d-9                  # External magnetic field (lies in x,z-plane) magnitude
 B_psi 0                 # Angle between B and k (in degrees)
+Kw 1d-13                # Imag part of susceptibility over angular velocity
 
 refr 0.0                # Refractive index (set to zero to ignore)
 refi 0.0
@@ -18,12 +23,13 @@ E 1d0                   # Amplitude of E at its maximum
 #####  Run parameters   #######################################################
 waves bnd               # Wavelength band options lin, inv, log, bnd*, sil
 mueller_mode none       # Mueller matrix type, none*, ave, ori, perf_ori
-test_forces 1           # 0 = integrate, 1 = test methods, 2 = calc Qt, 
+test_forces 2           # 0 = integrate, 1 = test methods, 2 = calc Qt, 
                         # 3 = stability analysis, 4 = write fields to file
                         # 5 = SOCpol-averaging of Mueller matrices
 int_mode 0              # 0 = normal scattering dynamics integration,
                         # 1 = external alignment integration after normal
                         # 2 = only alignment integration by reading log file
+                        # 3 = alignment integration of stably spinning particle
 
 Tmat 1                  # 1 = file is usable / 0 = force T-matrix calculation
 polarization 2          # 1 = lin / 2 = un*
@@ -38,7 +44,7 @@ choose_integrator 2     # 1 = RK4, 2 = VLV*, 3 = PCDM
 it_max 50000
 it_log 5000             # From end backwards, 0 = log every step
 dt 1d0
-rot_max 1d-3
+rot_max 1d-2
 
 N_mean 0	               # Samples in alignment rolling mean
 tol_m 1d-1              # Tolerance to when state is declared aligned
