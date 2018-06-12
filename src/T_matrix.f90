@@ -94,7 +94,11 @@ contains
 ! largest T-matrix usually is much larger than the others. Must be allocated
 ! before anything else is done with T-matrices.
    subroutine allocate_Ti()
-      integer :: Nmax
+      integer :: Nmax, i
+      
+      do i = 1,size(matrices%Nmaxs)
+         T_size = T_size + ((matrices%Nmaxs(i) + 1)**2 - 1)**2
+      end do
 
       Nmax = maxval(matrices%Nmaxs)
 

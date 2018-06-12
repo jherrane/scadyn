@@ -188,22 +188,26 @@ module h5io
       integer(HID_T) :: dataset9_id, dataset10_id
       integer(HID_T) :: dataspace_id
 
-      integer(HSIZE_T), dimension(3) :: dims_out, dims
+      integer(HSIZE_T), dimension(1) :: dims_out, dims
       integer(HSIZE_T), dimension(1) :: dimswl, dimsinfo, dims1
 
-      integer :: error, i
+      integer :: error, i, nm, ind
 
       real(dp), dimension(3) :: ref_a
       real(dp), dimension(:), allocatable :: wls, param_r, param_i
-      real(dp), dimension(:, :, :), allocatable :: Taai_r, Taai_i
-      real(dp), dimension(:, :, :), allocatable :: Tabi_r, Tabi_i
-      real(dp), dimension(:, :, :), allocatable :: Tbai_r, Tbai_i
-      real(dp), dimension(:, :, :), allocatable :: Tbbi_r, Tbbi_i
-      complex(dp), dimension(:, :, :), allocatable :: Taai, Tabi, Tbai, Tbbi
+      real(dp), dimension(:), allocatable :: Taai_r, Taai_i
+      real(dp), dimension(:), allocatable :: Tabi_r, Tabi_i
+      real(dp), dimension(:), allocatable :: Tbai_r, Tbai_i
+      real(dp), dimension(:), allocatable :: Tbbi_r, Tbbi_i
+      complex(dp), dimension(:), allocatable :: Taai, Tabi, Tbai, Tbbi
       complex(dp) :: ref
       LOGICAL :: exists
 
       file = matrices%tname
+
+      allocate(Taai_i(T_size), Taai_r(T_size), Tabi_r(T_size), Tabi_i(T_size),&
+         Tbai_r(T_size), Tbai_i(T_size), Tbbi_r(T_size), Tbbi_i(T_size), &
+         Taai(T_size), Tabi(T_size), Tbai(T_size), Tbbi(T_size))
 
       call h5open_f(error)
       call h5fopen_f(file, H5F_ACC_RDWR_F, file_id, error)
@@ -213,18 +217,15 @@ module h5io
       call h5dopen_f(file_id, dataset1, dataset1_id, error)
       call h5dget_space_f(dataset1_id, dataspace_id, error)
       call H5sget_simple_extent_dims_f(dataspace_id, dims_out, dims, error)
-      allocate (Taai_r(dims(1), dims(2), dims(3)))
       call h5dread_f(dataset1_id, H5T_NATIVE_DOUBLE, Taai_r, dims, error)
       call h5dclose_f(dataset1_id, error)
 
       call h5dopen_f(file_id, dataset2, dataset2_id, error)
       call h5dget_space_f(dataset2_id, dataspace_id, error)
       call H5sget_simple_extent_dims_f(dataspace_id, dims_out, dims, error)
-      allocate (Taai_i(dims(1), dims(2), dims(3)))
       call h5dread_f(dataset2_id, H5T_NATIVE_DOUBLE, Taai_i, dims, error)
       call h5dclose_f(dataset2_id, error)
 
-      allocate (Taai(size(Taai_r, 1), size(Taai_r, 1), dims(3)))
       Taai = dcmplx(Taai_r, Taai_i)
 
 !****************************************************************************80
@@ -232,18 +233,15 @@ module h5io
       call h5dopen_f(file_id, dataset3, dataset3_id, error)
       call h5dget_space_f(dataset3_id, dataspace_id, error)
       call H5sget_simple_extent_dims_f(dataspace_id, dims_out, dims, error)
-      allocate (Tabi_r(dims(1), dims(2), dims(3)))
       call h5dread_f(dataset3_id, H5T_NATIVE_DOUBLE, Tabi_r, dims, error)
       call h5dclose_f(dataset3_id, error)
 
       call h5dopen_f(file_id, dataset4, dataset4_id, error)
       call h5dget_space_f(dataset4_id, dataspace_id, error)
       call H5sget_simple_extent_dims_f(dataspace_id, dims_out, dims, error)
-      allocate (Tabi_i(dims(1), dims(2), dims(3)))
       call h5dread_f(dataset4_id, H5T_NATIVE_DOUBLE, Tabi_i, dims, error)
       call h5dclose_f(dataset4_id, error)
 
-      allocate (Tabi(size(Tabi_r, 1), size(Tabi_r, 1), dims(3)))
       Tabi = dcmplx(Tabi_r, Tabi_i)
 
 !****************************************************************************80
@@ -251,18 +249,15 @@ module h5io
       call h5dopen_f(file_id, dataset5, dataset5_id, error)
       call h5dget_space_f(dataset5_id, dataspace_id, error)
       call H5sget_simple_extent_dims_f(dataspace_id, dims_out, dims, error)
-      allocate (Tbai_r(dims(1), dims(2), dims(3)))
       call h5dread_f(dataset5_id, H5T_NATIVE_DOUBLE, Tbai_r, dims, error)
       call h5dclose_f(dataset5_id, error)
 
       call h5dopen_f(file_id, dataset6, dataset6_id, error)
       call h5dget_space_f(dataset6_id, dataspace_id, error)
       call H5sget_simple_extent_dims_f(dataspace_id, dims_out, dims, error)
-      allocate (Tbai_i(dims(1), dims(2), dims(3)))
       call h5dread_f(dataset6_id, H5T_NATIVE_DOUBLE, Tbai_i, dims, error)
       call h5dclose_f(dataset6_id, error)
 
-      allocate (Tbai(size(Tbai_r, 1), size(Tbai_r, 1), dims(3)))
       Tbai = dcmplx(Tbai_r, Tbai_i)
 
 !****************************************************************************80
@@ -270,18 +265,15 @@ module h5io
       call h5dopen_f(file_id, dataset7, dataset7_id, error)
       call h5dget_space_f(dataset7_id, dataspace_id, error)
       call H5sget_simple_extent_dims_f(dataspace_id, dims_out, dims, error)
-      allocate (Tbbi_r(dims(1), dims(2), dims(3)))
       call h5dread_f(dataset7_id, H5T_NATIVE_DOUBLE, Tbbi_r, dims, error)
       call h5dclose_f(dataset7_id, error)
 
       call h5dopen_f(file_id, dataset8, dataset8_id, error)
       call h5dget_space_f(dataset8_id, dataspace_id, error)
       call H5sget_simple_extent_dims_f(dataspace_id, dims_out, dims, error)
-      allocate (Tbbi_i(dims(1), dims(2), dims(3)))
       call h5dread_f(dataset8_id, H5T_NATIVE_DOUBLE, Tbbi_i, dims, error)
       call h5dclose_f(dataset8_id, error)
 
-      allocate (Tbbi(size(Tbbi_r, 1), size(Tbbi_r, 1), dims(3)))
       Tbbi = dcmplx(Tbbi_r, Tbbi_i)
 
 !****************************************************************************80
@@ -324,26 +316,31 @@ module h5io
             !    if(real(Taai(j,1,i))/=0d0) num = num + 1
             ! end do
             ! matrices%Nmaxs(i) = int(dsqrt(real(num)+1d0)-1d0)
-            matrices%Nmaxs(i) = truncation_order(mesh%ki(i)*mesh%a)
+            matrices%Nmaxs(i) = truncation_order(mesh%ki(i)*&
+               (dble(maxval([mesh%Nx, mesh%Ny, mesh%Nz]))* &
+                             mesh%delta)/2.0d0)
          end do
+
 !****************************************************************************80
       end if
 
       call h5fclose_f(file_id, error)
       call h5close_f(error)
 
-      if (allocated(matrices%Taai)) deallocate (matrices%Taai, matrices%Tabi, &
-                                                matrices%Tbai, matrices%Tbbi)
+      matrices%Taai = dcmplx(0d0)
+      matrices%Tabi = dcmplx(0d0)
+      matrices%Tbai = dcmplx(0d0)
+      matrices%Tbbi = dcmplx(0d0)
 
-      allocate (matrices%Taai(size(Taai, 1), size(Taai, 2), size(Taai, 3)), &
-                matrices%Tabi(size(Tabi, 1), size(Tabi, 2), size(Tabi, 3)), &
-                matrices%Tbai(size(Tbai, 1), size(Tbai, 2), size(Tbai, 3)), &
-                matrices%Tbbi(size(Tbbi, 1), size(Tbbi, 2), size(Tbbi, 3)))
-
-      matrices%Taai = Taai
-      matrices%Tabi = Tabi
-      matrices%Tbai = Tbai
-      matrices%Tbbi = Tbbi
+      ind = 1
+      do i = 1, matrices%bars
+         nm = (matrices%Nmaxs(i)+1)**2-1
+         matrices%Taai(1:nm,1:nm,i) = reshape(Taai(ind:(ind-1)+nm**2), [nm,nm])
+         matrices%Tbai(1:nm,1:nm,i) = reshape(Tbai(ind:(ind-1)+nm**2), [nm,nm])
+         matrices%Tabi(1:nm,1:nm,i) = reshape(Tabi(ind:(ind-1)+nm**2), [nm,nm])
+         matrices%Tbbi(1:nm,1:nm,i) = reshape(Tbbi(ind:(ind-1)+nm**2), [nm,nm])
+         ind = ind + nm**2
+      end do
 
    end subroutine read_T
 
@@ -389,17 +386,34 @@ module h5io
 
       integer(HID_T) :: dspace_id, dspace_id2, dspace_id3
 
-      integer(HSIZE_T), dimension(3) :: dims
-      integer(HSIZE_T), dimension(1) :: dimswl, dimsinfo
-      integer     ::    rank = 3
+      integer(HSIZE_T), dimension(1) :: dims, dimswl, dimsinfo
+      integer     ::    rank = 1
       integer     ::   error ! Error flag
+      integer     ::    nm, ind, i
+
+      real(dp), dimension(T_size) :: Taai_r, Taai_i, Tabi_r, Tabi_i, &
+                                     Tbai_r, Tbai_i, Tbbi_r, Tbbi_i
 
       fname = matrices%tname
 
       filename = fname
-      dims = int8((/size(matrices%Taai, 1), size(matrices%Taai, 2), size(matrices%Taai, 3)/))
+      dims = int8((/T_size/))
       dimswl = int8((/matrices%bars/))
       dimsinfo = int8((/3/))
+
+      ind = 1
+      do i = 1, matrices%bars
+         nm = (matrices%Nmaxs(i) + 1)**2 - 1
+         Taai_r(ind:(ind-1)+nm**2) = reshape(real(matrices%Taai(1:nm,1:nm,i)),[nm**2])
+         Tbai_r(ind:(ind-1)+nm**2) = reshape(real(matrices%Tbai(1:nm,1:nm,i)),[nm**2])
+         Tabi_r(ind:(ind-1)+nm**2) = reshape(real(matrices%Tabi(1:nm,1:nm,i)),[nm**2])
+         Tbbi_r(ind:(ind-1)+nm**2) = reshape(real(matrices%Tbbi(1:nm,1:nm,i)),[nm**2])
+         Taai_i(ind:(ind-1)+nm**2) = reshape(imag(matrices%Taai(1:nm,1:nm,i)),[nm**2])
+         Tbai_i(ind:(ind-1)+nm**2) = reshape(imag(matrices%Tbai(1:nm,1:nm,i)),[nm**2])
+         Tabi_i(ind:(ind-1)+nm**2) = reshape(imag(matrices%Tabi(1:nm,1:nm,i)),[nm**2])
+         Tbbi_i(ind:(ind-1)+nm**2) = reshape(imag(matrices%Tbbi(1:nm,1:nm,i)),[nm**2])
+         ind = ind + nm**2
+      end do
 
       CALL h5open_f(error)
       CALL h5fcreate_f(filename, H5F_ACC_TRUNC_F, file_id, error)
@@ -411,44 +425,44 @@ module h5io
 
       CALL h5dcreate_f(file_id, dsetname1, H5T_NATIVE_DOUBLE, dspace_id, &
                        dset_id1, error, H5P_DEFAULT_F, H5P_DEFAULT_F, H5P_DEFAULT_F)
-      CALL h5dwrite_f(dset_id1, H5T_NATIVE_DOUBLE, real(matrices%Taai), dims, error)
+      CALL h5dwrite_f(dset_id1, H5T_NATIVE_DOUBLE, Taai_r, dims, error)
       CALL h5dclose_f(dset_id1, error)
       CALL h5dcreate_f(file_id, dsetname2, H5T_NATIVE_DOUBLE, dspace_id, &
                        dset_id2, error, H5P_DEFAULT_F, H5P_DEFAULT_F, H5P_DEFAULT_F)
-      CALL h5dwrite_f(dset_id2, H5T_NATIVE_DOUBLE, imag(matrices%Taai), dims, error)
+      CALL h5dwrite_f(dset_id2, H5T_NATIVE_DOUBLE, Taai_i, dims, error)
       CALL h5dclose_f(dset_id2, error)
 
 !****************************************************************************80
 
       CALL h5dcreate_f(file_id, dsetname3, H5T_NATIVE_DOUBLE, dspace_id, &
                        dset_id3, error, H5P_DEFAULT_F, H5P_DEFAULT_F, H5P_DEFAULT_F)
-      CALL h5dwrite_f(dset_id3, H5T_NATIVE_DOUBLE, real(matrices%Tabi), dims, error)
+      CALL h5dwrite_f(dset_id3, H5T_NATIVE_DOUBLE, Tabi_r, dims, error)
       CALL h5dclose_f(dset_id3, error)
       CALL h5dcreate_f(file_id, dsetname4, H5T_NATIVE_DOUBLE, dspace_id, &
                        dset_id4, error, H5P_DEFAULT_F, H5P_DEFAULT_F, H5P_DEFAULT_F)
-      CALL h5dwrite_f(dset_id4, H5T_NATIVE_DOUBLE, imag(matrices%Tabi), dims, error)
+      CALL h5dwrite_f(dset_id4, H5T_NATIVE_DOUBLE, Tabi_i, dims, error)
       CALL h5dclose_f(dset_id4, error)
 
 !****************************************************************************80
 
       CALL h5dcreate_f(file_id, dsetname5, H5T_NATIVE_DOUBLE, dspace_id, &
                        dset_id5, error, H5P_DEFAULT_F, H5P_DEFAULT_F, H5P_DEFAULT_F)
-      CALL h5dwrite_f(dset_id5, H5T_NATIVE_DOUBLE, real(matrices%Tbai), dims, error)
+      CALL h5dwrite_f(dset_id5, H5T_NATIVE_DOUBLE, Tbai_r, dims, error)
       CALL h5dclose_f(dset_id5, error)
       CALL h5dcreate_f(file_id, dsetname6, H5T_NATIVE_DOUBLE, dspace_id, &
                        dset_id6, error, H5P_DEFAULT_F, H5P_DEFAULT_F, H5P_DEFAULT_F)
-      CALL h5dwrite_f(dset_id6, H5T_NATIVE_DOUBLE, imag(matrices%Tbai), dims, error)
+      CALL h5dwrite_f(dset_id6, H5T_NATIVE_DOUBLE, Tbai_i, dims, error)
       CALL h5dclose_f(dset_id6, error)
 
 !****************************************************************************80
 
       CALL h5dcreate_f(file_id, dsetname7, H5T_NATIVE_DOUBLE, dspace_id, &
                        dset_id7, error, H5P_DEFAULT_F, H5P_DEFAULT_F, H5P_DEFAULT_F)
-      CALL h5dwrite_f(dset_id7, H5T_NATIVE_DOUBLE, real(matrices%Tbbi), dims, error)
+      CALL h5dwrite_f(dset_id7, H5T_NATIVE_DOUBLE, Tbbi_r, dims, error)
       CALL h5dclose_f(dset_id7, error)
       CALL h5dcreate_f(file_id, dsetname8, H5T_NATIVE_DOUBLE, dspace_id, &
                        dset_id8, error, H5P_DEFAULT_F, H5P_DEFAULT_F, H5P_DEFAULT_F)
-      CALL h5dwrite_f(dset_id8, H5T_NATIVE_DOUBLE, imag(matrices%Tbbi), dims, error)
+      CALL h5dwrite_f(dset_id8, H5T_NATIVE_DOUBLE, Tbbi_i, dims, error)
       CALL h5dclose_f(dset_id8, error)
 
 !****************************************************************************80
@@ -505,21 +519,20 @@ module h5io
 
       integer(HID_T) :: dspace_id, dspace_id2, dspace_id3
 
-      integer(HSIZE_T), dimension(3) :: dims
-      integer(HSIZE_T), dimension(1) :: dimswl, dimsinfo
-      integer     ::    rank = 3
+      integer(HSIZE_T), dimension(1) :: dims, dimswl, dimsinfo
+      integer     ::    rank = 1
       integer     ::   error ! Error flag
 
-      complex(dp), dimension(:, :, :), allocatable    ::   emptyT
+      complex(dp), dimension(:), allocatable    ::   emptyT
 
       fname = matrices%tname
       if(file_exists(fname)) return
 
       filename = fname
-      dims = int8((/size(matrices%Taai, 1), size(matrices%Taai, 2), size(matrices%Taai, 3)/))
+      dims = int8((/T_size/))
       dimswl = int8((/matrices%bars/))
       dimsinfo = int8((/3/))
-      allocate (emptyT(dims(1), dims(2), dims(3)))
+      allocate (emptyT(T_size))
       emptyT = dcmplx(0d0, 0d0)
 
       CALL h5open_f(error)
@@ -621,12 +634,25 @@ module h5io
 
       integer(HID_T) :: dspace_id
 
-      integer(HSIZE_T), dimension(3) :: dims, dims_out
-      real(dp), dimension(:, :, :), allocatable :: Ti_r, Ti_i
+      integer(HSIZE_T), dimension(1) :: dims, dims_out
+      real(dp), dimension(:), allocatable :: Ti_r, Ti_i
       integer     ::   error ! Error flag
+      integer :: i, ind1, ind2, nm
 
       filename = matrices%tname
-      dims = int8((/size(matrices%Taai, 1), size(matrices%Taai, 2), size(matrices%Taai, 3)/))
+      dims = int8((/T_size/))
+      allocate(Ti_r(T_size), Ti_i(T_size))
+
+      ind1 = 1
+      do i = 1, matrices%bars
+         nm = (matrices%Nmaxs(i)+1)**2-1
+         if(i==matrices%whichbar)then
+            ind2 = ind1+nm**2-1
+            exit
+         else
+            ind1 = ind1+nm**2
+         end if
+      end do
 
       call h5open_f(error)
       call h5fopen_f(filename, H5F_ACC_RDWR_F, file_id, error)
@@ -636,18 +662,18 @@ module h5io
       call h5dopen_f(file_id, dsetname1, dset_id1, error)
       call h5dget_space_f(dset_id1, dspace_id, error)
       call H5sget_simple_extent_dims_f(dspace_id, dims_out, dims, error)
-      allocate (Ti_r(dims(1), dims(2), dims(3)))
       call h5dread_f(dset_id1, H5T_NATIVE_DOUBLE, Ti_r, dims, error)
-      Ti_r(:, :, matrices%whichbar) = real(matrices%Taai(:, :, matrices%whichbar))
+      Ti_r(ind1:ind2) = reshape(real(matrices%Taai(1:nm, 1:nm, &
+         matrices%whichbar)), [nm**2])
       CALL h5dwrite_f(dset_id1, H5T_NATIVE_DOUBLE, Ti_r, dims, error)
       call h5dclose_f(dset_id1, error)
 
       call h5dopen_f(file_id, dsetname2, dset_id2, error)
       call h5dget_space_f(dset_id2, dspace_id, error)
       call H5sget_simple_extent_dims_f(dspace_id, dims_out, dims, error)
-      allocate (Ti_i(dims(1), dims(2), dims(3)))
       call h5dread_f(dset_id2, H5T_NATIVE_DOUBLE, Ti_i, dims, error)
-      Ti_i(:, :, matrices%whichbar) = imag(matrices%Taai(:, :, matrices%whichbar))
+      Ti_i(ind1:ind2) = reshape(imag(matrices%Taai(1:nm, 1:nm, &
+         matrices%whichbar)), [nm**2])
       CALL h5dwrite_f(dset_id2, H5T_NATIVE_DOUBLE, Ti_i, dims, error)
       call h5dclose_f(dset_id2, error)
 
@@ -657,7 +683,8 @@ module h5io
       call h5dget_space_f(dset_id3, dspace_id, error)
       call H5sget_simple_extent_dims_f(dspace_id, dims_out, dims, error)
       call h5dread_f(dset_id3, H5T_NATIVE_DOUBLE, Ti_r, dims, error)
-      Ti_r(:, :, matrices%whichbar) = real(matrices%Tabi(:, :, matrices%whichbar))
+      Ti_r(ind1:ind2) = reshape(real(matrices%Tabi(1:nm, 1:nm, &
+         matrices%whichbar)), [nm**2])
       CALL h5dwrite_f(dset_id3, H5T_NATIVE_DOUBLE, Ti_r, dims, error)
       call h5dclose_f(dset_id3, error)
 
@@ -665,7 +692,8 @@ module h5io
       call h5dget_space_f(dset_id4, dspace_id, error)
       call H5sget_simple_extent_dims_f(dspace_id, dims_out, dims, error)
       call h5dread_f(dset_id4, H5T_NATIVE_DOUBLE, Ti_i, dims, error)
-      Ti_i(:, :, matrices%whichbar) = imag(matrices%Tabi(:, :, matrices%whichbar))
+      Ti_i(ind1:ind2) = reshape(imag(matrices%Taai(1:nm, 1:nm, &
+         matrices%whichbar)), [nm**2])
       CALL h5dwrite_f(dset_id4, H5T_NATIVE_DOUBLE, Ti_i, dims, error)
       call h5dclose_f(dset_id4, error)
 
@@ -675,7 +703,8 @@ module h5io
       call h5dget_space_f(dset_id5, dspace_id, error)
       call H5sget_simple_extent_dims_f(dspace_id, dims_out, dims, error)
       call h5dread_f(dset_id5, H5T_NATIVE_DOUBLE, Ti_r, dims, error)
-      Ti_r(:, :, matrices%whichbar) = real(matrices%Tbai(:, :, matrices%whichbar))
+      Ti_r(ind1:ind2) = reshape(real(matrices%Tbai(1:nm, 1:nm, &
+         matrices%whichbar)), [nm**2])
       CALL h5dwrite_f(dset_id5, H5T_NATIVE_DOUBLE, Ti_r, dims, error)
       call h5dclose_f(dset_id5, error)
 
@@ -683,7 +712,8 @@ module h5io
       call h5dget_space_f(dset_id6, dspace_id, error)
       call H5sget_simple_extent_dims_f(dspace_id, dims_out, dims, error)
       call h5dread_f(dset_id6, H5T_NATIVE_DOUBLE, Ti_i, dims, error)
-      Ti_i(:, :, matrices%whichbar) = imag(matrices%Tbai(:, :, matrices%whichbar))
+      Ti_i(ind1:ind2) = reshape(imag(matrices%Taai(1:nm, 1:nm, &
+         matrices%whichbar)), [nm**2])
       CALL h5dwrite_f(dset_id6, H5T_NATIVE_DOUBLE, Ti_i, dims, error)
       call h5dclose_f(dset_id6, error)
 
@@ -693,7 +723,8 @@ module h5io
       call h5dget_space_f(dset_id7, dspace_id, error)
       call H5sget_simple_extent_dims_f(dspace_id, dims_out, dims, error)
       call h5dread_f(dset_id7, H5T_NATIVE_DOUBLE, Ti_r, dims, error)
-      Ti_r(:, :, matrices%whichbar) = real(matrices%Tbbi(:, :, matrices%whichbar))
+      Ti_r(ind1:ind2) = reshape(real(matrices%Tbbi(1:nm, 1:nm, &
+         matrices%whichbar)), [nm**2])
       CALL h5dwrite_f(dset_id7, H5T_NATIVE_DOUBLE, Ti_r, dims, error)
       call h5dclose_f(dset_id7, error)
 
@@ -701,7 +732,8 @@ module h5io
       call h5dget_space_f(dset_id8, dspace_id, error)
       call H5sget_simple_extent_dims_f(dspace_id, dims_out, dims, error)
       call h5dread_f(dset_id8, H5T_NATIVE_DOUBLE, Ti_i, dims, error)
-      Ti_i(:, :, matrices%whichbar) = imag(matrices%Tbbi(:, :, matrices%whichbar))
+      Ti_i(ind1:ind2) = reshape(imag(matrices%Taai(1:nm, 1:nm, &
+         matrices%whichbar)), [nm**2])
       CALL h5dwrite_f(dset_id8, H5T_NATIVE_DOUBLE, Ti_i, dims, error)
       call h5dclose_f(dset_id8, error)
 
