@@ -47,8 +47,9 @@ contains
          call forcetorque(matrices%whichbar)
          F = F + matrices%force
          N = N + matrices%torque
-         Q_t = Q_t + matrices%torque*(mesh%ki(i))/&
-               (epsilon*(matrices%E_rel(i)*matrices%E)**2/2d0)/pi/mesh%a**2/matrices%bars
+         Q_t = Q_t + matrices%torque*(mesh%ki(matrices%whichbar))/&
+               (epsilon*(matrices%E_rel(matrices%whichbar)*matrices%E)**2/2d0)/&
+               pi/mesh%a**2/matrices%bars
       end if
 
       if (calc_extra_torques == 1) then

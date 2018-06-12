@@ -6,7 +6,7 @@ program main
 
    implicit none
 
-   call splash('v0.4')
+   call splash('v0.5')
 
    call check_paramsfile()
    call read_params()
