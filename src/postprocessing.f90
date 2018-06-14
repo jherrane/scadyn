@@ -274,8 +274,6 @@ contains
 ! Mueller matrices needed in SOCpol.
    subroutine test_mueller(Ntheta, Nphi)
       integer :: i, j, ind, halton_init, Nphi, Ntheta
-      real(dp) :: al_direction(3)
-      real(dp), dimension(:), allocatable :: a_dist
       real(dp), dimension(:,:), allocatable :: points
 
       halton_init = 0
@@ -290,9 +288,7 @@ contains
          end do
       end do
 
-      a_dist = mesh%ki*mesh%a/mesh%ki(2)
-      al_direction = [0d0, 0d0, 1d0]
-      call scattering_extinction_matrices(a_dist, points, al_direction)
+      call scattering_extinction_matrices(points)
 
    end subroutine test_mueller
 

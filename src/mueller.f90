@@ -152,12 +152,11 @@ contains
 ! Below are WIP functionalities for the SOCpol application
 !****************************************************************************80
 
-   subroutine scattering_extinction_matrices(a_dist, points, al_direction)
-      integer :: i, ind, ii, N_points, N_size, N_ia
-      real(dp) :: al_direction(3), inc_angles(2), K(4, 4), Cext, Csca
+   subroutine scattering_extinction_matrices(points)
+      integer :: i, ind, ind2, ii, N_points, N_size, N_ia
+      real(dp) :: inc_angles(2), K(4, 4), Cext_al, Csca_al, Cext_ave, Csca_ave
       complex(dp) :: Kevals(4), Kevecs(4, 4)
-      real(dp), dimension(:), allocatable :: a_dist
-      real(dp), dimension(:, :), allocatable :: SS, SSS, KK, KKK, points
+      real(dp), dimension(:, :), allocatable :: S_ave, S_al, SS, K_ave, K_al, KK, points
       CHARACTER(LEN=80) :: mueller_out, extinction_out
 
       N_points = size(points, 2) ! Number of points to calculate the perfect orientations
@@ -166,54 +165,54 @@ contains
       extinction_out = 'extinction_matrix'
 
       inc_angles = [90d0, 180d0]
-      allocate (SSS(N_points*size(a_dist, 1)*size(inc_angles), 20))
-      allocate (KKK(size(a_dist, 1)*size(inc_angles), 20))
-      SSS = 0d0
-      KKK = 0d0
-      allocate (SS(N_points, 18), KK(1, 18), )
+      allocate (SS(2*N_points*size(mesh%ki, 1)*size(inc_angles), 20))
+      allocate (KK(2*size(mesh%ki, 1)*size(inc_angles), 20))
+      SS = 0d0
+      KK = 0d0
+      allocate (S_al(N_points, 18), K_al(1, 18), S_ave(N_points, 18), K_ave(1, 18))
 
       ind = 0
-      do N_size = 1, size(a_dist, 1)
+      ind2 = 0
+      do N_size = 1, size(mesh%ki, 1)
 ! Choose wavelength
          mesh%k = mesh%ki(N_size)
-         do N_ia = 1, size(inc_angles, 1)
-! We take every N_size as the critical size, below which nothing is aligned
-            SS = 0d0
-            KK = 0d0
-            Csca = 0d0 
-            Cext = 0d0 
-            do ii = 1, size(a_dist, 1)
-               if (a_dist(ii) <= a_dist(N_size)) then
-                  call mueller_ave(SS, KK, Csca, Cext, points, ii)
-               else
-                  call mueller_align(SS, KK, Csca, Cext, points, ii, al_direction)
-               end if
-            end do
-
-            SS = SS/size(a_dist, 1)
-            KK = KK/size(a_dist, 1)
+         do N_ia = 1, size(inc_angles, 1)            
+            call mueller_ave(S_ave, K_ave, Csca_ave, Cext_ave, points, N_size)
+            call mueller_align(S_al, K_al, Csca_al, Cext_al, points, N_size, inc_angles(N_ia))
 
             do i = 1, N_points
                ind = ind + 1
-               SSS(ind, 1) = N_size
-               SSS(ind, 2) = N_ia
-               SSS(ind, 3) = i
-               SSS(ind, 4:19) = SS(i, 3:18)
-               SSS(ind, 20) = Csca
+               SS(ind, 1) = N_size
+               SS(ind, 2) = N_ia
+               SS(ind, 3) = i
+               SS(ind, 4:19) = S_ave(i, 3:18)
+               SS(ind, 20) = Csca_ave
+               ind = ind + 1
+               SS(ind, 1) = N_size
+               SS(ind, 2) = N_ia
+               SS(ind, 3) = i
+               SS(ind, 4:19) = S_al(i, 3:18)
+               SS(ind, 20) = Csca_al
 
-               call print_bar(ind, size(a_dist, 1)*size(inc_angles)*N_points)
+               call print_bar(ind, 2*size(mesh%ki, 1)*size(inc_angles)*N_points)
             end do
-
-            KKK(ind/N_points, 1) = N_size
-            KKK(ind/N_points, 2) = N_ia
-            KKK(ind/N_points, 3) = 1
-            KKK(ind/N_points, 4:19) = KK(1, 3:18)
-            KKK(ind/N_points, 20) = Cext
+            ind2 = ind2 + 1
+            KK(ind2, 1) = N_size
+            KK(ind2, 2) = N_ia
+            KK(ind2, 3) = 1
+            KK(ind2, 4:19) = K_ave(1, 3:18)
+            KK(ind2, 20) = Cext_ave
+            ind2 = ind2 + 1
+            KK(ind2, 1) = N_size
+            KK(ind2, 2) = N_ia
+            KK(ind2, 3) = 1
+            KK(ind2, 4:19) = K_al(1, 3:18)
+            KK(ind2, 20) = Cext_al
 
          end do
       end do
-      call write_RT_matrix(SSS, mueller_out, 1)
-      call write_RT_matrix(KKK, extinction_out, 2)
+      call write_RT_matrix(SS, mueller_out, 1)
+      call write_RT_matrix(KK, extinction_out, 2)
 
    end subroutine scattering_extinction_matrices
 
@@ -226,6 +225,11 @@ contains
       real(dp), dimension(:, :), allocatable :: S, SS, K, KK, points
       complex(dp), dimension(:), allocatable :: a_in, b_in
       complex(dp), dimension(:), allocatable :: p, q, p90, q90
+
+      SS = 0d0
+      KK = 0d0
+      Csca = 0d0 
+      Cext = 0d0 
 
       matrices%R = eye(3)
       N_avgs = 360 ! Number of averaging directions
@@ -260,49 +264,71 @@ contains
 
 !****************************************************************************80
 
-   subroutine mueller_align(SS, KK, Csca_out, Cext_out, points, ii, al_direction)
-      integer :: i, ii, N_avgs, Nmax
-      real(dp) :: E, omega(3), al_direction(3), theta, phi, RR(3, 3), Qt(3, 3), R0(3, 3), &
-                  aproj(3), k_sph(3)
-      real(dp) :: Cext, Cabs, Csca, Csca_out, Cext_out
+   subroutine mueller_align(SS, KK, Csca_out, Cext_out, points, ii, psi, xi_in)
+      integer :: i, j, ii, Ntheta, Nphi, Nmax
+      real(dp) :: E, omega(3), al_direction(3), theta, phi, &
+                  aproj(3), k_sph(3), psi, x_B(3), n_phi(3)
+      real(dp) :: Cext, Cabs, Csca, Csca_out, Cext_out, xi
+      real(dp), dimension(3,3) :: Rtheta, Rphi, Qt, R0
+      real(dp), optional :: xi_in
       real(dp), dimension(:, :), allocatable :: S, SS, K, KK, points
       complex(dp), dimension(:), allocatable :: a_in, b_in
       complex(dp), dimension(:), allocatable :: p, q, p90, q90
 
-      N_avgs = 36 ! Number of averaging directions
+      SS = 0d0
+      KK = 0d0
+      Csca = 0d0 
+      Cext = 0d0 
+
+      Ntheta = 36 ! Number of averaging directions
+      Nphi = 36 ! Number of precession averaging directions
+      if(.NOT. present(xi_in)) then
+         xi = 0d0
+         Nphi = 1
+      else
+         xi = xi_in
+      end if 
+
+! First, set up B in the direction of psi (B still lies in the xz-plane)
+      psi = matrices%B_psi
+      x_B = [0d0, 1d0, 0d0]
+
+! Rotation axis for precession averaging
+      n_phi = matmul(R_aa(x_B, psi), [0d0,1d0,0d0]) ! Is actually B
 
       E = matrices%E_rel(ii)*matrices%E
-      omega = al_direction
-      omega = omega/vlen(omega)
+      omega = matmul(R_aa([1d0,0d0,0d0], psi+xi),[0d0,0d0,1d0])
       R0 = rotate_a_to_b(matrices%P(:, 3), omega)
       Qt = matmul(R0, matrices%P)
-      aproj = [Qt(1, 3), Qt(2, 3), 0d0]
-      aproj = aproj/vlen(aproj)
-      phi = dacos(aproj(1))
+
       Nmax = matrices%Nmaxs(ii)
+      
+      do j = 1, Nphi
+         phi = dble(j - 1)*2d0*pi/dble(Nphi)
+         Rphi = R_aa(n_phi,phi)
+         do i = 1, Ntheta
+            theta = dble(i - 1)*2d0*pi/dble(Ntheta - 1)
+            Rtheta = matmul(transpose(R_aa(omega, theta)), transpose(R0))
+            Rtheta = matmul(transpose(Rphi),Rtheta)
 
-      do i = 1, N_avgs
-         theta = dble(i - 1)*2d0*pi/dble(N_avgs - 1)
-         RR = matmul(transpose(R_aa(omega, theta)), transpose(R0))
+            matrices%khat = -matmul(Rtheta, [0d0, 0d0, 1d0])
+            matrices%khat = matrices%khat/vlen(matrices%khat)
+            k_sph = cart2sph(matrices%khat)
 
-         matrices%khat = -matmul(RR, [0d0, 0d0, 1d0])
-         matrices%khat = matrices%khat/vlen(matrices%khat)
-         k_sph = cart2sph(matrices%khat)
+            matrices%R = rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0])
 
-         matrices%R = rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0])
-         matrices%R = matmul(matrices%R,R_aa(matrices%khat, phi))
-
-         call rot_setup()
-         call incident_fields(E, a_in, b_in, ii)
-         call scattered_fields(E, p, q, p90, q90, ii)
-         if (allocated(S)) deallocate (S, K)
-         call scattering_matrix_coeff(p, q, p90, q90, dcmplx(mesh%ki(ii)), size(points, 2), points, S)
-         call extinction_matrix_coeff(p, q, p90, q90, dcmplx(mesh%ki(ii)), k_sph(2), k_sph(3), K)
-         call cross_sections(p, q, a_in, b_in, dcmplx(mesh%ki(ii)), Nmax, Cext, Csca, Cabs)
-         SS = SS + S/N_avgs
-         KK = KK + K/N_avgs
-         Csca_out = Csca_out + Csca/N_avgs
-         Cext_out = Cext_out + Cext/N_avgs
+            call rot_setup()
+            call incident_fields(E, a_in, b_in, ii)
+            call scattered_fields(E, p, q, p90, q90, ii)
+            if (allocated(S)) deallocate (S, K)
+            call scattering_matrix_coeff(p, q, p90, q90, dcmplx(mesh%ki(ii)), size(points, 2), points, S)
+            call extinction_matrix_coeff(p, q, p90, q90, dcmplx(mesh%ki(ii)), k_sph(2), k_sph(3), K)
+            call cross_sections(p, q, a_in, b_in, dcmplx(mesh%ki(ii)), Nmax, Cext, Csca, Cabs)
+            SS = SS + S/Nphi/Ntheta
+            KK = KK + K/Nphi/Ntheta
+            Csca_out = Csca_out + Csca/Nphi/Ntheta
+            Cext_out = Cext_out + Cext/Nphi/Ntheta
+         end do 
       end do
 
    end subroutine mueller_align
