@@ -97,7 +97,7 @@ contains
       integer :: Nmax, i
       
       do i = 1,size(matrices%Nmaxs)
-         T_size = T_size + ((matrices%Nmaxs(i) + 1)**2 - 1)**2
+         print*, T_size, T_size + ((matrices%Nmaxs(i) + 1)**2 - 1)**2 -1
       end do
 
       Nmax = maxval(matrices%Nmaxs)

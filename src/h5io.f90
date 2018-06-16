@@ -692,7 +692,7 @@ module h5io
       call h5dget_space_f(dset_id4, dspace_id, error)
       call H5sget_simple_extent_dims_f(dspace_id, dims_out, dims, error)
       call h5dread_f(dset_id4, H5T_NATIVE_DOUBLE, Ti_i, dims, error)
-      Ti_i(ind1:ind2) = reshape(imag(matrices%Taai(1:nm, 1:nm, &
+      Ti_i(ind1:ind2) = reshape(imag(matrices%Tabi(1:nm, 1:nm, &
          matrices%whichbar)), [nm**2])
       CALL h5dwrite_f(dset_id4, H5T_NATIVE_DOUBLE, Ti_i, dims, error)
       call h5dclose_f(dset_id4, error)
@@ -712,7 +712,7 @@ module h5io
       call h5dget_space_f(dset_id6, dspace_id, error)
       call H5sget_simple_extent_dims_f(dspace_id, dims_out, dims, error)
       call h5dread_f(dset_id6, H5T_NATIVE_DOUBLE, Ti_i, dims, error)
-      Ti_i(ind1:ind2) = reshape(imag(matrices%Taai(1:nm, 1:nm, &
+      Ti_i(ind1:ind2) = reshape(imag(matrices%Tbai(1:nm, 1:nm, &
          matrices%whichbar)), [nm**2])
       CALL h5dwrite_f(dset_id6, H5T_NATIVE_DOUBLE, Ti_i, dims, error)
       call h5dclose_f(dset_id6, error)
@@ -732,7 +732,7 @@ module h5io
       call h5dget_space_f(dset_id8, dspace_id, error)
       call H5sget_simple_extent_dims_f(dspace_id, dims_out, dims, error)
       call h5dread_f(dset_id8, H5T_NATIVE_DOUBLE, Ti_i, dims, error)
-      Ti_i(ind1:ind2) = reshape(imag(matrices%Taai(1:nm, 1:nm, &
+      Ti_i(ind1:ind2) = reshape(imag(matrices%Tbbi(1:nm, 1:nm, &
          matrices%whichbar)), [nm**2])
       CALL h5dwrite_f(dset_id8, H5T_NATIVE_DOUBLE, Ti_i, dims, error)
       call h5dclose_f(dset_id8, error)
