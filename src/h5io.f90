@@ -412,7 +412,8 @@ module h5io
          Tbai_i(ind:(ind-1)+nm**2) = reshape(imag(matrices%Tbai(1:nm,1:nm,i)),[nm**2])
          Tabi_i(ind:(ind-1)+nm**2) = reshape(imag(matrices%Tabi(1:nm,1:nm,i)),[nm**2])
          Tbbi_i(ind:(ind-1)+nm**2) = reshape(imag(matrices%Tbbi(1:nm,1:nm,i)),[nm**2])
-         ind = ind + nm**2 -1
+         ind = ind + nm**2 - 1
+         print*, ind
       end do
 
       CALL h5open_f(error)
