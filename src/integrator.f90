@@ -287,7 +287,6 @@ contains
       H = matrices%FGH(4,:)
 
       beta = matrices%Tdrag/matrices%TDG
-      beta = 0d0
 ! dxi = MF/w -betasin(xi)cos(xi)
       dxiw(1) = matrices%M*interp1D(F,xis,dcos(xi))/w - &
                   beta*dsin(xi)*dcos(xi)
@@ -618,23 +617,23 @@ contains
    subroutine ADE_update(w, xi)
       real(dp) :: dxiw(2), w, xi, dt, coeffs(4), k_w(4), k_xi(4)
 
-      dt = 1d-5
+      dt = 1d-1
 
       dxiw = get_dxiw(xi, w)
-      k_w(1) = dxiw(1)
-      k_xi(1) = dxiw(2)
+      k_w(1) = dxiw(2)
+      k_xi(1) = dxiw(1)
 
       dxiw = get_dxiw(xi + k_xi(1)*dt/2, w + k_w(1)*dt/2)
-      k_w(2) = dxiw(1)
-      k_xi(2) = dxiw(2)
+      k_w(2) = dxiw(2)
+      k_xi(2) = dxiw(1)
 
       dxiw = get_dxiw(xi + k_xi(2)*dt/2, w + k_w(2)*dt/2)
-      k_w(3) = dxiw(1)
-      k_xi(3) = dxiw(2)
+      k_w(3) = dxiw(2)
+      k_xi(3) = dxiw(1)
 
       dxiw = get_dxiw(xi + k_xi(3)*dt/2, w + k_w(3)*dt/2)
-      k_w(4) = dxiw(1)
-      k_xi(4) = dxiw(2)
+      k_w(4) = dxiw(2)
+      k_xi(4) = dxiw(1)
 
       w = w + dt*(k_w(1)+2*k_w(2)+2*k_w(3)+k_w(4))/6
       xi = xi + dt*(k_xi(1)+2*k_xi(2)+2*k_xi(3)+k_xi(4))/6

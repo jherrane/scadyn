@@ -487,7 +487,7 @@ contains
          end do
          matrices%E_rel = matrices%E_rel/sm
       end if
-
+       
    end subroutine calc_E_rel
 
 !****************************************************************************80
@@ -567,6 +567,11 @@ contains
          do i = 1, n
             c(i) = 10**c(i)
          end do
+      else if(matrices%waves == 'isrf') then
+         call linspace(1d0/(matrices%lambda1), 1d0/(matrices%lambda2), n, c)
+         do i = 1, n
+            c(i) = 1d0/c(i)
+         end do
       else
          ! print*, matrices%waves
          call linspace(matrices%lambda1, matrices%lambda2, n, c)
@@ -577,6 +582,11 @@ contains
          mesh%ki(i) = 2d0*pi/c(i)
       end do
       matrices%E_rel = 1d0
+
+      if(matrices%waves == 'isrf') then
+         call calc_E_rel()
+         if (2*pi/mesh%ki(1)/1d-6 < 0.2d0) matrices%E_rel(1) = maxval(matrices%E_rel)*2d0
+      end if 
 
    end subroutine band_no_blackbody
 

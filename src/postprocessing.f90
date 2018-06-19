@@ -146,9 +146,6 @@ contains
          Npsi = Npsi_in
       end if
 
-! Add 100 nm spike to the spectrum'
-      if (2*pi/mesh%ki(1)/1d-6 < 0.2d0) matrices%E_rel(1) = maxval(matrices%E_rel)*2d0
-    
       allocate (xi(Nxi), phi(Nphi), psi(Npsi), F_coll(6, Nxi*Npsi))
       if(present(FGH)) allocate(FGH(4,Nxi*Npsi))
       call linspace(0d0, pi, Nxi, xi)
@@ -296,20 +293,21 @@ contains
 ! Calculate alignment of stably spinning particle. The stability direction is
 ! determined by force analysis
    subroutine stable_particle_RAT()
-      integer :: i, j, k, Nang, ind, N_points, numlines, last, Nw, Nxi
+      integer :: i, j, k, Nang, ind, Npoints, numlines, last, Nw, Nxi
       integer :: t1, t2, rate
       real(dp) :: E, RR(3, 3)
       complex(dp), dimension(:), allocatable :: p, q, p90, q90
       real(dp), dimension(3, 3) :: R_B, R_xi, R_init, RP
       real(dp), dimension(3) :: k0, E0, E90, Q_t, nphi, a_3, x_B, xstable
-      real(dp) :: phi, psi, tol
+      real(dp) :: phi, psi, tol, w1, xi1
+      real(dp), dimension(:, :, :), allocatable :: path_w, path_xi
       real(dp), dimension(:, :), allocatable :: FGH, xi, w, dxi, dw 
       real(dp), dimension(:), allocatable :: thetas
 
 !       call stability_analysis(xstable)
 
-! ! Rotation like this is not strictly needed for the next steps, but P(:,3) 
-! ! gives now the internal alignment direction w.r.t. the incidence direction.
+! Rotation like this is not strictly needed for the next steps, but P(:,3) 
+! gives now the internal alignment direction w.r.t. the incidence direction.
 !       RP = rotate_a_to_b(matrices%P(:,3), xstable)
 !       matrices%P = matmul(RP, matrices%P)
       call RAT_efficiency(60,20,FGH=FGH)
@@ -318,14 +316,41 @@ contains
 
 ! Start integration
 
-      Nw = 50
-      Nxi = 50
+      Nw = 40
+      Nxi = 70
+      Npoints = 300
+      allocate(path_w(Nxi,Nw,Npoints), path_xi(Nxi,Nw,Npoints))
       call trajectory_xi_w(Nxi, Nw, xi, w, dxi, dw, w_limits=[-400d0,400d0])
 
       call write_array(xi,'xi.out  ')
       call write_array(w,'w.out   ')
       call write_array(dxi,'dxi.out ')
       call write_array(dw,'dw.out  ')
+
+      open(unit=1,file="out/path.out", action="write", status="replace")
+      write(1,'(I0)') Nxi
+      write(1,'(I0)') Nw
+      write(1,'(I0)') Npoints
+      ind = 1
+      do i = 1,Nxi
+         do j = 1, Nw
+            w1 = w(i,j)
+            xi1 = xi(i,j)
+            path_w(i,j,1) = w1
+            path_xi(i,j,1) = xi1
+            write(1,'(2ES12.3)') xi1, w1
+            do k = 2, Npoints
+               call ADE_update(w1,xi1)
+               path_w(i,j,k) = w1
+               path_xi(i,j,k) = xi1
+               write(1,'(2ES12.3)') xi1, w1
+            end do
+            call print_bar(ind,Nw*Nxi)
+            ind = ind + 1
+         end do
+      end do
+
+      close(1)
 
       ! print*, w, cos(xi)
       ! do i = 1,3000
