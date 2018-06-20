@@ -301,7 +301,7 @@ contains
       real(dp), dimension(3) :: k0, E0, E90, Q_t, nphi, a_3, x_B, xstable
       real(dp) :: phi, psi, tol, w1, xi1
       real(dp), dimension(:, :, :), allocatable :: path_w, path_xi
-      real(dp), dimension(:, :), allocatable :: FGH, xi, w, dxi, dw 
+      real(dp), dimension(:, :), allocatable :: FGH, xi, w
       real(dp), dimension(:), allocatable :: thetas
 
 !       call stability_analysis(xstable)
@@ -316,16 +316,11 @@ contains
 
 ! Start integration
 
-      Nw = 40
-      Nxi = 70
+      Nw = 2
+      Nxi = 15
       Npoints = 300
       allocate(path_w(Nxi,Nw,Npoints), path_xi(Nxi,Nw,Npoints))
-      call trajectory_xi_w(Nxi, Nw, xi, w, dxi, dw, w_limits=[-400d0,400d0])
-
-      call write_array(xi,'xi.out  ')
-      call write_array(w,'w.out   ')
-      call write_array(dxi,'dxi.out ')
-      call write_array(dw,'dw.out  ')
+      call grid_xi_w(Nxi, Nw, xi, w, w_limits=[-40d0,40d0])
 
       open(unit=1,file="out/path.out", action="write", status="replace")
       write(1,'(I0)') Nxi
@@ -334,8 +329,8 @@ contains
       ind = 1
       do i = 1,Nxi
          do j = 1, Nw
-            w1 = w(i,j)
-            xi1 = xi(i,j)
+            w1 = w(j,i)
+            xi1 = xi(j,i)
             path_w(i,j,1) = w1
             path_xi(i,j,1) = xi1
             write(1,'(2ES12.3)') xi1, w1
@@ -351,18 +346,6 @@ contains
       end do
 
       close(1)
-
-      ! print*, w, cos(xi)
-      ! do i = 1,3000
-      !    call ADE_update(w, xi)
-      !    ! print*, w, cos(xi)
-      ! end do
-      ! open (unit=1, file="out/F.out", ACTION="write", STATUS="replace")
-      ! write (1, '(A)') 'xi   psi   F  H  G'
-      ! do i = 1, size(F_coll, 2)
-      !    write (1, '(6ES12.3)') dcos(F_coll(1:2, i)), F_coll(3:5, i)
-      ! end do
-      ! close (1)
       
    end subroutine stable_particle_RAT
 
