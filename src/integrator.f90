@@ -80,15 +80,17 @@ contains
 ! Somehow, if the particle movement is almost periodic, the averaged RAT should
 ! be calculated over one quasiperiod. Otherwise results will be more skewed.
    subroutine compute_log_RAT()
-      integer :: i, j, k, Nang, ind, N_points, numlines, last
+      integer :: i, j, k, Nang, ind, N_points, numlines, last, Npoints, Nw, Nxi
       integer :: t1, t2, rate
       real(dp) :: E, RR(3, 3)
       complex(dp), dimension(:), allocatable :: p, q, p90, q90
       real(dp), dimension(3, 3) :: R_B, R_xi, R_init, RP
       real(dp), dimension(3) :: k0, E0, E90, Q_t, nphi, a_3, x_B
       real(dp) :: xi, phi, psi, tol, urad
-      real(dp), dimension(:, :), allocatable :: F_coll
+      real(dp), dimension(:, :), allocatable :: F_coll, FGH, xis, ws
       real(dp), dimension(:), allocatable :: thetas
+      real(dp) :: w1, xi1
+      real(dp), dimension(:, :, :), allocatable :: path_w, path_xi
 
       tol = 5d-2
       numlines = it_log
@@ -106,7 +108,7 @@ contains
       allocate (thetas(Nang))
       call linspace(0d0, pi, Nang, thetas)
 
-      allocate (F_coll(6, Nang))
+      allocate (F_coll(6, Nang), FGH(4,Nang))
       F_coll(:, :) = 0d0
       ind = 0
 
@@ -191,6 +193,47 @@ contains
          write (1, '(6ES12.3)') dcos(F_coll(1:2, i)), F_coll(3:5, i)
       end do
       close (1)
+
+      FGH(1,:) = F_coll(1,:)
+      FGH(2,:) = F_coll(3,:)
+      FGH(3,:) = F_coll(5,:)
+      FGH(4,:) = F_coll(4,:)
+      allocate(matrices%FGH(size(FGH, 1), size(FGH,2)))
+      matrices%FGH = FGH
+
+! Start integration
+
+      Nw = 2
+      Nxi = 15
+      Npoints = 300
+      allocate(path_w(Nxi,Nw,Npoints), path_xi(Nxi,Nw,Npoints))
+      call grid_xi_w(Nxi, Nw, xis, ws, w_limits=[-40d0,40d0])
+
+      open(unit=1,file="out/path.out", action="write", status="replace")
+      write(1,'(I0)') Nxi
+      write(1,'(I0)') Nw
+      write(1,'(I0)') Npoints
+      ind = 1
+      do i = 1,Nxi
+         do j = 1, Nw
+            w1 = ws(j,i)
+            xi1 = xis(j,i)
+            path_w(i,j,1) = w1
+            path_xi(i,j,1) = xi1
+            write(1,'(2ES12.3)') xi1, w1
+            do k = 2, Npoints
+               call ADE_update(w1,xi1)
+               path_w(i,j,k) = w1
+               path_xi(i,j,k) = xi1
+               write(1,'(2ES12.3)') xi1, w1
+            end do
+            call print_bar(ind,Nw*Nxi)
+            ind = ind + 1
+         end do
+      end do
+
+      close(1)
+      
       
    end subroutine compute_log_RAT
 

@@ -293,16 +293,10 @@ contains
 ! Calculate alignment of stably spinning particle. The stability direction is
 ! determined by force analysis
    subroutine stable_particle_RAT()
-      integer :: i, j, k, Nang, ind, Npoints, numlines, last, Nw, Nxi
-      integer :: t1, t2, rate
-      real(dp) :: E, RR(3, 3)
-      complex(dp), dimension(:), allocatable :: p, q, p90, q90
-      real(dp), dimension(3, 3) :: R_B, R_xi, R_init, RP
-      real(dp), dimension(3) :: k0, E0, E90, Q_t, nphi, a_3, x_B, xstable
-      real(dp) :: phi, psi, tol, w1, xi1
+      integer :: i, j, k, ind, Npoints, Nw, Nxi
+      real(dp) :: w1, xi1
       real(dp), dimension(:, :, :), allocatable :: path_w, path_xi
       real(dp), dimension(:, :), allocatable :: FGH, xi, w
-      real(dp), dimension(:), allocatable :: thetas
 
 !       call stability_analysis(xstable)
 
