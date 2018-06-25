@@ -601,12 +601,11 @@ contains
 
       open (unit=1, file=fname, ACTION="write", STATUS="replace")
 
-      write (1, '(A, A)') 'meshname =   ', mesh%meshname
+      write (1, '(A, A)') 'meshname =   ', trim(mesh%meshname)
       write (1, '(A, 3f7.3)') 'k_hat    = ', matrices%khat
       write (1, '(A, 3ES11.3)') 'dt       = ', matrices%dt
       write (1, '(A,I20)') 'Nmax     = ', it_max
-      write (1, '(A, 3ES11.3)') 'w0       = ', matmul(matmul(matrices%P, matrices%R), &
-                                                      matrices%w)
+      write (1, '(A, 3ES11.3)') 'wB0       = ', matrices%w
       write (1, '(A, 9f7.3)') 'R0       = ', matrices%R
       write (1, '(A, 3ES11.3)') 'rho      = ', mesh%rho
       write (1, '(A, 3ES11.3)') 'CM       = ', matrices%CM
@@ -622,7 +621,7 @@ contains
       do i = 1, 3
          write (1, '(3f7.3)') matrices%P(i, :)
       end do
-      write (1, '(A)') ' Log: n x(1:3) v(1:3) w(1:3) J(1:3) N(1:3) F(1:3) t R(1:9) '
+      write (1, '(A)') ' Log: n | t | w(1:3) | N(1:3) | R(1:9) '
       write (1, '(A)') ' '
 
       close (1)
@@ -635,7 +634,7 @@ contains
       integer :: n, i, md, ind
       character(len=80) :: fname, fmt
 
-      fmt = '(I0, 6(3ES11.3), 10ES16.8)'
+      fmt = '(I0, A, ES16.8, A, 2(3ES16.8, A), 9ES16.8)'
       md = mod(n+1, 1000)
 
 ! If the simulation has run for long enough and the particle spins stably, 
@@ -654,12 +653,8 @@ contains
 ! just save to buffer position given by the modulo.
       ind = md
       if (md == 0) ind = 1000
-      matrices%x_buf(:, ind) = matrices%x_CM
-      matrices%v_buf(:, ind) = matrices%v_CM
       matrices%w_buf(:, ind) = matrices%w
-      matrices%J_buf(:, ind) = matrices%J
       matrices%N_buf(:, ind) = matrices%N
-      matrices%F_buf(:, ind) = matrices%F
       matrices%t_buf(:, ind) = matrices%tt
       matrices%R_buf(:, :, ind) = matrices%R
 
@@ -668,14 +663,10 @@ contains
          if (n >= it_stop - it_log .OR. it_log == 0) then
             do i = 1, 1000
                if (i + matrices%buffer <= it_stop) then
-                  write (1, fmt) i + matrices%buffer, &
-                     matrices%x_buf(:, i), &
-                     matrices%v_buf(:, i), &
-                     matmul(matmul(matrices%P, matrices%R_buf(:, :, i)), matrices%w_buf(:, i)), &
-                     matrices%J_buf(:, i), &
-                     matrices%N_buf(:, i), &
-                     matrices%F_buf(:, i), &
-                     matrices%t_buf(:, i), &
+                  write (1, fmt) i + matrices%buffer,  ' |',&
+                     matrices%t_buf(:, i),  ' |',&
+                     matrices%w_buf(:, i),  ' |',&
+                     matrices%N_buf(:, i),  ' |',&
                      matrices%R_buf(:, :, i)
                end if
             end do

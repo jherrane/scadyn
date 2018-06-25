@@ -11,6 +11,8 @@ import matplotlib.patches as mpatches
 import numpy as np
 import math
 from itertools import islice
+from io import StringIO
+import codecs
 
 fileQ = "Qt"
 
@@ -90,7 +92,10 @@ if __name__ == "__main__":
    fileQ = fileQ + splt[-1]
 
    log = open(inputfile,'r')
-   lines = np.loadtxt(inputfile, skiprows=22)
+   inputf = codecs.open(inputfile, encoding='utf-8').read()
+   inputf = inputf.replace('|','')
+   
+   lines = np.loadtxt(StringIO(inputf), skiprows=22)
    
    string = log.readlines()[1]
    k = [float(s) for s in string.split()[2:5]]
@@ -98,14 +103,13 @@ if __name__ == "__main__":
    Q = np.genfromtxt(islice(log,17,20))
    log.close()
 
-   x = lines[:,1:4]
-   v = lines[:,4:7]
-   w = lines[:,7:10]
-   J = lines[:,10:13]
-   N = lines[:,13:16]
-   F = lines[:,16:19]
-   t = lines[:,19]
-   R = lines[:,20:30]
-   
+   t = lines[:,1]
+   w = lines[:,2:5]
+   N = lines[:,5:8]
+   R = lines[:,8:18]
+      
+   for i in range(0,w.shape[0]):
+      w[i,:] = np.matmul(Q,np.matmul(np.reshape(R[i,:],(3,3),order='F'),w[i,:]  ))
+      
    with cd(pth):
 		plot_R(R,w,Q,k)
