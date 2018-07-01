@@ -18,6 +18,12 @@ contains
       call system_clock(t2, rate)
       write(*,'(2(A,g0))') '  Done in ', real(T2 - T1)/real(rate), ' seconds'
 
+      write(*,'(A)') ' Dissipation calculations in progress...'
+      call system_clock(t1, rate)
+      call solve_dissipation()
+      call system_clock(t2, rate)
+      write(*,'(2(A,g0))') '  Done in ', real(T2 - T1)/real(rate), ' seconds'
+
    end subroutine integrate
 
 !****************************************************************************
@@ -50,6 +56,7 @@ contains
    subroutine solve_eoms()
       integer :: i
       character(len=80) :: lg
+      real(dp) :: q, E, J(3), I3, t, h
 
       lg = matrices%out
       call start_log(lg)
@@ -75,6 +82,42 @@ contains
       end do
 
    end subroutine solve_eoms
+
+!****************************************************************************
+
+   subroutine solve_dissipation()
+      integer :: i, i_h
+      real(dp) :: q, E, J(3), I3, t, h, Jlab(3), JJ, dq_max, Jold
+
+      I3 = matrices%Ip(3)
+      J = matmul(matrices%I,matrices%w)
+      Jlab = matmul(matmul(matrices%P, matrices%R), J)
+      E = 0.5d0*dot_product(J,matrices%w)
+      q = 2d0*I3*E/dot_product(J,J)
+      dq_max = 5d-3
+      t = 0d0
+      h = matrices%Ip(3)/matrices%Ip(1)
+      i_h = int((q-1d0)/dq_max)
+      JJ = vlen(J)
+
+      call spin_up(q,t,Jlab,1,JJ)
+      print*, 'Total spin-up time: ', t/365/24/3600, ' y'
+      t = 0d0
+
+      open(unit=1, file='out/q', action='write', status='replace')
+      write(1,'(A)') 'q, J, t'
+      write(1,'(3(ES11.3))') q, JJ, t
+      do i = 0, i_h
+         call relax_step(q, t, dq_max, JJ)
+         if(q-1d0<1d-3) exit
+         write(1,'(3(ES11.3))') q, JJ, t
+      end do
+      close(1)
+      print*, 'Total dissipation time: ', t/365/24/3600, ' y'
+      print*, 'Final (J, w): ', JJ, JJ/matrices%Ip(3)
+
+
+   end subroutine solve_dissipation
 
 !****************************************************************************80
 ! Somehow, if the particle movement is almost periodic, the averaged RAT should
@@ -428,7 +471,7 @@ contains
 ! Variational Lie-Verlet method for rotational integration
    subroutine vlv_update()
       integer :: maxiter, i1
-      real(dp) :: Rn(3, 3), wnh(3), dt, I(3), Jw(3), Ff
+      real(dp) :: Rn(3, 3), wnh(3), dt, I(3), Jw(3), Ff, dtheta
       real(dp) :: PxW(3), hel(3), Jac(3, 3), Jwn(3), iterstop
       complex(dp), dimension(6) :: FN
 
@@ -482,6 +525,7 @@ contains
       matrices%Rn = quat2mat(matrices%qn)
 
       matrices%R = matrices%Rn
+
       if (matrices%E > 1d-7) then 
          call get_forces()
       else

@@ -159,6 +159,9 @@ contains
          case ('-B')
             call get_command_argument(i + 1, arg)
             read (arg, *) calc_extra_torques
+         case ('-r', '--relax')
+            call get_command_argument(i + 1, arg)
+            read (arg, *) relax
 
          case ('-h', '--help')
             write (*, '(A)') ' Commands        Value       Description'
@@ -176,6 +179,8 @@ contains
             write (*, '(A)') ' -s --seed       0           RNG seed'
             write (*, '(A)') '    --Mie        1           Use the Mie sphere'
             write (*, '(A)') ' -B              1           Use external magnetic field'
+            write (*, '(A)') ' -r --relax      1           Use internal relaxation'
+
 
             stop
          case default

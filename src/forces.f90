@@ -277,6 +277,107 @@ contains
    end subroutine forcetorque
 
 !****************************************************************************80
+
+   subroutine spin_up(q, t, Jlab, pm, Jout)
+      real(dp), intent(inout) :: q, t
+      real(dp), intent(in) :: Jlab(3)
+      integer, intent(in) :: pm 
+      real(dp), intent(inout), optional :: Jout
+      integer :: iii, jjj, NH, Ntau
+      real(dp) :: tau_n, tau_e, tau_int, dq, w1, w2, w3, k2, tau, I1, I2, I3, &
+                  sn, cn, dn, a, b, g, R(3,3), P(3,3), xp(2), xi, phi, psi, H, &
+                  dt, it_max, Q_t(3), Pt, F, E, J, wT
+
+      NH = 10
+      Ntau = 10
+
+      I1 = matrices%Ip(1)
+      I2 = matrices%Ip(2)
+      I3 = matrices%Ip(3)
+      k2 = (I2-I1)*(q-1)/((I3-I2)*(1-I1*q/I3))
+      J = vlen(Jlab)
+
+      call elit(k2, pi/2d0, F, E)
+      Pt = 4d0*F
+
+      H = 0d0
+      do iii = 0,Ntau-1
+         tau = dble(iii)*Pt/Ntau
+         if(k2<1d0) then
+            call jelp(tau, k2, sn, cn, dn, phi)
+            w3 = dble(pm)*J/I3*sqrt((I3-I1*q)/(I3-I1))*dn
+            w2 = -J/I2*sqrt(I2*(q-1)/(I3-I2))*sn
+            w1 = dble(pm)*J/I1*sqrt(I1*(q-1)/(I3-I1))*cn
+         else if(k2>1d0) then
+            call jelp(tau, 1/k2, sn, cn, dn, phi)
+            w3 = dble(pm)*J/I3*sqrt((I3-I1*q)/(I3-I1))*dn
+            w2 = -J/I2*sqrt(I2*(1-I1**1/I3)/(I2-I1))*sn
+            w1 = dble(pm)*J/I1*sqrt(I1*(q-1)/(I3-I1))*cn
+         else
+            w1 = 0d0
+            w2 = dble(pm)*J/I2
+            w3 = 0d0
+         end if
+
+! Calculate spin-up torque over torque-free approximation
+         b = dacos(min(I3*w3/J,1d0))
+         g = dacos(min(I1*w1/(dsin(b)*J),1d0))
+         do jjj = 0,NH-1
+            a = dble(jjj)*2d0*pi/NH
+            R(1, 1) = cos(b)
+            R(1, 2) = sin(a)*sin(b) 
+            R(1, 3) = -cos(a)*sin(b) 
+            R(2, 1) = sin(b)*sin(g) 
+            R(2, 2) = cos(a)*cos(g) - cos(b)*sin(a)*sin(g)
+            R(2, 3) = cos(g)*sin(a)+cos(a)*cos(b)*sin(g)
+            R(3, 1) = cos(g)*sin(b) 
+            R(3, 2) = -cos(a)*sin(g) - cos(b)*cos(g)*sin(a) 
+            R(3, 3) = cos(a)*cos(b)*cos(g) - sin(a)*sin(g)
+
+            xp = get_xiphi(R)
+            xi = xp(1)
+            phi = xp(2)
+            psi = matrices%B_psi
+
+            P = rotate_a_to_b([0d0,0d0,1d0], Jlab)
+            matrices%R = matmul(matmul(P,R),transpose(P))
+            call get_forces(1)
+            Q_t = matmul(matrices%R,matrices%torque)/(NH*Ntau)
+            H = H + dot_product(Q_t, rhat(xi, phi, psi))
+         end do 
+      end do
+      wT = sqrt(2*k_b*matrices%Tgas/I3)
+      dt = I3*wT/H
+      J = J + H*dt
+      t = t + dt
+      if(present(Jout)) Jout = J
+
+   end subroutine spin_up
+
+!****************************************************************************80
+
+   subroutine relax_step(q, t, dq_max, J)
+      real(dp), intent(inout) :: q, t
+      real(dp), intent(in) :: J, dq_max
+      integer :: iii, jjj, NH, Ntau
+      real(dp) :: tau_n, tau_e, tau_int, dq, I1, I3, dt
+
+      I1 = matrices%Ip(1)
+      I3 = matrices%Ip(3)
+
+! Calculate q-update
+      tau_n = barnett_time(3d-11, 1.3d8, J/matrices%Ip(3), 1d-4, 1d-4)
+      tau_e = barnett_time(1d-13, -1.76d11, J/matrices%Ip(3), 1d-10, 1d-6)
+      tau_int = 1d0/(1d0/tau_n+1d0/tau_e)
+
+      dq = -(q-1)*(1-q*I1/I3)/tau_int/(1-I1/I3)
+      dt = abs(dq_max/dq)
+      q = q + dq*dt
+      t = t + dt
+
+   end subroutine relax_step
+
+!****************************************************************************80
 ! Calculates z-component of force analytically
    function F_z(Nmax, a, bb, p, qq) result(f)
       real(dp) :: f, g
@@ -340,6 +441,22 @@ contains
       N = dcmplx(tmp, 0d0)
 
    end function barnett_torque
+
+!****************************************************************************80
+! Calculate the Barnett relaxation (nuclear/electron) time scale before next 
+! step
+   function barnett_time(chi0, g, w, T1, T2) result(tau)
+      real(dp) :: tau, T1, T2, chi0, I1, I3, w, ww,  V, g
+      real(dp), dimension(3) :: Jb, a_3, J, axis
+
+      V = mesh%V
+      I1 = matrices%Ip(1)
+      I3 = matrices%Ip(3)
+
+      tau =(2d0*V*(chi0*T2)*(I3-I1))/((I1**2)*g**2)*w**2/(1+(I3*T1*T2*w**2)/(2d0*I1))
+      tau = 1d0/tau
+
+   end function barnett_time
 
 !****************************************************************************80
 ! Calculates the z-component of torque analytically
@@ -437,7 +554,7 @@ contains
    end function get_thetaphi
 
 !****************************************************************************80
-! Calculates alignment angles xi and phi from a given rotation vector
+! Calculates alignment angles xi and phi from a given rotation matrix
    function get_xiphi(R) result(xp)
       real(dp) :: R(3,3), xi, phi, xp(2), B(3), a_3_perp_z(3)
 
