@@ -42,15 +42,15 @@ def plot_orbit(orbit1, orbit2, orbit3,w, k):
    ax.set_xlim(-1,1)
    ax.set_ylim(-1,1)
    ax.set_zlim(-1,1)
-   ax.set_title('Time evolution of particle rotation', fontweight='bold', fontsize=24)
+   ax.set_title('Rotational time series', fontweight='bold', fontsize=24)
    ax.xaxis.set_ticklabels([])
    ax.yaxis.set_ticklabels([])
    ax.zaxis.set_ticklabels([])
 
-   a1_patch = mpatches.Patch(color=COLOR1,label=r'$\hat{a}_{1}$')
-   a2_patch = mpatches.Patch(color=COLOR2,label=r'$\hat{a}_{2}$')
-   a3_patch = mpatches.Patch(color=COLOR3,label=r'$\hat{a}_{3}$')
-   w_patch = mpatches.Patch(color=COLOR4,label=r'$\hat{\omega}$')
+   a1_patch = mpatches.Patch(color=COLOR1,label=r'$\hat{\mathbf{a}}_{1}$')
+   a2_patch = mpatches.Patch(color=COLOR2,label=r'$\hat{\mathbf{a}}_{2}$')
+   a3_patch = mpatches.Patch(color=COLOR3,label=r'$\hat{\mathbf{a}}_{3}$')
+   w_patch = mpatches.Patch(color=COLOR4,label=r'$\hat{\mathbf{J}}$')
    plt.legend(handles = [a1_patch, a2_patch, a3_patch, w_patch],prop={'size':24})
    plt.savefig(fileQ + '.png')
 
@@ -69,12 +69,13 @@ def plot_R(R_list,w,Q,k):
 if __name__ == "__main__":
    inputfile = 'log'
    pth = 'figs'
+   skip = 22
    #plt.xkcd()
    #plt.rc('font',family='Times New Roman')
    
    argv = sys.argv[1:]
    try:
-      opts, args = getopt.getopt(argv,"hl:p:",["log=", "path="])
+      opts, args = getopt.getopt(argv,"hl:p:s:",["log=", "path=", "skip="])
    except getopt.GetoptError:
       print 'test.py -log <inputfile>'
       sys.exit(2)
@@ -82,11 +83,14 @@ if __name__ == "__main__":
       if opt == '-h' or opt == '--help':
          print 'evo.py -l --log <inputfile>'
          print '       -p --path <path>'
+         print '       -s --skip n'
          sys.exit()
       elif opt in ("-l", "--log"):
          inputfile = arg
       elif opt in ("-p", "--path"):
          pth = arg
+      elif opt in ("-s", "--skip"):
+         skip = int(arg)
    
    splt = inputfile.split("log")
    fileQ = fileQ + splt[-1]
@@ -95,21 +99,29 @@ if __name__ == "__main__":
    inputf = codecs.open(inputfile, encoding='utf-8').read()
    inputf = inputf.replace('|','')
    
-   lines = np.loadtxt(StringIO(inputf), skiprows=22)
+   lines = np.loadtxt(StringIO(inputf), skiprows=skip)
    
    string = log.readlines()[1]
    k = [float(s) for s in string.split()[2:5]]
    log.seek(0)
    Q = np.genfromtxt(islice(log,17,20))
+   log.seek(0)
+   I = np.genfromtxt(islice(log,15,16))
+   I = np.diag(I)
    log.close()
 
    t = lines[:,1]
    w = lines[:,2:5]
+   J = 0*w
    N = lines[:,5:8]
    R = lines[:,8:18]
       
    for i in range(0,w.shape[0]):
+      J[i,:] = np.matmul(I,w[i,:])
       w[i,:] = np.matmul(Q,np.matmul(np.reshape(R[i,:],(3,3),order='F'),w[i,:]  ))
+      J[i,:] = np.matmul(Q,np.matmul(np.reshape(R[i,:],(3,3),order='F'),J[i,:]  ))
+      w[i,:] = 1.1*w[i,:]/np.sqrt(np.sum(np.power(w[i,:],2)))
+      J[i,:] = 1.1*J[i,:]/np.sqrt(np.sum(np.power(J[i,:],2)))
       
    with cd(pth):
-		plot_R(R,w,Q,k)
+		plot_R(R,J,Q,k)
