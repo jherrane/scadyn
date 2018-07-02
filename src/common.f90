@@ -1180,7 +1180,6 @@ contains
       matrices%q_list(1:window-1) = matrices%q_list(2:window)
       matrices%q_list(window) = matrices%q_param
 
-      print*, sqrt(matrices%q_var)
       if (sqrt(matrices%q_var) < matrices%tol_m) ans = 1
 
    end function alignment_state
