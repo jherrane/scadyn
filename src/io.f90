@@ -606,7 +606,8 @@ contains
       matrices%buffer = 0
       matrices%q_mean = 0d0
       matrices%q_var = 0d0
-      allocate(matrices%q_list(matrices%n_mean))
+      allocate(matrices%q_list(al_thresh))
+      matrices%q_list = 0d0
 
       open (unit=1, file=fname, ACTION="write", STATUS="replace")
 
@@ -644,19 +645,19 @@ contains
       character(len=80) :: fname, fmt
 
       fmt = '(I0, A, ES16.8, A, 2(3ES16.8, A), 9ES16.8)'
-      md = mod(n+1, 1000)
+      md = mod(n, 1000)  
 
 ! Calculate mean q-parameters for the variance calculation
-      if(n >= al_thresh-matrices%n_mean .AND. n<al_thresh) then
+      if(n<=al_thresh) then
          matrices%q_mean = matrices%q_mean + matrices%q_param/matrices%n_mean
-         matrices%q_list(n-(al_thresh-matrices%n_mean)+1) = matrices%q_param
+         matrices%q_list(n) = matrices%q_param
       end if 
 
 ! If the simulation has run for long enough and the particle spins stably, 
 ! flag the calculation to end (by changing the it_stop value).
       if (n >= al_thresh) then
          if (n==al_thresh)then
-            do i=1,matrices%n_mean
+            do i=1,al_thresh
                matrices%q_var = matrices%q_var + &
                ((matrices%q_list(i)-matrices%q_mean)**2)/matrices%n_mean
             end do
@@ -664,12 +665,12 @@ contains
          if (is_aligned == 0) then
             is_aligned = alignment_state()
             if(n==it_stop)then
-               print *, " Finished integration, using average q-parameter..."
-               print*, " q = ", matrices%q_mean
+               write(*,'(A)') " Finished integration, using average q-parameter..."
+               write(*,'(A,F11.5)') " q = ", matrices%q_mean
             end if 
          else if (alignment_found == 0) then
-            print *, " Found nearly stable q-parameter, stopping..."
-            print*, " q = ", matrices%q_mean
+            write(*,'(A)') " Found nearly stable q-parameter, stopping..."
+            write(*,'(A,F11.5)') " q = ", matrices%q_mean
             it_stop = n + it_log + 1
             alignment_found = 1
          end if
@@ -684,9 +685,9 @@ contains
       matrices%t_buf(:, ind) = matrices%tt
       matrices%R_buf(:, :, ind) = matrices%R
 
-      if (md == 0 .OR. n+1 == it_stop) then
+      if (md == 0 .OR. n == it_stop) then
          open (unit=1, file=fname, action="write", position="append", STATUS="old")
-         if (n >= it_stop - it_log .OR. it_log == 0) then
+         if (n > it_stop - it_log .OR. it_log == 0) then
             do i = 1, 1000
                if (i + matrices%buffer <= it_stop) then
                   write (1, fmt) i + matrices%buffer,  ' |',&

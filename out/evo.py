@@ -70,12 +70,13 @@ if __name__ == "__main__":
    inputfile = 'log'
    pth = 'figs'
    skip = 22
+   last = 0 # Draw only last n lines, 0 if all
    #plt.xkcd()
    #plt.rc('font',family='Times New Roman')
    
    argv = sys.argv[1:]
    try:
-      opts, args = getopt.getopt(argv,"hl:p:s:",["log=", "path=", "skip="])
+      opts, args = getopt.getopt(argv,"hl:p:s:e:",["log=", "path=", "skip=","end="])
    except getopt.GetoptError:
       print 'test.py -log <inputfile>'
       sys.exit(2)
@@ -84,6 +85,7 @@ if __name__ == "__main__":
          print 'evo.py -l --log <inputfile>'
          print '       -p --path <path>'
          print '       -s --skip n'
+         print '       -e --end n'
          sys.exit()
       elif opt in ("-l", "--log"):
          inputfile = arg
@@ -91,11 +93,17 @@ if __name__ == "__main__":
          pth = arg
       elif opt in ("-s", "--skip"):
          skip = int(arg)
+      elif opt in ("-e", "--end"):
+         last = int(arg)
    
    splt = inputfile.split("log")
    fileQ = fileQ + splt[-1]
 
    log = open(inputfile,'r')
+   num_lines = sum(1 for line in log)
+   log.seek(0)
+   if last != 0:
+      skip = skip+num_lines-last
    inputf = codecs.open(inputfile, encoding='utf-8').read()
    inputf = inputf.replace('|','')
    

@@ -1170,7 +1170,7 @@ contains
       integer :: ans, n
       real(dp) :: q_oldmean, q_mean, q, q_old
 
-      n = matrices%n_mean
+      n = al_thresh
       ans = 0
       q = matrices%q_param
       q_old = matrices%q_list(1)

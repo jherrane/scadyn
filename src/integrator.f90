@@ -18,7 +18,7 @@ contains
       call system_clock(t2, rate)
       write(*,'(2(A,g0))') '  Done in ', real(T2 - T1)/real(rate), ' seconds'
 
-      write(*,'(A)') ' Dissipation calculations in progress...'
+      write(*,'(A)') ' Spin-up and dissipation calculations in progress...'
       call system_clock(t1, rate)
       call solve_dissipation()
       call system_clock(t2, rate)
@@ -62,8 +62,8 @@ contains
       call start_log(lg)
 
 ! Iteration of optical force calculation
-      do i = 0, it_max-1
-         if (i >= it_stop) exit
+      do i = 1, it_max
+         if (i > it_stop) exit
 
          select case (matrices%which_int)
          case (1)
@@ -80,7 +80,7 @@ contains
          J = matmul(matrices%I,matrices%w)
          E = 0.5d0*dot_product(J,matrices%w)
          matrices%q_param = 2d0*matrices%Ip(3)*E/dot_product(J,J)
-         ! print*, matrices%q_param
+
          call append_log(lg, i)
          call print_bar(i+1, it_max)
          
@@ -102,10 +102,10 @@ contains
       i_h = int((q-1d0)/dq_max)
       JJ = vlen(J)
 
-      print*, 'Calculating spin-up...'
+      write(*,'(A)') '  Calculating spin-up...'
       call spin_up(t, HH, JJ)
-      print*, 'Total spin-up time: ', t/365/24/3600, ' y'
-      print*, 'Average spin-up torque: ', HH
+      write(*,'(A,F11.3,A)') '  Total spin-up time: ', t/365/24/3600, ' y'
+      write(*,'(A,ES11.3)') '  Average spin-up torque: ', HH
       t = 0d0
 
       open(unit=1, file='out/q', action='write', status='replace')
@@ -117,8 +117,8 @@ contains
          write(1,'(3(ES11.3))') q, JJ, t
       end do
       close(1)
-      print*, 'Total dissipation time: ', t/365/24/3600, ' y'
-      print*, 'Final (J, w): ', abs(JJ), abs(JJ)/matrices%Ip(3)
+      write(*,'(A,I0,A)') '  Total dissipation time: ', int(t/365/24/3600), ' y'
+      write(*,'(A,2ES11.3)') '  Final (J, w): ', abs(JJ), abs(JJ)/matrices%Ip(3)
 
 
    end subroutine solve_dissipation
