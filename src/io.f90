@@ -663,9 +663,13 @@ contains
          end if
          if (is_aligned == 0) then
             is_aligned = alignment_state()
+            if(n==it_stop)then
+               print *, " Finished integration, using average q-parameter..."
+               print*, " q = ", matrices%q_mean
+            end if 
          else if (alignment_found == 0) then
             print *, " Found nearly stable q-parameter, stopping..."
-            print*, " q = ", matrices%q_param
+            print*, " q = ", matrices%q_mean
             it_stop = n + it_log + 1
             alignment_found = 1
          end if

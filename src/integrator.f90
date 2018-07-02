@@ -118,7 +118,7 @@ contains
       end do
       close(1)
       print*, 'Total dissipation time: ', t/365/24/3600, ' y'
-      print*, 'Final (J, w): ', JJ, JJ/matrices%Ip(3)
+      print*, 'Final (J, w): ', abs(JJ), abs(JJ)/matrices%Ip(3)
 
 
    end subroutine solve_dissipation
@@ -138,7 +138,6 @@ contains
       H = 0d0
       t = 0d0
       N_i = 0
-
 
       ! Iteration of optical force calculation
       do i = 0, i_max-1
