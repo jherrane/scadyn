@@ -55,8 +55,8 @@ contains
 ! called scattering frame, and all ! dynamics are integrated in principal frame.
    subroutine solve_eoms()
       integer :: i
+      real(dp) :: J(3), E
       character(len=80) :: lg
-      real(dp) :: q, E, J(3), I3, t, h
 
       lg = matrices%out
       call start_log(lg)
@@ -77,8 +77,13 @@ contains
          end select
 
          call update_values()
+         J = matmul(matrices%I,matrices%w)
+         E = 0.5d0*dot_product(J,matrices%w)
+         matrices%q_param = 2d0*matrices%Ip(3)*E/dot_product(J,J)
+         ! print*, matrices%q_param
          call append_log(lg, i)
          call print_bar(i+1, it_max)
+         
       end do
 
    end subroutine solve_eoms
@@ -87,21 +92,20 @@ contains
 
    subroutine solve_dissipation()
       integer :: i, i_h
-      real(dp) :: q, E, J(3), I3, t, h, Jlab(3), JJ, dq_max, Jold
+      real(dp) :: q, E, J(3), I3, t, h, Jlab(3), JJ, dq_max, Jold, HH
 
       I3 = matrices%Ip(3)
       J = matmul(matrices%I,matrices%w)
-      Jlab = matmul(matmul(matrices%P, matrices%R), J)
-      E = 0.5d0*dot_product(J,matrices%w)
-      q = 2d0*I3*E/dot_product(J,J)
+      q = matrices%q_mean
       dq_max = 5d-3
-      t = 0d0
       h = matrices%Ip(3)/matrices%Ip(1)
       i_h = int((q-1d0)/dq_max)
       JJ = vlen(J)
 
-      call spin_up(q,t,Jlab,1,JJ)
+      print*, 'Calculating spin-up...'
+      call spin_up(t, HH, JJ)
       print*, 'Total spin-up time: ', t/365/24/3600, ' y'
+      print*, 'Average spin-up torque: ', HH
       t = 0d0
 
       open(unit=1, file='out/q', action='write', status='replace')
@@ -118,6 +122,59 @@ contains
 
 
    end subroutine solve_dissipation
+
+!****************************************************************************80
+
+   subroutine spin_up(t, H, Jout)
+      real(dp), intent(out) :: t, H
+      real(dp), intent(inout) :: Jout
+      integer :: N_i, i, i_max
+      real(dp) :: I3, dt, Q_t(3), J, wT, R0(3,3), xp(2), xi, phi, &
+                  psi
+
+      i_max = 10000
+      I3 = matrices%Ip(3)
+      R0 = matrices%R
+      H = 0d0
+      t = 0d0
+      N_i = 0
+
+
+      ! Iteration of optical force calculation
+      do i = 0, i_max-1
+         if (i>20 .AND. near_identity(matmul(transpose(R0),matrices%R),6d-2)) exit
+
+         select case (matrices%which_int)
+         case (1)
+            call RK4_update(0)
+         case (2)
+            call vlv_update(0)
+         case (3)
+            call PCDM_update(0)
+         case default
+            call euler_update(0)
+         end select
+
+         call update_values()
+         xp = get_xiphi(matrices%R)
+         xi = xp(1)
+         phi = xp(2)
+         psi = matrices%B_psi
+
+         call get_forces(1)
+         Q_t = matmul(matrices%R,matmul(matrices%P,(matrices%N)))
+         H = H + dot_product(Q_t, rhat(xi, phi, psi))
+         N_i = i
+      end do
+
+      H = H/dble(N_i)
+      wT = sqrt(2*k_b*matrices%Tgas/I3)
+      dt = I3*wT/abs(H)
+      J = J + H*dt
+      t = t + dt
+      Jout = J
+
+   end subroutine spin_up
 
 !****************************************************************************80
 ! Somehow, if the particle movement is almost periodic, the averaged RAT should
@@ -384,16 +441,20 @@ contains
 
 !****************************************************************************80
 
-   subroutine euler_update()
-      real(dp) :: qn(4), wn(3), vn(3), xn(3), P(3, 3)
-      complex(dp), dimension(6) :: FN
+   subroutine euler_update(mode)
+      integer, optional :: mode
+      real(dp) :: qn(4), wn(3), vn(3), xn(3), P(3, 3), N(3)
 
       P = matrices%P
 
       call get_forces()
+      N = matrices%N
+      if(present(mode)) then
+         if(mode==0) N = 0d0
+      end if
       call adaptive_step()
 
-      wn = .5d0*matrices%dt*get_dotw(matrices%N, matrices%w, matrices%I, matrices%I_inv)
+      wn = .5d0*matrices%dt*get_dotw(N, matrices%w, matrices%I, matrices%I_inv)
       qn = matrices%dt*get_dotq(matrices%w, matrices%q)
       vn = .5d0*matrices%dt*matrices%F/mesh%mass
       xn = .5d0*matrices%dt*matrices%v_CM
@@ -410,10 +471,11 @@ contains
 
 !****************************************************************************80
 ! Runge-Kutta 4 update for the rotational equations of motion
-   subroutine RK4_update()
+   subroutine RK4_update(mode)
+      integer, optional :: mode
       real(dp), dimension(4) :: qn
       real(dp) :: dt, k_q(4, 4), k_w(3, 4), coeffs(4), &
-                  k_v(3, 4), k_x(3, 4), R(3, 3), wn(3), P(3, 3)
+                  k_v(3, 4), k_x(3, 4), R(3, 3), wn(3), P(3, 3), N(3)
 
       R = matrices%R
       P = matrices%P
@@ -423,6 +485,10 @@ contains
       coeffs = [1d0, 2d0, 2d0, 1d0]
 
       call get_forces()
+      N = matrices%N
+      if(present(mode)) then
+         if(mode==0) N = 0d0
+      end if
 
       call adaptive_step()
 
@@ -431,7 +497,7 @@ contains
       k_v(:, 1) = dt*matrices%F/mesh%mass
       k_x(:, 1) = dt*matrices%v_CM
 
-      k_w(:, 1) = dt*get_dotw(matrices%N, matrices%w, matrices%I, matrices%I_inv)
+      k_w(:, 1) = dt*get_dotw(N, matrices%w, matrices%I, matrices%I_inv)
       k_q(:, 1) = dt*get_dotq(matrices%w, matrices%q)
       matrices%R = quat2mat(matrices%q + 0.5d0*k_q(:, 1))
 
@@ -439,7 +505,7 @@ contains
       k_v(:, 2) = dt*matrices%F/mesh%mass
       k_x(:, 2) = dt*(matrices%v_CM + k_v(:, 1)*0.5d0)
 
-      k_w(:, 2) = dt*get_dotw(matrices%N, matrices%w + 0.5d0*k_w(:, 1), matrices%I, matrices%I_inv)
+      k_w(:, 2) = dt*get_dotw(N, matrices%w + 0.5d0*k_w(:, 1), matrices%I, matrices%I_inv)
       k_q(:, 2) = dt*get_dotq(matrices%w + 0.5d0*k_w(:, 1), matrices%q + 0.5d0*k_q(:, 1))
       matrices%R = quat2mat(matrices%q + 0.5d0*k_q(:, 2))
 
@@ -447,7 +513,7 @@ contains
       k_v(:, 3) = dt*matrices%F/mesh%mass
       k_x(:, 3) = dt*(matrices%v_CM + k_v(:, 2)*0.5d0)
 
-      k_w(:, 3) = dt*get_dotw(matrices%N, matrices%w + 0.5d0*k_w(:, 2), matrices%I, matrices%I_inv)
+      k_w(:, 3) = dt*get_dotw(N, matrices%w + 0.5d0*k_w(:, 2), matrices%I, matrices%I_inv)
       k_q(:, 3) = dt*get_dotq(matrices%w + 0.5d0*k_w(:, 2), matrices%q + 0.5d0*k_q(:, 2))
       matrices%R = quat2mat(matrices%q + 0.5d0*k_q(:, 3))
 
@@ -455,7 +521,7 @@ contains
       k_v(:, 4) = dt*matrices%F/mesh%mass
       k_x(:, 4) = dt*(matrices%v_CM + k_v(:, 3))
 
-      k_w(:, 4) = dt*get_dotw(matrices%N, matrices%w + k_w(:, 3), matrices%I, matrices%I_inv)
+      k_w(:, 4) = dt*get_dotw(N, matrices%w + k_w(:, 3), matrices%I, matrices%I_inv)
       k_q(:, 4) = dt*get_dotq(matrices%w + k_w(:, 3), matrices%q + k_q(:, 3))
 
       matrices%qn = matrices%q + (1d0/6d0)*matmul(k_q, coeffs)
@@ -469,11 +535,11 @@ contains
 
 !****************************************************************************80
 ! Variational Lie-Verlet method for rotational integration
-   subroutine vlv_update()
+   subroutine vlv_update(mode)
+      integer, optional :: mode
       integer :: maxiter, i1
       real(dp) :: Rn(3, 3), wnh(3), dt, I(3), Jw(3), Ff, dtheta
-      real(dp) :: PxW(3), hel(3), Jac(3, 3), Jwn(3), iterstop
-      complex(dp), dimension(6) :: FN
+      real(dp) :: PxW(3), hel(3), Jac(3, 3), Jwn(3), iterstop, N(3)
 
       maxiter = 50
 
@@ -485,12 +551,16 @@ contains
 ! First force calculation for getting a reasonable value for dt
       if (matrices%tt == 0d0 .AND. .NOT. matrices%E < 1d-7) then
          call get_forces()
+         N = matrices%N
       end if
       call adaptive_step()
       dt = matrices%dt
       if (matrices%E < 1d-7) then 
-         matrices%N = 0d0
+         N = 0d0
          matrices%F = 0d0
+      end if
+      if(present(mode)) then
+         if(mode==0) N = 0d0
       end if
 
 ! Step 1) Newton solve
@@ -502,7 +572,7 @@ contains
          Ff = dot_product(wnh, Jw)
          PxW = 0.5*dt*crossRR(Jw, wnh)
 
-         hel = matmul(matrices%I, matrices%w) - Jw + PxW - 0.25d0*dt**2*Ff*wnh + 0.5d0*dt*matrices%N
+         hel = matmul(matrices%I, matrices%w) - Jw + PxW - 0.25d0*dt**2*Ff*wnh + 0.5d0*dt*N
          if (vlen(hel) < iterstop) then
             exit
             ! else if(i1==maxiter) then
@@ -532,9 +602,13 @@ contains
          matrices%F = 0d0
          matrices%N = 0d0
       end if
+      N = matrices%N
+      if(present(mode)) then
+         if(mode==0) N = 0d0
+      end if
 
 ! Step 3) Explicit angular velocity update
-      Jwn = Jw + PxW + 0.25d0*dt**2d0*dot_product(wnh, Jw)*wnh + 0.5d0*dt*matrices%N
+      Jwn = Jw + PxW + 0.25d0*dt**2d0*dot_product(wnh, Jw)*wnh + 0.5d0*dt*N
       matrices%wn = matmul(matrices%I_inv, Jwn)
 
       matrices%vn = matrices%v_CM + euler_3D(dble(matrices%F)/mesh%mass, dt)
@@ -547,13 +621,18 @@ contains
 ! Seelen, L. J. H., Padding, J. T., & Kuipers, J. A. M. (2016).
 ! Improved quaternion-based integration scheme for
 ! rigid body motion. Acta Mechanica, 1-9. DOI: 10.1007/s00707-016-1670-x
-   subroutine PCDM_update()
+   subroutine PCDM_update(mode)
+      integer, optional :: mode
       real(dp), dimension(4) :: q, qn
-      real(dp) ::  w(3), wn(3), Imat(3, 3), Imat_inv(3, 3), dwb(3), wb(3), wbn(3), dt
-      complex(dp), dimension(6) :: FN
+      real(dp) ::  w(3), wn(3), Imat(3, 3), Imat_inv(3, 3), dwb(3), wb(3), &
+                  wbn(3), dt, N(3)
 
       call get_forces()
+      N = matrices%N
       call adaptive_step()
+      if(present(mode)) then
+         if(mode==0) N = 0d0
+      end if
 
       dt = matrices%dt
 
@@ -565,7 +644,7 @@ contains
       wb = matrices%w
       q = matrices%q
       w = quat_rotation(q, wb)
-      dwb = matmul(Imat_inv, matrices%N - crossRR(wb, matmul(Imat, wb)))
+      dwb = matmul(Imat_inv, N - crossRR(wb, matmul(Imat, wb)))
 
 ! Predictions for w at n + 3/4 time step and q at n+1 time step
       wbn = wb + 0.25d0*dwb*dt
@@ -581,7 +660,7 @@ contains
       call get_forces()
 
 ! Corrected new values
-      matrices%dw = matmul(Imat_inv, matrices%N - crossRR(wbn, matmul(Imat, wbn)))
+      matrices%dw = matmul(Imat_inv, N - crossRR(wbn, matmul(Imat, wbn)))
       matrices%wn = wb + matrices%dw*dt
       matrices%qn = quat_mult(q_worm(wn, dt), q)
       matrices%Rn = quat2mat(matrices%qn)

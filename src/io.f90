@@ -255,6 +255,8 @@ contains
                read (buffer, *, iostat=ios) matrices%dt0
             case ('it_max')
                read (buffer, *, iostat=ios) it_max
+            case ('al_thresh')
+               read (buffer, *, iostat=ios) al_thresh
             case ('it_log')
                read (buffer, *, iostat=ios) it_log
             case ('rot_max')
@@ -567,8 +569,7 @@ contains
       matrices%E0_orig = real(matrices%E0hat)
       matrices%E90_orig = real(matrices%E90hat)
 
-      matrices%M1 = 0d0
-      matrices%M3 = 0d0
+      matrices%q_mean = 0d0
 
       matrices%xn = matrices%x_CM ! Input in lab frame (if needed)
       matrices%vn = matrices%v_CM ! Input in lab frame
@@ -603,6 +604,9 @@ contains
       character(len=80) :: fname
 
       matrices%buffer = 0
+      matrices%q_mean = 0d0
+      matrices%q_var = 0d0
+      allocate(matrices%q_list(matrices%n_mean))
 
       open (unit=1, file=fname, ACTION="write", STATUS="replace")
 
@@ -642,13 +646,26 @@ contains
       fmt = '(I0, A, ES16.8, A, 2(3ES16.8, A), 9ES16.8)'
       md = mod(n+1, 1000)
 
+! Calculate mean q-parameters for the variance calculation
+      if(n >= al_thresh-matrices%n_mean .AND. n<al_thresh) then
+         matrices%q_mean = matrices%q_mean + matrices%q_param/matrices%n_mean
+         matrices%q_list(n-(al_thresh-matrices%n_mean)+1) = matrices%q_param
+      end if 
+
 ! If the simulation has run for long enough and the particle spins stably, 
 ! flag the calculation to end (by changing the it_stop value).
-      if (n >= 100000) then
+      if (n >= al_thresh) then
+         if (n==al_thresh)then
+            do i=1,matrices%n_mean
+               matrices%q_var = matrices%q_var + &
+               ((matrices%q_list(i)-matrices%q_mean)**2)/matrices%n_mean
+            end do
+         end if
          if (is_aligned == 0) then
             is_aligned = alignment_state()
          else if (alignment_found == 0) then
-            print *, " ******************* HEY, IT'S ALIGNED! ********************"
+            print *, " Found nearly stable q-parameter, stopping..."
+            print*, " q = ", matrices%q_param
             it_stop = n + it_log + 1
             alignment_found = 1
          end if

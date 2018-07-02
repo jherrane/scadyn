@@ -27,6 +27,7 @@ module common
    real(dp), dimension(3), parameter   :: e_2 = [0d0, 1d0, 0d0]
    real(dp), dimension(3), parameter   :: e_3 = [0d0, 0d0, 1d0]
 
+   integer :: al_thresh = 0
    integer :: it_log = 0
    integer :: it_stop = 0
    integer :: it_max = 0
@@ -90,6 +91,7 @@ module common
       real(dp), dimension(3, 1000) :: x_buf, v_buf, w_buf, J_buf, N_buf, F_buf
       real(dp), dimension(3, 3, 1000) :: R_buf
       real(dp), dimension(1, 1000) :: t_buf
+      real(dp), dimension(:), allocatable :: q_list
 ! All physical quantities in human-readable form (more or less)
       real(dp), dimension(4) :: q, qn
       real(dp), dimension(3, 3) :: R, Rn, Rk, P, I, I_inv, R_al, R90_init
@@ -97,7 +99,7 @@ module common
                                 dw, k_orig, E0_orig, E90_orig, Q_t, Q_f, B
       real(dp) ::  khi_0, rot_max, lambda1, lambda2, temp, dt0, dt, tt, M, &
                   E, refr, refi, tol_m, M1, M3, B_psi, nH, Td, Tgas, &
-                  Kw, wT, Tdrag, TDG
+                  Kw, wT, Tdrag, TDG, q_param, q_mean, q_var
 ! Run parameters and other auxiliary variables
       integer, dimension(:), allocatable :: Nmaxs
       integer :: Nmax, polarization, bars, Tmat, which_int, &
@@ -1149,38 +1151,39 @@ contains
 !****************************************************************************80
 ! Rolling mean for purposes when data contains no high peaks. Any peaks will
 ! affect the mean for a long time, which is not always desirable.
-   function rolling_mean(N, mean, new_sample) result(avg)
-      real(dp) :: mean, new_sample, avg
+   function rolling_mean(N, mean, last, new_sample) result(avg)
+      real(dp) :: mean, new_sample, avg, last
       integer :: N
 
-      avg = mean - mean/N + new_sample/N
+      if(N==0) then
+         avg = 0d0
+      else
+         avg = mean - last/N + new_sample/N
+      end if 
 
    end function rolling_mean
 
 !****************************************************************************80
-! Tests whether a particle is aligned internally, i.e. one principal axis is
-! directed in the direction of angular velocity
+! Tests whether a particle is aligned internally, i.e. the q-parameter is 
+! approximately constant
    function alignment_state() result(ans)
-      real(dp) :: aw, cw, w(3), wnorm
-      integer :: ans
+      integer :: ans, n
+      real(dp) :: q_oldmean, q_mean, q, q_old
 
+      n = matrices%n_mean
       ans = 0
+      q = matrices%q_param
+      q_old = matrices%q_list(1)
+      q_oldmean = matrices%q_mean
 
-      wnorm = vlen(matrices%w)
+      q_mean = rolling_mean(n, q_oldmean, q_old, q)
+      matrices%q_var = matrices%q_var + (q-q_old)*(q-q_mean+q_old-q_oldmean)/(n-1)
 
-      if (wnorm > 0d0) then
-         w = matrices%w/vlen(matrices%w)
-      else
-         w = matrices%w
-      end if
+      matrices%q_list(1:n-1) = matrices%q_list(2:n)
+      matrices%q_list(n) = q
+      matrices%q_param = q
 
-      aw = dabs(dot_product(w, [1d0, 0d0, 0d0]))
-      cw = dabs(dot_product(w, [0d0, 0d0, 1d0]))
-
-      matrices%M1 = rolling_mean(matrices%N_mean, matrices%M1, aw)
-      matrices%M3 = rolling_mean(matrices%N_mean, matrices%M3, cw)
-
-      if (1d0 - matrices%M1 < matrices%tol_m .OR. 1d0 - matrices%M3 < matrices%tol_m) ans = 1
+      if (sqrt(matrices%q_var) < matrices%tol_m) ans = 1
 
    end function alignment_state
 

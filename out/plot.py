@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 from itertools import islice
+from io import StringIO
+import codecs
 
 def Round_To_n(x, n):
    return round(x, -int(np.floor(np.sign(x) * np.log10(abs(x)))) + n)
@@ -87,12 +89,15 @@ def plot_mav(x,y,n,title,xlabel,ylabel,figname):
 if __name__ == "__main__":
    #This block will be evaluated if this script is called as the main routine
    #and will be ignored if this file is imported from another script.
-
+   inputfile = 'log'
    pth = 'figs'
+   skip = 22
    #plt.xkcd()
    
-   log = open('log','r')
-   lines = np.loadtxt('log', skiprows=22)
+   log = open(inputfile,'r')
+   inputf = codecs.open(inputfile, encoding='utf-8').read()
+   inputf = inputf.replace('|','')
+   lines = np.loadtxt(StringIO(inputf), skiprows=skip)
       
    magtol = 1e-3
 
@@ -103,6 +108,9 @@ if __name__ == "__main__":
    string = log.readlines()[1]
    k = [float(s) for s in string.split()[2:5]]
    log.seek(0)
+   I = np.genfromtxt(islice(log,15,16))
+   I = np.diag(I)
+   log.seek(0)
    Q = np.genfromtxt(islice(log,17,20))
    log.close()
    
@@ -110,37 +118,29 @@ if __name__ == "__main__":
    mav = int(round(Nmax/100))
    if mav < 2: mav = 2
    if markevery < 1: markevery = 1
+   
+   t = lines[:,1]
+   w = lines[:,2:5]
+   J = 0*w
+   N = lines[:,5:8]
+   R = lines[:,8:18]
+      
+   for i in range(0,w.shape[0]):
+      J[i,:] = np.matmul(I,w[i,:])
+      w[i,:] = np.matmul(Q,np.matmul(np.reshape(R[i,:],(3,3),order='F'),w[i,:]  ))
+      J[i,:] = np.matmul(Q,np.matmul(np.reshape(R[i,:],(3,3),order='F'),J[i,:]  ))
+      w[i,:] = 1.1*w[i,:]/np.sqrt(np.sum(np.power(w[i,:],2)))
+      J[i,:] = 1.1*J[i,:]/np.sqrt(np.sum(np.power(J[i,:],2)))
 
-   x = lines[:,1:4]
-   v = lines[:,4:7]
-   w = lines[:,7:10]
-   J = lines[:,10:13]
-   N = lines[:,13:16]
-   F = lines[:,16:19]
-   t = lines[:,19]
-   R = lines[:,20:30]
    Jb = np.zeros(J.shape)
    wb = np.zeros(w.shape)
-   for i in np.arange(R.shape[0]):
-      wlen = np.linalg.norm(w[i,:])
-      RR = R[i,:].reshape(3,3)
-      if wlen != 0:
-         wb[i,:] = (RR.dot(Q)).T.dot(w[i,:])/wlen
-         Jb[i,:] = (RR.dot(Q)).T.dot(J[i,:])/np.linalg.norm(J[i,:])        
-      else:
-         wb[i,:] = [0, 0, 0]
-         Jb[i,:] = [0, 0, 0]
-         
+
    with cd(pth):
       plot_fig(t,w,markevery,'Angular velocity vs. Time','t (s)','\omega','w.png')
       plot_fig(t,J,markevery,'Angular momentum vs. Time','t (s)','J (Nms)','J.png')
-      plot_fig(t,F,markevery,'Force vs. Time','t (s)','F (N)','F.png')
       plot_fig(t,N,markevery,'Torque vs. Time','t (s)','N (Nm)','N.png')
       plot_orbit(w,'Spin of angular velocity','worbit.png')
-      plot_orbit(wb,'Spin of angular velocity in body frame','wborbit.png')
       plot_orbit(J,'Time evolution of angular momentum','Jorbit.png')
-      plot_orbit(Jb,'Angular momentum direction in body frame','Jborbit.png')
-      plot_mav(t,F,mav,'Running average of Force vs. Time','t (s)','F (Nm)','Fav.png')
       plot_mav(t,w,mav,'Running average of angular velocity vs. Time','t (s)','\omega (rad/s)','wav.png')
       plot_mav(t,N,mav,'Running average of torque vs. Time','t (s)','N (Nm)','Nav.png')
 

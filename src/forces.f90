@@ -18,8 +18,8 @@ contains
       call rot_setup()
 
       Q_t = 0d0
-      N = dcmplx(0.0d0, 0.0d0)
-      F = dcmplx(0.0d0, 0.0d0)
+      N = 0d0
+      F = 0d0
 
       if(present(mode)) then
          u = 0d0
@@ -36,7 +36,6 @@ contains
             call forcetorque(i)
             F = F + matrices%force
             N = N + matrices%torque
-
             if(present(mode))then
                Q_t = Q_t + matrices%torque/epsilon/mesh%a**2/(wl*u)/matrices%bars
             else
@@ -55,7 +54,6 @@ contains
       if (calc_extra_torques == 1) then
          N_DG = DG_torque()
          N_B = barnett_torque()
-
          N = N + N_B + N_DG
       end if
 
@@ -278,84 +276,6 @@ contains
 
 !****************************************************************************80
 
-   subroutine spin_up(q, t, Jlab, pm, Jout)
-      real(dp), intent(inout) :: q, t
-      real(dp), intent(in) :: Jlab(3)
-      integer, intent(in) :: pm 
-      real(dp), intent(inout), optional :: Jout
-      integer :: iii, jjj, NH, Ntau
-      real(dp) :: tau_n, tau_e, tau_int, dq, w1, w2, w3, k2, tau, I1, I2, I3, &
-                  sn, cn, dn, a, b, g, R(3,3), P(3,3), xp(2), xi, phi, psi, H, &
-                  dt, it_max, Q_t(3), Pt, F, E, J, wT
-
-      NH = 10
-      Ntau = 10
-
-      I1 = matrices%Ip(1)
-      I2 = matrices%Ip(2)
-      I3 = matrices%Ip(3)
-      k2 = (I2-I1)*(q-1)/((I3-I2)*(1-I1*q/I3))
-      J = vlen(Jlab)
-
-      call elit(k2, pi/2d0, F, E)
-      Pt = 4d0*F
-
-      H = 0d0
-      do iii = 0,Ntau-1
-         tau = dble(iii)*Pt/Ntau
-         if(k2<1d0) then
-            call jelp(tau, k2, sn, cn, dn, phi)
-            w3 = dble(pm)*J/I3*sqrt((I3-I1*q)/(I3-I1))*dn
-            w2 = -J/I2*sqrt(I2*(q-1)/(I3-I2))*sn
-            w1 = dble(pm)*J/I1*sqrt(I1*(q-1)/(I3-I1))*cn
-         else if(k2>1d0) then
-            call jelp(tau, 1/k2, sn, cn, dn, phi)
-            w3 = dble(pm)*J/I3*sqrt((I3-I1*q)/(I3-I1))*dn
-            w2 = -J/I2*sqrt(I2*(1-I1**1/I3)/(I2-I1))*sn
-            w1 = dble(pm)*J/I1*sqrt(I1*(q-1)/(I3-I1))*cn
-         else
-            w1 = 0d0
-            w2 = dble(pm)*J/I2
-            w3 = 0d0
-         end if
-
-! Calculate spin-up torque over torque-free approximation
-         b = dacos(min(I3*w3/J,1d0))
-         g = dacos(min(I1*w1/(dsin(b)*J),1d0))
-         do jjj = 0,NH-1
-            a = dble(jjj)*2d0*pi/NH
-            R(1, 1) = cos(b)
-            R(1, 2) = sin(a)*sin(b) 
-            R(1, 3) = -cos(a)*sin(b) 
-            R(2, 1) = sin(b)*sin(g) 
-            R(2, 2) = cos(a)*cos(g) - cos(b)*sin(a)*sin(g)
-            R(2, 3) = cos(g)*sin(a)+cos(a)*cos(b)*sin(g)
-            R(3, 1) = cos(g)*sin(b) 
-            R(3, 2) = -cos(a)*sin(g) - cos(b)*cos(g)*sin(a) 
-            R(3, 3) = cos(a)*cos(b)*cos(g) - sin(a)*sin(g)
-
-            xp = get_xiphi(R)
-            xi = xp(1)
-            phi = xp(2)
-            psi = matrices%B_psi
-
-            P = rotate_a_to_b([0d0,0d0,1d0], Jlab)
-            matrices%R = matmul(matmul(P,R),transpose(P))
-            call get_forces(1)
-            Q_t = matmul(matrices%R,matrices%torque)/(NH*Ntau)
-            H = H + dot_product(Q_t, rhat(xi, phi, psi))
-         end do 
-      end do
-      wT = sqrt(2*k_b*matrices%Tgas/I3)
-      dt = I3*wT/H
-      J = J + H*dt
-      t = t + dt
-      if(present(Jout)) Jout = J
-
-   end subroutine spin_up
-
-!****************************************************************************80
-
    subroutine relax_step(q, t, dq_max, J)
       real(dp), intent(inout) :: q, t
       real(dp), intent(in) :: J, dq_max
@@ -427,8 +347,8 @@ contains
 ! Calculates the z-component of torque analytically
    function barnett_torque() result(N)
       real(dp) :: a
-      complex(dp), dimension(3) :: N
-      real(dp), dimension(3)    :: tmp, w, mu_Bar, B
+      real(dp), dimension(3) :: N
+      real(dp), dimension(3)    :: w, mu_Bar, B
 
 ! The approximate Barnett proportional constant X(0)*hbar/(g*mu_B)
       a = 10d0**(-14)
@@ -436,10 +356,7 @@ contains
       mu_Bar = a*mesh%V*w
       B = matrices%B
 
-      tmp = crossRR(mu_Bar, B)
-
-      N = dcmplx(tmp, 0d0)
-
+      N = crossRR(mu_Bar, B)
    end function barnett_torque
 
 !****************************************************************************80
@@ -462,7 +379,7 @@ contains
 ! Calculates the z-component of torque analytically
    function DG_torque() result(N)
       real(dp) :: psi, xi, phi, Kw, V, tau, mag_B
-      complex(dp), dimension(3) :: N
+      real(dp), dimension(3) :: N
       real(dp), dimension(3)    :: a3, tmp, w, B, B_perp, proj_Bperp_a3, psi_vec
 
       mag_B = vlen(matrices%B)
@@ -489,9 +406,7 @@ contains
       psi_vec = [dcos(phi)*dcos(xi)*dcos(phi) - dsin(psi)*dsin(xi), &
                  dcos(xi)*dsin(phi), -dsin(psi)*dcos(xi)*dcos(phi) - dcos(psi)*dsin(xi)]
 
-      tmp = -(dsin(xi)*dcos(xi)*psi_vec + dsin(xi)*dsin(xi)*a3)*matrices%Ip(3)*vlen(w)/tau
-
-      N = dcmplx(tmp, 0d0)
+      N = -(dsin(xi)*dcos(xi)*psi_vec + dsin(xi)*dsin(xi)*a3)*matrices%Ip(3)*vlen(w)/tau
 
       if (mag_B < 1d-16) N = dcmplx(0d0)
 
