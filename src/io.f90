@@ -255,8 +255,8 @@ contains
                read (buffer, *, iostat=ios) matrices%dt0
             case ('it_max')
                read (buffer, *, iostat=ios) it_max
-            case ('al_thresh')
-               read (buffer, *, iostat=ios) al_thresh
+            case ('window')
+               read (buffer, *, iostat=ios) window
             case ('it_log')
                read (buffer, *, iostat=ios) it_log
             case ('rot_max')
@@ -311,8 +311,6 @@ contains
                if (temp > 1d-7) matrices%refr = temp
             case ('refi')
                read (buffer, *, iostat=ios) tempii
-            case ('N_mean')
-               read (buffer, *, iostat=ios) matrices%N_mean
             case ('tol_m')
                read (buffer, *, iostat=ios) matrices%tol_m
             case ('B')
@@ -606,7 +604,7 @@ contains
       matrices%buffer = 0
       matrices%q_mean = 0d0
       matrices%q_var = 0d0
-      allocate(matrices%q_list(al_thresh))
+      allocate(matrices%q_list(window))
       matrices%q_list = 0d0
 
       open (unit=1, file=fname, ACTION="write", STATUS="replace")
@@ -648,18 +646,18 @@ contains
       md = mod(n, 1000)  
 
 ! Calculate mean q-parameters for the variance calculation
-      if(n<=al_thresh) then
-         matrices%q_mean = matrices%q_mean + matrices%q_param/matrices%n_mean
+      if(n<=window) then
+         matrices%q_mean = matrices%q_mean + matrices%q_param/window
          matrices%q_list(n) = matrices%q_param
       end if 
 
 ! If the simulation has run for long enough and the particle spins stably, 
 ! flag the calculation to end (by changing the it_stop value).
-      if (n >= al_thresh) then
-         if (n==al_thresh)then
-            do i=1,al_thresh
+      if (n >= window) then
+         if (n==window)then
+            do i=1,window
                matrices%q_var = matrices%q_var + &
-               ((matrices%q_list(i)-matrices%q_mean)**2)/matrices%n_mean
+               ((matrices%q_list(i)-matrices%q_mean)**2)/window
             end do
          end if
          if (is_aligned == 0) then

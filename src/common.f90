@@ -27,7 +27,7 @@ module common
    real(dp), dimension(3), parameter   :: e_2 = [0d0, 1d0, 0d0]
    real(dp), dimension(3), parameter   :: e_3 = [0d0, 0d0, 1d0]
 
-   integer :: al_thresh = 0
+   integer :: window = 0
    integer :: it_log = 0
    integer :: it_stop = 0
    integer :: it_max = 0
@@ -1167,22 +1167,20 @@ contains
 ! Tests whether a particle is aligned internally, i.e. the q-parameter is 
 ! approximately constant
    function alignment_state() result(ans)
-      integer :: ans, n
-      real(dp) :: q_oldmean, q_mean, q, q_old
-
-      n = al_thresh
+      integer :: ans
+      real(dp) :: q_oldmean, q_mean
       ans = 0
-      q = matrices%q_param
-      q_old = matrices%q_list(1)
+
       q_oldmean = matrices%q_mean
 
-      q_mean = rolling_mean(n, q_oldmean, q_old, q)
-      matrices%q_var = matrices%q_var + (q-q_old)*(q-q_mean+q_old-q_oldmean)/(n-1)
+      matrices%q_mean = rolling_mean(window, q_oldmean, matrices%q_list(1), matrices%q_param)
+      matrices%q_var = matrices%q_var + (matrices%q_param-matrices%q_list(1))*&
+      (matrices%q_param-matrices%q_mean+matrices%q_list(1)-q_oldmean)/(window-1)
 
-      matrices%q_list(1:n-1) = matrices%q_list(2:n)
-      matrices%q_list(n) = q
-      matrices%q_param = q
+      matrices%q_list(1:window-1) = matrices%q_list(2:window)
+      matrices%q_list(window) = matrices%q_param
 
+      print*, sqrt(matrices%q_var)
       if (sqrt(matrices%q_var) < matrices%tol_m) ans = 1
 
    end function alignment_state
