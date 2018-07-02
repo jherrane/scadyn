@@ -123,7 +123,7 @@ contains
             call get_command_argument(i + 1, arg)
             matrices%tname = arg
             write (*, '(2A)') ' T-matrix: ', trim(matrices%tname)
-         case ('-l', '--log')
+         case ('-o', '--out')
             call get_command_argument(i + 1, arg)
             matrices%out = arg
             write (*, '(2A)') ' Log: ', 'out/log'//trim(matrices%out)
@@ -165,7 +165,7 @@ contains
             write (*, '(A)') ' -d --debug                  Print more detailed info'
             write (*, '(A)') ' -m --mesh       mesh.h5     Mesh geometry'
             write (*, '(A)') ' -T --Tmat       T.h5        T-matrix file'
-            write (*, '(A)') ' -l --log                    Log file identifier'
+            write (*, '(A)') ' -o --out                    Output file identifier'
             write (*, '(A)') ' -p --paramsfile params.in   Read input parameters from file'
             write (*, '(A)') '    --refr       0.0         Real part of refractive index'
             write (*, '(A)') '    --refi       0.0         Imaginary part of refractive index'
