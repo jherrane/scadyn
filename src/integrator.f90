@@ -141,7 +141,7 @@ contains
       write(*,'(A,ES11.3)') '  Average spin-up torque: ', HH
       t = 0d0
 
-      open(unit=1, file='out/q', action='write', status='replace')
+      open(unit=1, file='out/q'//trim(matrices%out), action='write', status='replace')
       write(1,'(A)') 'q, J, t'
       write(1,'(3(ES11.3))') q, JJ, t
       do i = 0, i_h
@@ -161,11 +161,10 @@ contains
    subroutine spin_up(t, H, Jout)
       real(dp), intent(out) :: t, H
       real(dp), intent(inout) :: Jout
-      integer :: N_i, i, i_max
+      integer :: N_i, i
       real(dp) :: I3, dt, Q_t(3), J, wT, R0(3,3), xp(2), xi, phi, &
                   psi
 
-      i_max = 10000
       I3 = matrices%Ip(3)
       R0 = matrices%R
       H = 0d0
@@ -173,7 +172,7 @@ contains
       N_i = 0
 
       ! Iteration of optical force calculation
-      do i = 0, i_max-1
+      do i = 0, window-1
          if (i>20 .AND. near_identity(matmul(transpose(R0),matrices%R),6d-2)) exit
 
          select case (matrices%which_int)
