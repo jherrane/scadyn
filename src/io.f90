@@ -126,11 +126,7 @@ contains
          case ('-l', '--log')
             call get_command_argument(i + 1, arg)
             matrices%out = arg
-            write (*, '(2A)') ' Log: ', trim(matrices%out)
-         case ('-M', '--Mueller')
-            call get_command_argument(i + 1, arg)
-            matrices%mueller = arg
-            write (*, '(2A)') ' Mueller: ', trim(matrices%mueller)
+            write (*, '(2A)') ' Log: ', 'out/log'//trim(matrices%out)
          case ('--mueller_mode')
             call get_command_argument(i + 1, arg)
             matrices%mueller_mode = trim(arg)
@@ -169,8 +165,7 @@ contains
             write (*, '(A)') ' -d --debug                  Print more detailed info'
             write (*, '(A)') ' -m --mesh       mesh.h5     Mesh geometry'
             write (*, '(A)') ' -T --Tmat       T.h5        T-matrix file'
-            write (*, '(A)') ' -l --log        out/log     Log to file'
-            write (*, '(A)') ' -M --Mueller    out/mueller Mueller matrix to file'
+            write (*, '(A)') ' -l --log                    Log file identifier'
             write (*, '(A)') ' -p --paramsfile params.in   Read input parameters from file'
             write (*, '(A)') '    --refr       0.0         Real part of refractive index'
             write (*, '(A)') '    --refi       0.0         Imaginary part of refractive index'
@@ -506,12 +501,13 @@ contains
 
 !****************************************************************************80
 
-   subroutine write_mueller(A, fname)
+   subroutine write_mueller(A)
       real(dp), intent(in) :: A(:, :)
-      character(len=80), intent(in) :: fname
+      character(len=120) :: fname
       integer(HSIZE_T), dimension(2) :: dims ! Dataset dimensions
       integer     :: i
 
+      fname = 'out/mueller'//trim(matrices%out)
       dims = [int(size(A, 1), 8), int(size(A, 2), 8)]
 
       open (unit=1, file=trim(fname), ACTION="write", STATUS="replace")
@@ -597,9 +593,10 @@ contains
 
 !****************************************************************************80
 
-   subroutine start_log(fname)
+   subroutine start_log()
       integer :: i
-      character(len=80) :: fname
+      character(len=120) :: fname
+      fname = 'out/log' // trim(matrices%out)
 
       matrices%buffer = 0
       matrices%q_mean = 0d0
@@ -612,8 +609,8 @@ contains
       write (1, '(A, A)') 'meshname =   ', trim(mesh%meshname)
       write (1, '(A, 3f7.3)') 'k_hat    = ', matrices%khat
       write (1, '(A, 3ES11.3)') 'dt       = ', matrices%dt
-      write (1, '(A,I20)') 'Nmax     = ', it_max
-      write (1, '(A, 3ES11.3)') 'wB0       = ', matrices%w
+      write (1, '(A,I0)') 'Nmax     =   ', it_max
+      write (1, '(A, 3ES11.3)') 'wB0      = ', matrices%w
       write (1, '(A, 9f7.3)') 'R0       = ', matrices%R
       write (1, '(A, 3ES11.3)') 'rho      = ', mesh%rho
       write (1, '(A, 3ES11.3)') 'CM       = ', matrices%CM
@@ -638,41 +635,13 @@ contains
 
 !****************************************************************************80
 
-   subroutine append_log(fname, n)
+   subroutine append_log(n)
       integer :: n, i, md, ind
-      character(len=80) :: fname, fmt
+      character(len=120) :: fname, fmt
 
+      fname = 'out/log'//trim(matrices%out)
       fmt = '(I0, A, ES16.8, A, 2(3ES16.8, A), 9ES16.8)'
-      md = mod(n, 1000)  
-
-! Calculate mean q-parameters for the variance calculation
-      if(n<=window) then
-         matrices%q_mean = matrices%q_mean + matrices%q_param/window
-         matrices%q_list(n) = matrices%q_param
-      end if 
-
-! If the simulation has run for long enough and the particle spins stably, 
-! flag the calculation to end (by changing the it_stop value).
-      if (n >= window) then
-         if (n==window)then
-            do i=1,window
-               matrices%q_var = matrices%q_var + &
-               ((matrices%q_list(i)-matrices%q_mean)**2)/window
-            end do
-         end if
-         if (is_aligned == 0) then
-            is_aligned = alignment_state()
-            if(n==it_stop)then
-               write(*,'(A)') " Finished integration, using average q-parameter..."
-               write(*,'(A,F11.5)') " q = ", matrices%q_mean
-            end if 
-         else if (alignment_found == 0) then
-            write(*,'(A)') " Found nearly stable q-parameter, stopping..."
-            write(*,'(A,F11.5)') " q = ", matrices%q_mean
-            it_stop = n + it_log + 1
-            alignment_found = 1
-         end if
-      end if
+      md = mod(n, 1000)
 
 ! If the modulo if zero, we are at the final place of the buffer. Otherwise, 
 ! just save to buffer position given by the modulo.

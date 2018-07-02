@@ -10,12 +10,12 @@ contains
    subroutine compute_mueller()
       integer :: ii
       real(dp) :: E
-      CHARACTER(LEN=80) :: mueller_out
+      CHARACTER(LEN=120) :: mueller_out
       real(dp), dimension(:, :), allocatable :: S
 
       if (trim(matrices%mueller_mode) == 'none') return
 
-      mueller_out = trim(matrices%mueller)//'-'//trim(matrices%mueller_mode)
+      mueller_out = 'out/mueller'//'-'//trim(matrices%mueller_mode)//trim(matrices%out)
       if (file_exists(mueller_out)) then
          print *, ' Mueller matrix already exists, quitting...'
          stop
@@ -37,7 +37,7 @@ contains
          call compute_aligned_mueller(180, 90, ii, E, S)
       end select
 
-      call write_mueller(S, mueller_out)
+      call write_mueller(S)
    end subroutine compute_mueller
 
 !****************************************************************************80

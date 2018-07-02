@@ -56,10 +56,8 @@ contains
    subroutine solve_eoms()
       integer :: i
       real(dp) :: J(3), E
-      character(len=80) :: lg
 
-      lg = matrices%out
-      call start_log(lg)
+      call start_log()
 
 ! Iteration of optical force calculation
       do i = 1, it_max
@@ -80,15 +78,50 @@ contains
          J = matmul(matrices%I,matrices%w)
          E = 0.5d0*dot_product(J,matrices%w)
          matrices%q_param = 2d0*matrices%Ip(3)*E/dot_product(J,J)
-
-         call append_log(lg, i)
+         
+         call check_stability(i)
+         call append_log(i)
          call print_bar(i+1, it_max)
          
       end do
 
    end subroutine solve_eoms
 
-!****************************************************************************
+!****************************************************************************80
+
+   subroutine check_stability(n)
+      integer :: n,i
+      ! Calculate mean q-parameters for the variance calculation
+      if(n<=window) then
+         matrices%q_mean = matrices%q_mean + matrices%q_param/window
+         matrices%q_list(n) = matrices%q_param
+      end if 
+
+! If the simulation has run for long enough and the particle spins stably, 
+! flag the calculation to end (by changing the it_stop value).
+      if (n >= window) then
+         if (n==window)then
+            do i=1,window
+               matrices%q_var = matrices%q_var + &
+               ((matrices%q_list(i)-matrices%q_mean)**2)/window
+            end do
+         end if
+         if (is_aligned == 0) then
+            is_aligned = alignment_state()
+            if(n==it_stop)then
+               write(*,'(A)') " Finished integration, using average q-parameter..."
+               write(*,'(A,F11.5)') " q = ", matrices%q_mean
+            end if 
+         else if (alignment_found == 0) then
+            write(*,'(A)') " Found nearly stable q-parameter, stopping..."
+            write(*,'(A,F11.5)') " q = ", matrices%q_mean
+            it_stop = n + it_log + 1
+            alignment_found = 1
+         end if
+      end if
+   end subroutine check_stability
+
+!****************************************************************************80
 
    subroutine solve_dissipation()
       integer :: i, i_h

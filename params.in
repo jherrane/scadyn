@@ -13,7 +13,7 @@ Tgas 100                # Mean temperature of the gas
 nH 30                   # Number density of hydrogen in cubic cm
 khat 0 0 1              # Wave vector direction (currently disabled)
 B 1d-9                  # External magnetic field (lies in x,z-plane) magnitude
-B_psi 0                 # Angle between B and k (in degrees)
+B_psi 15                 # Angle between B and k (in degrees)
 Kw 1d-13                # Imag part of susceptibility over angular velocity
 
 refr 0.0                # Refractive index (set to zero to ignore)
@@ -27,7 +27,7 @@ mueller_mode none       # Mueller matrix type, none*, ave, ori, perf_ori
 test_forces 0           # 0 = integrate, 1 = test methods, 2 = calc Qt, 
                         # 3 = stability analysis, 4 = write fields to file
                         # 5 = SOCpol-averaging of Mueller matrices
-int_mode 3              # 0 = normal scattering dynamics integration,
+int_mode 0              # 0 = normal scattering dynamics integration,
                         # 1 = external alignment integration after normal
                         # 2 = only alignment integration by reading log file
                         # 3 = alignment integration of stably spinning particle
@@ -42,13 +42,13 @@ beam_shape 0            # 0 = plane wave*, 1 = Gaussian, 2 = LG, 3 = Bessel
 pl 0 0                  # Laguerre-Gaussian beam mode
 
 choose_integrator 2     # 1 = RK4, 2 = VLV*, 3 = PCDM
-it_max 500000
-it_log 5000             # From end backwards, 0 = log every step
+it_max 1000000
+it_log 0                # From end backwards, 0 = log every step
+window 5000             # Rolling variance window size
+tol_m 3d-3              # Tolerance to when state is declared aligned
+
 dt 1d0
 rot_max 1d-2
-
-N_mean 0	               # Samples in alignment rolling mean
-tol_m 1d-1              # Tolerance to when state is declared aligned
 
 is_aggr 0               # 0 = no
 

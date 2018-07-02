@@ -205,7 +205,7 @@ contains
 
 !****************************************************************************80
 ! Calculate the torque efficiency projected on the inertia axes for all 
-! possible direction of radiation incidence. Similar analysis can be done
+! possible directions of radiation incidence. Similar analysis can be done
 ! taking into account the particle orientations or spin state. 
    subroutine stability_analysis(result)
       integer :: i, j, k, ind, Npoints, Nphi, Ntheta, Nbeta

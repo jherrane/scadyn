@@ -108,8 +108,7 @@ module common
       character(len=38) :: waves = 'band'
       character(len=38) :: paramsfile = 'params.in'
       character(LEN=80) :: tname = 'T.h5'
-      character(LEN=80) :: out = 'log'
-      character(LEN=80) :: mueller = 'mueller'
+      character(LEN=80) :: out = ''
       character(len=8)  :: mueller_mode = 'none'
 
       real(dp)          :: B_len = 0d0

@@ -34,7 +34,7 @@ program main
       call integrate()
       if (int_mode >= 1 .AND. int_mode < 3) then
          call compute_log_RAT()
-      else if(int_mode ==3 ) then
+      else if(int_mode == 3 ) then
          call stable_particle_RAT()
       end if
    else
