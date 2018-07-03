@@ -11,7 +11,9 @@ contains
 
 !****************************************************************************80
 
-   subroutine init_geometry()
+   subroutine init_geometry(matrices, mesh)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       type(data_struct), dimension(:), allocatable :: sphere
       type(level_struct), dimension(:), allocatable :: otree
       real(dp) :: ka, maxrad, maxrad_sph, vol
@@ -31,7 +33,7 @@ contains
          end if
 
          print *, 'Reading mesh...'
-         call read_mesh() ! io
+         call read_mesh(matrices, mesh) ! io
          call int_points(mesh)
 
          if (matrices%Tmat == 0) print *, 'Initializing FFT... '
@@ -49,7 +51,7 @@ contains
             print *, 'Done'
          end if
 
-         if (matrices%Tmat == 0) call construct_projectors() ! projection
+         if (matrices%Tmat == 0) call construct_projectors(matrices, mesh) ! projection
 
 ! Check whether using maxval is good or not
          do i = 1, matrices%bars
@@ -59,7 +61,7 @@ contains
          end do
 
       else if (use_mie .NE. 1) then !* SPHERICAL AGGREGATE *******************
-         call read_aggr()
+         call read_aggr(mesh)
          Nspheres = size(mesh%radius)
          allocate (sphere(Nspheres))
 
@@ -115,7 +117,9 @@ contains
 
 !****************************************************************************80
 
-   subroutine construct_projectors()
+   subroutine construct_projectors(matrices, mesh)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       integer :: i, M_box
       real(dp) :: k_orig
 
@@ -169,7 +173,9 @@ contains
 
 !****************************************************************************80
 
-   subroutine update_projections(i)
+   subroutine update_projections(matrices, mesh, i)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       integer :: i
 
       matrices%S = matrices%listS(:, :, i)
@@ -182,7 +188,9 @@ contains
 
 !****************************************************************************80
 
-   subroutine allocate_inc_wave()
+   subroutine allocate_inc_wave(matrices, mesh)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       complex(dp), dimension(:), allocatable :: a_in, b_in
       integer :: Nmax, i, las, nm
 
@@ -218,7 +226,9 @@ contains
 
 !****************************************************************************80
 
-   subroutine update_inc_wave(i, a_nm, b_nm, a_nm90, b_nm90)
+   subroutine update_inc_wave(matrices, mesh, i, a_nm, b_nm, a_nm90, b_nm90)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       complex(dp), dimension(:), allocatable :: a_in, b_in, a90, b90, &
                                                 a, b, a_nm, b_nm, a_nm90, b_nm90
       complex(dp), dimension(:, :), allocatable :: Taa, Tab, Tba, Tbb
@@ -260,7 +270,9 @@ contains
 
 !****************************************************************************80
 
-   subroutine rot_setup()
+   subroutine rot_setup(matrices, mesh)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       real(dp), dimension(3, 3) ::  RT, RT90
 
       RT = transpose(matrices%R)
@@ -271,24 +283,28 @@ contains
       matrices%E0hat = dcmplx(matmul(RT, [1d0, 0d0, 0d0]))
       matrices%E90hat = dcmplx(matmul(RT, [0d0, 1d0, 0d0]))
 
-      call gen_rotations(RT, RT90)
+      call gen_rotations(matrices, mesh, RT, RT90)
 
    end subroutine rot_setup
 
 !****************************************************************************80
 
-   subroutine fix_band()
+   subroutine fix_band(matrices, mesh)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       if (dabs(matrices%lambda1 - 2d0*pi/mesh%ki(1)) > 1d-7) then
          matrices%lambda1 = 2d0*pi/mesh%ki(1)
          matrices%lambda2 = 2d0*pi/mesh%ki(matrices%bars)
-         if (matrices%waves == 'bnd') call calc_E_rel()
+         if (matrices%waves == 'bnd') call calc_E_rel(matrices, mesh)
       end if
 
    end subroutine fix_band
 
 !****************************************************************************80
 
-   subroutine gen_rotations(R, R90)
+   subroutine gen_rotations(matrices, mesh, R, R90)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       integer :: las, Nmax, i
       complex(8), dimension(:), allocatable :: rotD, rotD90, rotX, rotY
       integer, dimension(:, :), allocatable :: indD, indD90, indX, indY
@@ -384,7 +400,9 @@ contains
 
 !****************************************************************************80
 
-   subroutine polarization()
+   subroutine polarization(matrices, mesh)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       real(dp) :: k0(3), k1(3), R(3, 3)
 
       k0 = [0d0, 0d0, 1d0]
@@ -414,7 +432,9 @@ contains
 ! in the approximate wavelength range lambda1-lambda2,
 ! with the priority that one wavelength in the range is at the
 ! maximum
-   subroutine find_k()
+   subroutine find_k(matrices, mesh)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh      
       real(dp) :: dlmbda, lmax, fix
       real(dp), dimension(:), allocatable :: c, diff, absdif
       integer :: i, n, imin
@@ -463,7 +483,9 @@ contains
 
 !****************************************************************************80
 ! Calculate the relative amplitudes in the field
-   subroutine calc_E_rel()
+   subroutine calc_E_rel(matrices, mesh)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       real(dp) :: lambda, N, sm, sm2, dlmbda, M
       integer :: i
 
@@ -492,24 +514,28 @@ contains
 
 !****************************************************************************80
 ! Setup the wavelength band and all matrices in it
-   subroutine setup_band()
+   subroutine setup_band(matrices, mesh)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       if (matrices%waves == 'bnd') then
-         call find_k()
-         call calc_E_rel()
+         call find_k(matrices, mesh)
+         call calc_E_rel(matrices, mesh)
       else
-         call band_no_blackbody()
+         call band_no_blackbody(matrices, mesh)
       end if
 
    end subroutine setup_band
 
 !****************************************************************************80
 ! Set the particle as Draine&Lee1984 astrosilicate
-   subroutine band_astrosilicate()
+   subroutine band_astrosilicate(matrices, mesh)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       real(dp) :: lmax
       real(dp), dimension(:), allocatable :: c, diff, absdif, w, epsr, epsi
       integer :: i, n, size_param, ind
 
-      call read_mesh()
+      call read_mesh(matrices, mesh)
 
       size_param = size(mesh%params, 1)
       if (allocated(mesh%params)) deallocate (mesh%params)
@@ -541,7 +567,9 @@ contains
 
 !****************************************************************************80
 ! Setup the wavelength band and all matrices inv A in it
-   subroutine band_no_blackbody()
+   subroutine band_no_blackbody(matrices, mesh)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       real(dp) :: lmax
       real(dp), dimension(:), allocatable :: c, diff, absdif
       integer :: i, n
@@ -584,7 +612,7 @@ contains
       matrices%E_rel = 1d0
 
       if(matrices%waves == 'isrf') then
-         call calc_E_rel()
+         call calc_E_rel(matrices, mesh)
          if (2*pi/mesh%ki(1)/1d-6 < 0.2d0) matrices%E_rel(1) = maxval(matrices%E_rel)*2d0
       end if 
 

@@ -84,7 +84,8 @@ contains
 
 ! CLEARTEXT READ **************************************************************
 !****************************************************************************80
-   subroutine check_paramsfile()
+   subroutine check_paramsfile(matrices)
+      type(data) :: matrices
 ! Subroutine to read input parameters
       integer ::  i
       character(len=80) :: arg
@@ -101,7 +102,9 @@ contains
 
 !****************************************************************************80
 ! Subroutine to read input parameters
-   subroutine read_arguments()
+   subroutine read_arguments(matrices, mesh)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       integer :: i
       character(len=80) :: arg_name, arg
 
@@ -193,7 +196,9 @@ contains
 
 !****************************************************************************80
 ! Subroutine to read a input file for nifty usage
-   subroutine read_params()
+   subroutine read_params(matrices, mesh)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
 ! Input related variables
       character(len=150) :: buffer, label
       real(dp) :: temp, tempii
@@ -377,7 +382,9 @@ contains
 
 !****************************************************************************80
 
-   subroutine read_log(no)
+   subroutine read_log(matrices, mesh, no)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       integer, parameter :: fh = 15
       integer :: line
 
@@ -501,7 +508,8 @@ contains
 
 !****************************************************************************80
 
-   subroutine write_mueller(A)
+   subroutine write_mueller(matrices, A)
+      type(data) :: matrices
       real(dp), intent(in) :: A(:, :)
       character(len=120) :: fname
       integer(HSIZE_T), dimension(2) :: dims ! Dataset dimensions
@@ -558,7 +566,9 @@ contains
 
 !****************************************************************************80
 
-   subroutine init_values()
+   subroutine init_values(matrices, mesh)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       matrices%k_orig = matrices%khat
       matrices%E0_orig = real(matrices%E0hat)
       matrices%E90_orig = real(matrices%E90hat)
@@ -579,7 +589,9 @@ contains
 
 !****************************************************************************80
 
-   subroutine update_values()
+   subroutine update_values(matrices, mesh)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
 
       matrices%x_CM = matrices%xn ! In lab frame!
       matrices%v_CM = matrices%vn ! In lab frame!
@@ -593,7 +605,9 @@ contains
 
 !****************************************************************************80
 
-   subroutine start_log()
+   subroutine start_log(matrices, mesh)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       integer :: i
       character(len=120) :: fname
       fname = 'out/log' // trim(matrices%out)
@@ -635,7 +649,9 @@ contains
 
 !****************************************************************************80
 
-   subroutine append_log(n)
+   subroutine append_log(matrices, mesh, n)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       integer :: n, i, md, ind
       character(len=120) :: fname, fmt
 

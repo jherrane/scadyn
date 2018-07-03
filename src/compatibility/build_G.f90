@@ -1,10 +1,9 @@
-subroutine build_G(matrices2, mesh2)
-use common, matrices => matrices, mesh => mesh 
+subroutine build_G(matrices, mesh)
 use possu
 implicit none
 
-type (mesh_struct) :: mesh2
-type (data) :: matrices2
+type (mesh_struct) :: mesh
+type (data) :: matrices
 
 double complex, dimension(:,:,:), allocatable :: A
 double complex :: cmp

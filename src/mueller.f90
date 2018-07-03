@@ -7,7 +7,9 @@ contains
 
 !****************************************************************************80
 ! Compute the mueller matrix according to the mode chosen.
-   subroutine compute_mueller()
+   subroutine compute_mueller(matrices, mesh)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       integer :: ii
       real(dp) :: E
       CHARACTER(LEN=120) :: mueller_out
@@ -30,20 +32,22 @@ contains
 
       select case (trim (matrices%mueller_mode))
       case ('ave')
-         call compute_ave_mueller(180, 1, ii, E, S)
+         call compute_ave_mueller(matrices, mesh, 180, 1, ii, E, S)
       case ('ori')
-         call compute_log_mueller(180, 90, ii, E, S)
+         call compute_log_mueller(matrices, mesh, 180, 90, ii, E, S)
       case ('perf_ori')
-         call compute_aligned_mueller(180, 90, ii, E, S)
+         call compute_aligned_mueller(matrices, mesh, 180, 90, ii, E, S)
       end select
 
-      call write_mueller(S)
+      call write_mueller(matrices, S)
    end subroutine compute_mueller
 
 !****************************************************************************80
 ! Compute orientation averaged Mueller matrices for given number of theta, phi.
 ! The phi-dependency is lost due to averaging, so no need to give N_phi /= 1.
-   subroutine compute_ave_mueller(N_theta, N_phi, ii, E, S)
+   subroutine compute_ave_mueller(matrices, mesh, N_theta, N_phi, ii, E, S)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       integer :: i, ii, halton_init, N_points, N_theta, N_phi
       real(dp) :: E, vec(3)
       real(dp), dimension(:, :), allocatable :: S
@@ -66,7 +70,7 @@ contains
          matrices%khat = -matrices%khat/vlen(matrices%khat)
          matrices%R = rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0])
 
-         S = S + update_mueller(N_theta, N_phi, ii, E, p, q, p90, q90)/N_points
+         S = S + update_mueller(matrices, mesh, N_theta, N_phi, ii, E, p, q, p90, q90)/N_points
          call print_bar(i, N_points)
       end do
    end subroutine compute_ave_mueller
@@ -75,7 +79,9 @@ contains
 ! Compute the Mueller matrix of a perfectly aligned particle. The alignment
 ! direction is fixed so that the major axis of inertia is always in the
 ! +z-direction.
-   subroutine compute_aligned_mueller(N_theta, N_phi, ii, E, S)
+   subroutine compute_aligned_mueller(matrices, mesh, N_theta, N_phi, ii, E, S)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       integer :: i, ii, N_points, N_theta, N_phi
       real(dp) :: E, vec(3), phi, R0(3, 3), Qt(3, 3), omega(3), aproj(3), RR(3, 3), theta
       real(dp), dimension(:, :), allocatable :: S
@@ -104,7 +110,7 @@ contains
          matrices%R = rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0])
          matrices%R = matmul(matrices%R,R_aa(matrices%khat, phi))
 
-         S = S + update_mueller(N_theta, N_phi, ii, E, p, q, p90, q90)/N_points
+         S = S + update_mueller(matrices, mesh, N_theta, N_phi, ii, E, p, q, p90, q90)/N_points
          call print_bar(i, N_points)
       end do
    end subroutine compute_aligned_mueller
@@ -113,13 +119,15 @@ contains
 ! Compute the Mueller matrix from the data from the dynamical simulation. The
 ! particle alignment state is taken from the logged orientations. Thus, the
 ! situation may be aligned or not.
-   subroutine compute_log_mueller(N_theta, N_phi, ii, E, S)
+   subroutine compute_log_mueller(matrices, mesh, N_theta, N_phi, ii, E, S)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       integer :: i, ii, N_points, N_theta, N_phi
       real(dp) :: E, RR(3, 3)
       real(dp), dimension(:, :), allocatable :: S
       complex(dp), dimension(:), allocatable :: p, q, p90, q90
 
-      call read_log(5000)
+      call read_log(matrices, mesh, 5000)
       N_points = size(matrices%RRR, 3)
 
       allocate (S(N_theta*N_phi, 18))
@@ -131,28 +139,32 @@ contains
          matrices%khat = -matrices%khat/vlen(matrices%khat)
          matrices%R = transpose(rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0]))
 
-         S = S + update_mueller(N_theta, N_phi, ii, E, p, q, p90, q90)/N_points
+         S = S + update_mueller(matrices, mesh, N_theta, N_phi, ii, E, p, q, p90, q90)/N_points
          call print_bar(i, N_points)
       end do
    end subroutine compute_log_mueller
 
 !****************************************************************************80
 ! Updates the Mueller matrix average.
-   function update_mueller(N_theta, N_phi, ii, E, p, q, p90, q90) result(S)
+   function update_mueller(matrices, mesh, N_theta, N_phi, ii, E, p, q, p90, q90) result(S)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       integer :: N_theta, N_phi, ii
       real(dp) :: E
       real(dp), dimension(:, :), allocatable :: S
       complex(dp), dimension(:), allocatable :: p, q, p90, q90
 
-      call rot_setup()
-      call scattered_fields(E, p, q, p90, q90, ii)
+      call rot_setup(matrices, mesh)
+      call scattered_fields(matrices, mesh, E, p, q, p90, q90, ii)
       call mueller_matrix_coeff(p, q, p90, q90, dcmplx(mesh%k), N_theta, N_phi, S)
    end function update_mueller
 
 ! Below are WIP functionalities for the SOCpol application
 !****************************************************************************80
 
-   subroutine scattering_extinction_matrices(points)
+   subroutine scattering_extinction_matrices(matrices, mesh, points)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       integer :: i, ind, ind2, ii, N_points, N_size, N_ia
       real(dp) :: inc_angles(2), K(4, 4), Cext_al, Csca_al, Cext_ave, Csca_ave
       complex(dp) :: Kevals(4), Kevecs(4, 4)
@@ -177,8 +189,8 @@ contains
 ! Choose wavelength
          mesh%k = mesh%ki(N_size)
          do N_ia = 1, size(inc_angles, 1)            
-            call mueller_ave(S_ave, K_ave, Csca_ave, Cext_ave, points, N_size)
-            call mueller_align(S_al, K_al, Csca_al, Cext_al, points, N_size, inc_angles(N_ia))
+            call mueller_ave(matrices, mesh, S_ave, K_ave, Csca_ave, Cext_ave, points, N_size)
+            call mueller_align(matrices, mesh, S_al, K_al, Csca_al, Cext_al, points, N_size, inc_angles(N_ia))
 
             do i = 1, N_points
                ind = ind + 1
@@ -218,7 +230,9 @@ contains
 
 !****************************************************************************80
 
-   subroutine mueller_ave(SS, KK, Csca_out, Cext_out, points, ii)
+   subroutine mueller_ave(matrices, mesh, SS, KK, Csca_out, Cext_out, points, ii)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       integer :: i, ii, N_avgs, halton_init, nm, Nmax
       real(dp) :: E, vec(3), k_sph(3)
       real(dp) :: Cext, Cabs, Csca, Csca_out, Cext_out
@@ -247,9 +261,9 @@ contains
          k_sph = cart2sph(matrices%khat)
          matrices%R = rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0])
 
-         call rot_setup()
-         call incident_fields(E, a_in, b_in, ii)
-         call scattered_fields(E, p, q, p90, q90, ii)
+         call rot_setup(matrices, mesh)
+         call incident_fields(matrices, mesh, E, a_in, b_in, ii)
+         call scattered_fields(matrices, mesh, E, p, q, p90, q90, ii)
          if (allocated(S)) deallocate (S, K)
          call scattering_matrix_coeff(p, q, p90, q90, dcmplx(mesh%ki(ii)), size(points, 2), points, S)
          call extinction_matrix_coeff(p, q, p90, q90, dcmplx(mesh%ki(ii)), k_sph(2), k_sph(3), K)
@@ -264,7 +278,9 @@ contains
 
 !****************************************************************************80
 
-   subroutine mueller_align(SS, KK, Csca_out, Cext_out, points, ii, psi, xi_in)
+   subroutine mueller_align(matrices, mesh, SS, KK, Csca_out, Cext_out, points, ii, psi, xi_in)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       integer :: i, j, ii, Ntheta, Nphi, Nmax
       real(dp) :: E, omega(3), al_direction(3), theta, phi, &
                   aproj(3), k_sph(3), psi, x_B(3), n_phi(3)
@@ -317,9 +333,9 @@ contains
 
             matrices%R = rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0])
 
-            call rot_setup()
-            call incident_fields(E, a_in, b_in, ii)
-            call scattered_fields(E, p, q, p90, q90, ii)
+            call rot_setup(matrices, mesh)
+            call incident_fields(matrices, mesh, E, a_in, b_in, ii)
+            call scattered_fields(matrices, mesh, E, p, q, p90, q90, ii)
             if (allocated(S)) deallocate (S, K)
             call scattering_matrix_coeff(p, q, p90, q90, dcmplx(mesh%ki(ii)), size(points, 2), points, S)
             call extinction_matrix_coeff(p, q, p90, q90, dcmplx(mesh%ki(ii)), k_sph(2), k_sph(3), K)

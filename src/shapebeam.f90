@@ -9,14 +9,16 @@ contains
 !****************************************************************************80
 ! The Gaussian amplitude profile in localized approximation (kw0>=5) a'la
 ! MSTM 3.0 (Mackowski et al 2013)
-   subroutine gaussian_beams()
+   subroutine gaussian_beams(matrices, mesh)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       real(dp) :: width
       integer :: i
 
       width = 5d0/(maxval(mesh%ki))/sqrt(2d0)
 
       do i = 1, matrices%bars
-         call gaussian_beam_shape(i, matrices%Nmaxs(i), width)
+         call gaussian_beam_shape(matrices, mesh, i, matrices%Nmaxs(i), width)
       end do
 
    end subroutine gaussian_beams
@@ -24,7 +26,9 @@ contains
 !****************************************************************************80
 ! The Gaussian amplitude profile in localized approximation (kw0>=5) a'la
 ! MSTM 3.0 (Mackowski et al 2013)
-   subroutine gaussian_beam_shape(i, Nmax, width)
+   subroutine gaussian_beam_shape(matrices, mesh, i, Nmax, width)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       real(dp) :: gn, kw0, width
       integer :: n, m, ind, i, Nmax
 
@@ -49,21 +53,25 @@ contains
 
 !****************************************************************************80
 
-   subroutine laguerre_gaussian_beams(p, l)
+   subroutine laguerre_gaussian_beams(matrices, mesh, p, l)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       real(dp) :: width
       integer :: i, p, l
 
       width = 0.3d0/(maxval(mesh%ki))
 
       do i = 1, matrices%bars
-         call laguerre_gauss_num(i, p, l, width)
+         call laguerre_gauss_num(matrices, mesh, i, p, l, width)
       end do
 
    end subroutine laguerre_gaussian_beams
 
 !****************************************************************************80
 ! Axisymmetric LG-beam. In here, instead of some other routines.
-   subroutine laguerre_gauss_num(whichWL, n, m, w0)
+   subroutine laguerre_gauss_num(matrices, mesh, whichWL, n, m, w0)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       integer :: whichWL, nmax, i, j, m, n, ind
       real(dp) :: w0, theta, phi, x, f, n_j, norm
       complex(dp), dimension(:), allocatable :: a_jm, b_jm
@@ -226,7 +234,9 @@ contains
 
 !****************************************************************************80
 ! Axisymmetric LG-beam
-   subroutine laguerre_gauss_farfield(i, p, l, w0)
+   subroutine laguerre_gauss_farfield(matrices, mesh, i, p, l, w0)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       integer :: i, nmax, total_modes, iii, jjj, ntheta, nphi, p, l, tp, info, lwork, ind
       integer, dimension(:), allocatable :: nn, mm, nn_old
       complex(dp) :: x, y, BCP(9)
@@ -349,7 +359,9 @@ contains
 
 !****************************************************************************80
 
-   subroutine fields_out(which, n)
+   subroutine fields_out(matrices, mesh, which, n)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       integer :: n, nn, i, which
       real(dp), allocatable :: grid(:, :)
       complex(dp) :: F(3), G(3)
@@ -357,7 +369,7 @@ contains
 
       nn = n*n
 
-      grid = field_grid()
+      grid = field_grid(mesh)
 
       allocate (E(3, nn))
       matrices%field_points = grid
@@ -373,7 +385,9 @@ contains
 
 !****************************************************************************80
 
-   subroutine scat_fields_out(which, n)
+   subroutine scat_fields_out(matrices, mesh, which, n)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       integer :: n, nn, i, which
       real(dp), allocatable :: grid(:, :)
       complex(dp), dimension(:), allocatable :: p, q, p90, q90
@@ -382,13 +396,13 @@ contains
 
       nn = n*n
 
-      grid = field_grid()
+      grid = field_grid(mesh)
 
 ! Ensure that directions are ok. They might already be...
       matrices%Rk = eye(3)
       allocate (E(3, nn))
-      call rot_setup()
-      call scattered_fields(1d0, p, q, p90, q90, which)
+      call rot_setup(matrices, mesh)
+      call scattered_fields(matrices, mesh, 1d0, p, q, p90, q90, which)
 
       matrices%field_points = grid
       do i = 1, nn
@@ -403,7 +417,8 @@ contains
 
 !****************************************************************************80
 
-   function field_grid() result(grid)
+   function field_grid(mesh) result(grid)
+      type(mesh_struct) :: mesh
       integer :: n, nn, i, j, ind
       real(dp) :: lim
       real(dp), allocatable :: z(:), y(:), grid(:, :)
@@ -432,7 +447,9 @@ contains
 
 !****************************************************************************80
 
-   subroutine write_fields()
+   subroutine write_fields(matrices, mesh)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       integer :: i, n
       character(LEN=80) :: gridname, fieldname, scatfield
       i = 1
@@ -441,11 +458,11 @@ contains
       fieldname = 'E_field.h5'
       scatfield = 'E_scat.h5'
 
-      call fields_out(i, n)
+      call fields_out(matrices, mesh, i, n)
       call write2file(dcmplx(matrices%field_points), gridname)
       call write2file(matrices%E_field, fieldname)
 
-      call scat_fields_out(i, n)
+      call scat_fields_out(matrices, mesh, i, n)
       call write2file(matrices%E_field, scatfield)
 
    end subroutine write_fields

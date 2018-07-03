@@ -7,7 +7,9 @@ contains
 
 !****************************************************************************80
 ! Calculate forces and torques during single step
-   subroutine get_forces(mode)
+   subroutine get_forces(matrices, mesh, mode)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       real(dp), dimension(3, 3) :: RT, R_k, R_k90
       real(dp), dimension(3) :: Q_t
       real(dp) :: u, wl
@@ -15,7 +17,7 @@ contains
       integer :: i
       integer, optional :: mode
 
-      call rot_setup()
+      call rot_setup(matrices, mesh)
 
       Q_t = 0d0
       N = 0d0
@@ -33,9 +35,10 @@ contains
 ! Iteration of a single wavelength
       if (matrices%whichbar == 0) then
          do i = 1, matrices%bars
-            call forcetorque(i)
+            call forcetorque(matrices, mesh, i)
             F = F + matrices%force
             N = N + matrices%torque
+
             if(present(mode))then
                Q_t = Q_t + matrices%torque/epsilon/mesh%a**2/(wl*u)/matrices%bars
             else
@@ -43,7 +46,7 @@ contains
             end if
          end do
       else
-         call forcetorque(matrices%whichbar)
+         call forcetorque(matrices, mesh, matrices%whichbar)
          F = F + matrices%force
          N = N + matrices%torque
          Q_t = Q_t + matrices%torque*(mesh%ki(matrices%whichbar))/&
@@ -52,8 +55,8 @@ contains
       end if
 
       if (calc_extra_torques == 1) then
-         N_DG = DG_torque()
-         N_B = barnett_torque()
+         N_DG = DG_torque(matrices, mesh)
+         N_B = barnett_torque(matrices, mesh)
          N = N + N_B + N_DG
       end if
 
@@ -66,7 +69,9 @@ contains
 !****************************************************************************80
 ! Calculate forces and torques using numerical integration of Maxwell stress
 ! tensor
-   subroutine forcetorque_num(j)
+   subroutine forcetorque_num(matrices, mesh, j)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       complex(dp), dimension(:), allocatable :: a_in, b_in, a90, b90, &
                                                 a, b, a_nm, b_nm, a_nm90, b_nm90
       complex(dp), dimension(:, :), allocatable :: Taa, Tab, Tba, Tbb
@@ -188,7 +193,9 @@ contains
 
 !****************************************************************************80
 ! Calculate forces and torques using the analytical z-formulae
-   subroutine forcetorque(i)
+   subroutine forcetorque(matrices, mesh, i)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       complex(dp), dimension(:), allocatable :: a_in, b_in, a90, b90, &
                                                 a, b, p, q, p90, q90, a2, b2, p2, q2, a290, b290, p290, q290
       complex(dp), dimension(:, :), allocatable :: Taa, Tab, Tba, Tbb
@@ -221,6 +228,7 @@ contains
 
       a = sparse_matmul(rotD, indD, a_in, nm)
       b = sparse_matmul(rotD, indD, b_in, nm)
+
       a90 = sparse_matmul(rotD90, indD90, a_in, nm)
       b90 = sparse_matmul(rotD90, indD90, b_in, nm)
       if (matrices%polarization == 1) then
@@ -276,7 +284,9 @@ contains
 
 !****************************************************************************80
 
-   subroutine relax_step(q, t, dq_max, J)
+   subroutine relax_step(matrices, mesh, q, t, dq_max, J)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       real(dp), intent(inout) :: q, t
       real(dp), intent(in) :: J, dq_max
       integer :: iii, jjj, NH, Ntau
@@ -286,8 +296,8 @@ contains
       I3 = matrices%Ip(3)
 
 ! Calculate q-update
-      tau_n = barnett_time(3d-11, 1.3d8, J/matrices%Ip(3), 1d-4, 1d-4)
-      tau_e = barnett_time(1d-13, -1.76d11, J/matrices%Ip(3), 1d-10, 1d-6)
+      tau_n = barnett_time(matrices, mesh, 3d-11, 1.3d8, J/matrices%Ip(3), 1d-4, 1d-4)
+      tau_e = barnett_time(matrices, mesh, 1d-13, -1.76d11, J/matrices%Ip(3), 1d-10, 1d-6)
       tau_int = 1d0/(1d0/tau_n+1d0/tau_e)
 
       dq = -(q-1)*(1-q*I1/I3)/tau_int/(1-I1/I3)
@@ -345,7 +355,9 @@ contains
 
 !****************************************************************************80
 ! Calculates the z-component of torque analytically
-   function barnett_torque() result(N)
+   function barnett_torque(matrices, mesh) result(N)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       real(dp) :: a
       real(dp), dimension(3) :: N
       real(dp), dimension(3)    :: w, mu_Bar, B
@@ -362,7 +374,9 @@ contains
 !****************************************************************************80
 ! Calculate the Barnett relaxation (nuclear/electron) time scale before next 
 ! step
-   function barnett_time(chi0, g, w, T1, T2) result(tau)
+   function barnett_time(matrices, mesh, chi0, g, w, T1, T2) result(tau)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       real(dp) :: tau, T1, T2, chi0, I1, I3, w, ww,  V, g
       real(dp), dimension(3) :: Jb, a_3, J, axis
 
@@ -377,7 +391,9 @@ contains
 
 !****************************************************************************80
 ! Calculates the z-component of torque analytically
-   function DG_torque() result(N)
+   function DG_torque(matrices, mesh) result(N)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       real(dp) :: psi, xi, phi, Kw, V, tau, mag_B
       real(dp), dimension(3) :: N
       real(dp), dimension(3)    :: a3, tmp, w, B, B_perp, proj_Bperp_a3, psi_vec
@@ -415,7 +431,9 @@ contains
 !****************************************************************************80
 ! Beta (rotation about a_3) averaged torque efficiency as a function of 
 ! capital theta and phi (as in the works of Draine and Weingartner)
-   function get_Qav(theta, phi) result(Q)
+   function get_Qav(matrices, mesh, theta, phi) result(Q)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       real(dp) :: Q(3), theta, phi, beta
       integer :: i, Nbeta
 
@@ -424,7 +442,7 @@ contains
 
       do i = 1,Nbeta
          beta = dble(i)*pi*2d0/Nbeta
-         Q = Q + matmul(matrices%Rk,get_Q(theta,phi,beta))/Nbeta
+         Q = Q + matmul(matrices%Rk,get_Q(matrices, mesh, theta,phi,beta))/Nbeta
       end do
 
    end function get_Qav
@@ -432,7 +450,9 @@ contains
 !****************************************************************************80
 ! Torque efficiency as a function of capital theta, phi and beta (as in the 
 ! works of Draine and Weingartner)
-   function get_Q(theta, phi, beta) result(Q)
+   function get_Q(matrices, mesh, theta, phi, beta) result(Q)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       real(dp) :: R_thta(3, 3), nbeta(3), R_beta(3, 3), Q(3), theta, beta, phi, &
                   a_3(3), R_phi(3, 3)
       complex(dp) :: call(6)
@@ -440,7 +460,7 @@ contains
 
       a_3 = matrices%P(1:3, 3)
 
-      R_thta = R_theta(theta)
+      R_thta = R_theta(matrices, theta)
       R_phi = R_aa([0d0, 0d0, 1d0], phi)
 
 ! Rotation axis for beta averaging for current theta
@@ -452,7 +472,7 @@ contains
 ! The ultimate rotation matrices for scattering event
       matrices%R = matmul(R_beta, R_thta) ! First a_3 to theta, then beta about a_3
 
-      call get_forces()
+      call get_forces(matrices, mesh)
       Q = matrices%Q_t
 
    end function get_Q
@@ -470,9 +490,12 @@ contains
 
 !****************************************************************************80
 ! Calculates alignment angles xi and phi from a given rotation matrix
-   function get_xiphi(R) result(xp)
+   function get_xiphi(matrices, mesh) result(xp)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       real(dp) :: R(3,3), xi, phi, xp(2), B(3), a_3_perp_z(3)
 
+      R = matrices%R
       B = matrices%B/vlen(matrices%B)
       a_3_perp_z = matrices%P(:,3)
       xi = dacos(dot_product(B, matmul(R,a_3_perp_z)))

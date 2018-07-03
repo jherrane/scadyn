@@ -3,7 +3,7 @@ R0 i                    # r = random matrix, i = identity matrix*
 v0 0d0 0d0 0d0          # Initial velocity
 w0 0d0 0d0 1d0          # Initial angular velocity
 
-a 2d-7                  # Equivalent radius
+a 5d-8                  # Equivalent radius
 rho 3d3                 # Density
 drag 1                  # Mesh "drag coefficient", for sphere = 1
 

@@ -123,9 +123,6 @@ module common
       complex(dp), dimension(:, :), allocatable :: A, B
    end type data_struct
 
-   type(data) :: matrices
-   type(mesh_struct) :: mesh
-
 contains
 
 ! LOWFUNCTIONS ****************************************************************
@@ -312,7 +309,8 @@ contains
 
 !****************************************************************************80
 
-   function get_tetra_vol() result(volume)
+   function get_tetra_vol(mesh) result(volume)
+      type(mesh_struct) :: mesh
       real(dp)                      ::  volume, V, totV
       integer                       ::  i1
       real(dp), dimension(3)    ::  p0, p1, p2, p3
@@ -1165,7 +1163,8 @@ contains
 !****************************************************************************80
 ! Tests whether a particle is aligned internally, i.e. the q-parameter is 
 ! approximately constant
-   function alignment_state() result(ans)
+   function alignment_state(matrices) result(ans)
+      type(data) :: matrices
       integer :: ans
       real(dp) :: q_oldmean, q_mean
       ans = 0
@@ -1577,7 +1576,8 @@ end subroutine remove_duplicates
 
 !****************************************************************************80
 
-   function R_theta(theta) result(R)
+   function R_theta(matrices, theta) result(R)
+      type(data) :: matrices
       real(dp), dimension(3, 3) ::  R_init, R_thta, R, R_pol
       real(dp), dimension(3) :: a_3, e_3, e_2, k, ninit, a_2, a_1
       real(dp) :: theta, theta0

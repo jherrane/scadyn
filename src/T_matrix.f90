@@ -12,7 +12,9 @@ contains
 !****************************************************************************80
 ! The main calculation routine for the T-matrices. Uses the celebrated
 ! JVIE-methodology.
-   subroutine calc_T()
+   subroutine calc_T(matrices, mesh)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       integer :: i, ii, nm, sz
 
       sz = size(mesh%ki)
@@ -20,7 +22,7 @@ contains
 
 ! Because the mesh reading is after initial band setup, the astrosilicate
 ! fix "must" be done here
-      if (matrices%waves == 'sil') call band_astrosilicate()
+      if (matrices%waves == 'sil') call band_astrosilicate(matrices, mesh)
 
       write (*, '(3(A,I0))') ' Construct matrices for ', sz, ' wavelengths...'
       if (matrices%singleT == 1) then
@@ -28,7 +30,7 @@ contains
             2d0*pi/mesh%ki(matrices%whichbar)/1d-6, ' um.'
       end if
       if (use_mie == 1) then
-         call mie_T_matrix()
+         call mie_T_matrix(matrices, mesh)
       else
          do i = 1, sz
             if (size(mesh%params, 2) > 1) mesh%param = mesh%params(:, matrices%whichbar)
@@ -42,9 +44,9 @@ contains
             nm = (matrices%Nmaxs(ii) + 1)**2 - 1
             mesh%k = mesh%ki(ii)
 
-            call allocate_T(ii)
+            call allocate_T(matrices, mesh, ii)
 
-            call update_projections(ii)
+            call update_projections(matrices, mesh, ii)
 
             if (allocated(matrices%Fg)) deallocate (matrices%Fg)
             if (allocated(matrices%sp_mat)) deallocate (matrices%sp_mat, matrices%sp_ind)
@@ -59,7 +61,7 @@ contains
             end if
 
             print *, ' Compute T-matrix...'
-            call compute_T_matrix(matrices%Nmaxs(ii), matrices%Taa, &
+            call compute_T_matrix(matrices, mesh, matrices%Nmaxs(ii), matrices%Taa, &
                                   matrices%Tab, matrices%Tba, matrices%Tbb)
 
             matrices%Taai(1:nm, 1:nm, ii) = matrices%Taa
@@ -74,7 +76,9 @@ contains
 !****************************************************************************80
 ! Allocate space for the currently used T-matrix, thus deallocation if
 ! necessary.
-   subroutine allocate_T(i)
+   subroutine allocate_T(matrices, mesh, i)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       integer :: Nmax, i
 
       if (allocated(matrices%Taa)) then
@@ -93,7 +97,9 @@ contains
 ! Allocate memory for the collection of T-matrices. Wastes space as the
 ! largest T-matrix usually is much larger than the others. Must be allocated
 ! before anything else is done with T-matrices.
-   subroutine allocate_Ti()
+   subroutine allocate_Ti(matrices, mesh)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       integer :: Nmax, i, ind1, ind2, nm
       
       do i = 1,size(matrices%Nmaxs)
@@ -118,7 +124,9 @@ contains
 !****************************************************************************80
 ! The T-matrix of a sphere. Fast, accurate, yet not very usable. Unless
 ! combined with layered sphere codes and aggregation.
-   subroutine mie_T_matrix()
+   subroutine mie_T_matrix(matrices, mesh)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       integer :: i, j, ci, nm, Nmax
       real(dp) :: k, ka
       complex(dp) :: m, r1
@@ -161,7 +169,9 @@ contains
 ! Orientation averaged T-matrix of the current particle in question. Assumes
 ! that the T-matrix of the particle is already calculated. Usable for coherent
 ! field applications.
-   subroutine ori_ave_T()
+   subroutine ori_ave_T(matrices, mesh)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       integer :: i, ii, nm, sz, n, m, Nmax
       complex(dp), dimension(:, :), allocatable :: Taa, Tab, Tba, Tbb, &
                                                    Taa_av, Tab_av, Tba_av, Tbb_av
@@ -227,7 +237,9 @@ contains
 
 !****************************************************************************80
 ! Śolve the T-matrix via the VIE method and accelerated GMRES.
-   subroutine compute_T_matrix(Nmax, Taa, Tab, Tba, Tbb)
+   subroutine compute_T_matrix(matrices, mesh, Nmax, Taa, Tab, Tba, Tbb)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh      
       real(dp) :: k
       integer :: Nmax, nm
 
@@ -269,7 +281,9 @@ contains
 !****************************************************************************80
 ! Return the precalculated fields a and b, given electric field amplitude E and
 ! the current wavelength index ii
-   subroutine incident_fields(E, a_in, b_in, ii)
+   subroutine incident_fields(matrices, mesh, E, a_in, b_in, ii)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       real(dp) :: E
       complex(dp), dimension(:), allocatable :: a_in, b_in
       integer :: nm, las, ii, Nmax
@@ -289,7 +303,9 @@ contains
 !****************************************************************************80
 ! Solve the scattered fields p and q, given electric field amplitude E and
 ! the current wavelength index ii
-   subroutine scattered_fields(E, p, q, p90, q90, ii)
+   subroutine scattered_fields(matrices, mesh, E, p, q, p90, q90, ii)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       real(dp) :: E
       complex(dp), dimension(:), allocatable :: a_in, b_in, a90, b90, &
                                                 a, b, p, q, p90, q90, ptemp, qtemp, p90temp, q90temp

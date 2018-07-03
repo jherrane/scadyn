@@ -10,7 +10,9 @@ module h5io
    ! HDF5 READ *******************************************************************
 !****************************************************************************80
 
-   subroutine read_mesh()
+   subroutine read_mesh(matrices, mesh)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       character(len=80) :: file
 
       ! character(len=8), PARAMETER :: file = "mesh.h5"
@@ -112,7 +114,7 @@ module h5io
          end if
       end if
 
-      vol = get_tetra_vol()
+      vol = get_tetra_vol(mesh)
       a_eff = (3d0*vol/4d0/pi)**(1d0/3d0)
 
       mesh%coord = mesh%coord*mesh%a/a_eff ! Scale coordinates to correspond the real grain
@@ -122,7 +124,8 @@ module h5io
 
 !****************************************************************************80
 
-   subroutine read_aggr()
+   subroutine read_aggr(mesh)
+      type(mesh_struct) :: mesh
       character(len=16), PARAMETER :: dataset1 = "coord" ! Dataset name
       character(len=16), PARAMETER :: dataset2 = "radius" ! Dataset name
 
@@ -169,7 +172,9 @@ module h5io
 
 !****************************************************************************80
 
-   subroutine read_T()
+   subroutine read_T(matrices, mesh)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       character(len=80) :: file ! File name
       character(len=16), PARAMETER :: dataset1 = "Taai_r"
       character(len=16), PARAMETER :: dataset2 = "Taai_i"
@@ -346,18 +351,22 @@ module h5io
 
 ! HDF5 WRITE ******************************************************************
 !****************************************************************************80
-   subroutine write_T()
+   subroutine write_T(matrices, mesh)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       if (matrices%singleT == 1) then
-         call singleT_write2file()
+         call singleT_write2file(matrices, mesh)
       else
-         call T_write2file()
+         call T_write2file(matrices, mesh)
       end if
 
    end subroutine write_T
 
 !****************************************************************************80
 
-   subroutine T_write2file()
+   subroutine T_write2file(matrices, mesh)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       character(len=80) :: fname
       character(len=80) :: filename
 
@@ -490,7 +499,9 @@ module h5io
 
 !****************************************************************************80
 
-   subroutine T_empty()
+   subroutine T_empty(matrices, mesh)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       character(len=80) :: fname
       character(len=80) :: filename
 
@@ -610,7 +621,9 @@ module h5io
 
 !****************************************************************************80
 
-   subroutine singleT_write2file()
+   subroutine singleT_write2file(matrices, mesh)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       character(len=80) :: filename
 
       character(len=6), PARAMETER :: dsetname1 = "Taai_r"

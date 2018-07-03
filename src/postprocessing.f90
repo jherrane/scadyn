@@ -11,13 +11,15 @@ contains
 ! Test the numerical and analytical methods of calculating scattering forces. 
 ! When incident field is planewave, the results should match always. Numerical
 ! shenanigans seem to occur with other beams. PSA: Fixing it can be a hassle.
-   subroutine test_methods()
+   subroutine test_methods(matrices, mesh)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       integer :: i, j, ii, range(2)
       real(dp), dimension(:, :), allocatable :: Q_fcoll, Q_tcoll
       real(dp), dimension(3) :: F, N, FF, NN, N_B, N_DG
       real(dp) :: urad
 
-      call rot_setup()
+      call rot_setup(matrices, mesh)
 
       allocate (Q_fcoll(3, matrices%bars))
       allocate (Q_tcoll(3, matrices%bars))
@@ -39,8 +41,8 @@ contains
 
          do i = range(1), range(2)
             select case (j)
-            case (1); call forcetorque_num(i)
-            case (2); call forcetorque(i)
+            case (1); call forcetorque_num(matrices, mesh, i)
+            case (2); call forcetorque(matrices, mesh, i)
             end select
             ii = i
             if (matrices%whichbar > 0) ii = matrices%whichbar
@@ -65,8 +67,8 @@ contains
          write (*, '(A,3ES11.3,A)') ' N = (', real(NN), ' ) Nm'
 
          if (j == 2) then
-            N_DG = DG_torque()
-            N_B = barnett_torque()
+            N_DG = DG_torque(matrices, mesh)
+            N_B = barnett_torque(matrices, mesh)
 
             write (*, '(A,3ES11.3,A)') ' N_DG = (', real(N_DG), ' ) Nm'
             write (*, '(A,3ES11.3,A)') ' N_B = (', real(N_B), ' ) Nm'
@@ -96,7 +98,9 @@ contains
 ! Calculates the torque efficiency of a particle averaged over rotation
 ! about its major axis of inertia (a_3) for angles 0 to pi between
 ! a_3 and incident k0. Results are automatically comparable with DDSCAT.
-   subroutine torque_efficiency()
+   subroutine torque_efficiency(matrices, mesh)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       integer :: i, Ntheta
       real(dp), dimension(3) :: Q_t
       real(dp), dimension(:), allocatable :: theta
@@ -111,7 +115,7 @@ contains
       write (*, '(A)') '  Starting the calculation of beta-averaged torque efficiency:'
 ! Theta loop
       do i = 1, Ntheta
-         Q_t = get_Qav(theta(i), 0d0)
+         Q_t = get_Qav(matrices, mesh, theta(i), 0d0)
 ! Flip the coordinate labels to match Lazarian2007b: In this code, k is along 
 ! z instead of x, 0-polarization is the y of L2007b. So, inverse that next.
          Q_coll(:, i) = [Q_t(3),Q_t(1),Q_t(2)]
@@ -130,7 +134,9 @@ contains
 ! Calculates the torque efficiency of a particle averaged over rotation
 ! about its major axis of inertia (a_3) for angles 0 to pi between
 ! a_3 and incident k0. Results are automatically comparable with DDSCAT.
-   subroutine RAT_efficiency(Nxi, Nphi, Npsi_in, FGH)
+   subroutine RAT_efficiency(matrices, mesh, Nxi, Nphi, Npsi_in, FGH)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       integer :: i, j, k, l, Nxi, Nphi, Npsi, ind
       integer, optional :: Npsi_in
       real(dp) :: F, G, H
@@ -170,7 +176,7 @@ contains
                R_phi = R_aa(n_phi, phi(k))
                matrices%R = matmul(R_phi, R_xi) ! First a_3 to xi, then beta about a_3
 
-               call get_forces(1)
+               call get_forces(matrices, mesh, 1)
 
                Q_t = matmul(matrices%R,matrices%Q_t)/Nphi
                F = dot_product(Q_t, xihat(xi(j), phi(k), psi(i)))
@@ -207,7 +213,9 @@ contains
 ! Calculate the torque efficiency projected on the inertia axes for all 
 ! possible directions of radiation incidence. Similar analysis can be done
 ! taking into account the particle orientations or spin state. 
-   subroutine stability_analysis(result)
+   subroutine stability_analysis(matrices, mesh, result)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       integer :: i, j, k, ind, Npoints, Nphi, Ntheta, Nbeta
       real(dp), dimension(3, 3) ::  Rbeta, Rtheta
       real(dp), dimension(3) :: n_beta, k0, a_1, a_2, a_3, N, maxdir, a
@@ -216,7 +224,7 @@ contains
       real(dp), dimension(:), allocatable :: theta, costheta, phi, beta
       real(dp), dimension(3), optional :: result
       
-      call rot_setup()
+      call rot_setup(matrices, mesh)
 
       k0 = matrices%khat
 
@@ -246,7 +254,7 @@ contains
       do i = 1, Npoints
          ! The ultimate rotation matrices for scattering event
          matrices%R = rotate_a_to_b(k0, vec(:, i))
-         call get_forces()
+         call get_forces(matrices, mesh)
 
          a = matmul(transpose(matrices%R), a_3)
          N = matmul(transpose(matrices%P), matrices%Q_t)
@@ -269,7 +277,9 @@ contains
 
 !****************************************************************************80
 ! Mueller matrices needed in SOCpol.
-   subroutine test_mueller(Ntheta, Nphi)
+   subroutine test_mueller(matrices, mesh, Ntheta, Nphi)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       integer :: i, j, ind, halton_init, Nphi, Ntheta
       real(dp), dimension(:,:), allocatable :: points
 
@@ -285,14 +295,16 @@ contains
          end do
       end do
 
-      call scattering_extinction_matrices(points)
+      call scattering_extinction_matrices(matrices, mesh, points)
 
    end subroutine test_mueller
 
 !****************************************************************************80
 ! Calculate alignment of stably spinning particle. The stability direction is
 ! determined by force analysis
-   subroutine stable_particle_RAT()
+   subroutine stable_particle_RAT(matrices, mesh)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
       integer :: i, j, k, ind, Npoints, Nw, Nxi
       real(dp) :: w1, xi1
       real(dp), dimension(:, :, :), allocatable :: path_w, path_xi
@@ -304,7 +316,7 @@ contains
 ! gives now the internal alignment direction w.r.t. the incidence direction.
 !       RP = rotate_a_to_b(matrices%P(:,3), xstable)
 !       matrices%P = matmul(RP, matrices%P)
-      call RAT_efficiency(60,20,FGH=FGH)
+      call RAT_efficiency(matrices, mesh, 60,20,FGH=FGH)
       allocate(matrices%FGH(size(FGH, 1), size(FGH,2)))
       matrices%FGH = FGH
 
@@ -329,7 +341,7 @@ contains
             path_xi(i,j,1) = xi1
             write(1,'(2ES12.3)') xi1, w1
             do k = 2, Npoints
-               call ADE_update(w1,xi1)
+               call ADE_update(matrices, mesh, w1,xi1)
                path_w(i,j,k) = w1
                path_xi(i,j,k) = xi1
                write(1,'(2ES12.3)') xi1, w1
