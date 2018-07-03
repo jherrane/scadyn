@@ -22,7 +22,6 @@ contains
       Q_t = 0d0
       N = 0d0
       F = 0d0
-
       if(present(mode)) then
          u = 0d0
          wl = 0d0

@@ -292,9 +292,9 @@ contains
                read (buffer, *, iostat=ios) matrices%Tmat
             case ('whichbar')
                read (buffer, *, iostat=ios) whichbar
+               if (matrices%whichbar == 0) matrices%whichbar = whichbar
             case ('shortlog')
                read (buffer, *, iostat=ios) shortlog
-               if (matrices%whichbar == 0) matrices%whichbar = whichbar
             case ('test_forces')
                read (buffer, *, iostat=ios) run_test
             case ('is_aggr')

@@ -105,7 +105,7 @@ module common
 ! Run parameters and other auxiliary variables
       integer, dimension(:), allocatable :: Nmaxs
       integer :: Nmax, polarization, bars, Tmat, &
-                 is_aggr, whichbar, buffer, N_mean, singleT
+                 buffer, N_mean
 
       character(len=38) :: waves = 'band'
       character(len=38) :: paramsfile = 'params.in'
@@ -114,6 +114,9 @@ module common
       character(len=8)  :: mueller_mode = 'none'
 
       real(dp)          :: B_len = 0d0
+      integer :: whichbar = 0
+      integer :: is_aggr = 0
+      integer :: singleT = 0
    end type data
 
    type data_struct
