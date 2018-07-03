@@ -510,7 +510,7 @@ contains
       integer(HSIZE_T), dimension(2) :: dims ! Dataset dimensions
       integer     :: i
 
-      fname = 'out/mueller'//trim(matrices%out)
+      fname = 'out/mueller-'//trim(matrices%mueller_mode)//trim(matrices%out)
       dims = [int(size(A, 1), 8), int(size(A, 2), 8)]
 
       open (unit=1, file=trim(fname), ACTION="write", STATUS="replace")
