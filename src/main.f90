@@ -34,11 +34,6 @@ program main
 
    if (run_test == 0) then
       call integrate(matrices, mesh)
-      if (int_mode >= 1 .AND. int_mode < 3) then
-         call compute_log_RAT(matrices, mesh)
-      else if(int_mode == 3 ) then
-         call stable_particle_RAT(matrices, mesh)
-      end if
    else
       call tests(matrices, mesh)
    end if
@@ -74,9 +69,8 @@ contains
          call torque_efficiency(matrices, mesh)
          call RAT_efficiency(matrices, mesh, 60, 20, Npsi_in = 4)
       end if 
-      if (run_test == 3) call stability_analysis(matrices, mesh)
-      if (run_test == 4) call write_fields(matrices, mesh)
-      if (run_test == 5) call test_mueller(matrices, mesh, 9, 18)
+      if (run_test == 3) call write_fields(matrices, mesh)
+      if (run_test == 4) call test_mueller(matrices, mesh, 9, 18)
 
    end subroutine tests
 

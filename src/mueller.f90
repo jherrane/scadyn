@@ -79,12 +79,13 @@ contains
 ! Compute the Mueller matrix of a perfectly aligned particle. The alignment
 ! direction is fixed so that the major axis of inertia is always in the
 ! +z-direction.
-   subroutine compute_aligned_mueller(matrices, mesh, N_theta, N_phi, ii, E, S)
+   subroutine compute_aligned_mueller(matrices, mesh, N_theta, N_phi, ii, E, S, J)
       type(data) :: matrices
       type(mesh_struct) :: mesh
       integer :: i, ii, N_points, N_theta, N_phi
       real(dp) :: E, vec(3), phi, R0(3, 3), Qt(3, 3), omega(3), aproj(3), RR(3, 3), theta
       real(dp), dimension(:, :), allocatable :: S
+      real(dp), dimension(3), optional :: J
       complex(dp), dimension(:), allocatable :: p, q, p90, q90
 
       N_points = 500 ! Number of points to calculate the perfect orientations

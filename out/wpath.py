@@ -53,7 +53,7 @@ if __name__ == "__main__":
    plt.rc('text', usetex=True)
    plt.rc('font', family='serif')
 
-   data = open('path.out','r')
+   data = open('path','r')
 
    s = data.readlines()
    Nxi = int(s[0])
@@ -61,7 +61,7 @@ if __name__ == "__main__":
    Npoints = int(s[2])
    data.close()
 
-   data = np.loadtxt('path.out', skiprows=3)
+   data = np.loadtxt('path', skiprows=3)
 
    path_xi = data[:,0]
    path_w = data[:,1]

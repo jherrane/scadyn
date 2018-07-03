@@ -236,8 +236,6 @@ contains
                read (buffer, *, iostat=ios) mesh%a
             case ('E')
                read (buffer, *, iostat=ios) matrices%E
-            case ('v0')
-               read (buffer, *, iostat=ios) matrices%v_CM
             case ('w0')
                read (buffer, *, iostat=ios) matrices%w
             case ('R0')
@@ -292,10 +290,10 @@ contains
                read (buffer, *, iostat=ios) mesh%order
             case ('Tmat')
                read (buffer, *, iostat=ios) matrices%Tmat
-            case ('choose_integrator')
-               read (buffer, *, iostat=ios) matrices%which_int
             case ('whichbar')
                read (buffer, *, iostat=ios) whichbar
+            case ('shortlog')
+               read (buffer, *, iostat=ios) shortlog
                if (matrices%whichbar == 0) matrices%whichbar = whichbar
             case ('test_forces')
                read (buffer, *, iostat=ios) run_test
@@ -350,6 +348,7 @@ contains
       if(it_log > it_max) it_log = 0
       mesh%is_mesh = 1 - matrices%is_aggr
       matrices%B = matrices%B_len*(matmul(R_aa([0d0, 1d0, 0d0], matrices%B_psi), [0d0, 0d0, 1d0]))
+
       allocate (mesh%ki(matrices%bars))
       allocate (matrices%E_rel(matrices%bars))
       allocate (matrices%Nmaxs(matrices%bars))
@@ -397,17 +396,14 @@ contains
       lastlineno = get_last_line_no(matrices%out)
       if(numlines>=lastlineno-23) numlines = lastlineno-23
       firstlineno = lastlineno-numlines
-      open (fh, file=trim(matrices%out))
+      open (fh, file='out/log'//trim(matrices%out))
       do i = 1, lastlineno-1
          read (fh, *)
       end do
 
       read (fh, *) line, x, v, w, J, N, F, t, R
-      !write(*,'(I0,3ES11.3)') line, w
-      !call print_mat(reshape(R,[3,3]), 'R')
 
       wlast = w/dsqrt(w(1)**2 + w(2)**2 + w(3)**2)
-      !write(*,'(3ES11.3)') wlast
 
       close (fh)
 
@@ -415,7 +411,6 @@ contains
       tf = t
       t1 = t - t_tresh
       t2 = t - 10*t_tresh
-      !print*, t1, t2
 
       w_av = 0d0
       open (fh, file=trim(matrices%out))
@@ -640,7 +635,7 @@ contains
       do i = 1, 3
          write (1, '(3f7.3)') matrices%P(i, :)
       end do
-      write (1, '(A)') ' Log: n | t | w(1:3) | N(1:3) | R(1:9) '
+      if(shortlog==0) write (1, '(A)') ' Log: n | t | w(1:3) | N(1:3) | R(1:9) '
       write (1, '(A)') ' '
 
       close (1)
@@ -686,5 +681,27 @@ contains
       end if
 
    end subroutine append_log
+
+!****************************************************************************80
+
+   subroutine alignment_log(matrices, mesh)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
+      integer :: n, i, md, ind
+      character(len=120) :: fname, fmt
+
+      fname = 'out/log'//trim(matrices%out)
+      fmt = '(A, 3ES16.8)'
+      open (unit=1, file=fname, action="write", position="append", STATUS="old")
+
+      write (1, fmt) 'J ', matrices%J
+      write (1, fmt) 'q0 ', matrices%q_param0
+      write (1, fmt) 'tau_rad ', matrices%tau_rad
+      write (1, fmt) 'tau_int ', matrices%tau_int
+      write (1, fmt) 'w_thermal ', matrices%w_thermal
+
+      close (1)
+
+   end subroutine alignment_log
 
 end module

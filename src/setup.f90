@@ -618,4 +618,262 @@ contains
 
    end subroutine band_no_blackbody
 
+
+!****************************************************************************80
+
+   subroutine diagonalize_inertia(matrices, mesh)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
+      integer :: i, imin, imax, imid, negs
+
+! Test if I is "almost diagonal", which causes diasym to do funny stuff
+      if (dabs(mesh%I(1, 1)*mesh%I(2, 2)*mesh%I(3, 3)) > 1d6*dabs(mesh%I(1, 2)*mesh%I(1, 3)*mesh%I(2, 3))) then
+         if (use_mie .NE. 1) then
+            print *, 'FALLBACK MODE IN DIAGONALIZATION OF INERTIA TENSOR'
+            matrices%Ip = 0d0
+            imin = minloc([mesh%I(1, 1), mesh%I(2, 2), mesh%I(3, 3)], 1)
+            imax = maxloc([mesh%I(1, 1), mesh%I(2, 2), mesh%I(3, 3)], 1)
+            if (imin == 1) then
+               if (imax == 2) then
+                  imid = 3
+                  matrices%P = reshape([1d0, 0d0, 0d0, 0d0, 0d0, 1d0, 0d0, 1d0, 0d0], [3, 3])
+               end if
+               if (imax == 3) then
+                  imid = 2
+                  matrices%P = eye(3)
+               end if
+            else if (imin == 2) then
+               if (imax == 1) then
+                  imid = 3
+                  matrices%P = reshape([0d0, 1d0, 0d0, 0d0, 0d0, 1d0, 1d0, 0d0, 0d0], [3, 3])
+               end if
+               if (imax == 3) then
+                  imid = 1
+                  matrices%P = reshape([0d0, 1d0, 0d0, 1d0, 0d0, 0d0, 0d0, 0d0, 1d0], [3, 3])
+               end if
+            else
+               if (imax == 1) then
+                  imid = 2
+                  matrices%P = reshape([0d0, 0d0, 1d0, 0d0, 1d0, 1d0, 1d0, 0d0, 0d0], [3, 3])
+               end if
+               if (imax == 2) then
+                  imid = 1
+                  matrices%P = reshape([0d0, 0d0, 1d0, 1d0, 0d0, 0d0, 0d0, 1d0, 0d0], [3, 3])
+               end if
+            end if
+            matrices%Ip(1) = minval([mesh%I(1, 1), mesh%I(2, 2), mesh%I(3, 3)])
+            matrices%Ip(3) = maxval([mesh%I(1, 1), mesh%I(2, 2), mesh%I(3, 3)])
+            matrices%Ip(2) = mesh%I(imid, imid)
+         else
+            matrices%Ip = [mesh%I(1, 1), mesh%I(2, 2), mesh%I(3, 3)]
+         end if
+      else
+! P will be the rotation matrix between principal axes and laboratory
+! axes, so that diag(Ip) = P'*I*P
+         matrices%P = mesh%I
+         call diasym(matrices%P, matrices%Ip)
+      end if
+
+! Probably the choice in DDSCAT: force eigenvectors to have mostly positive
+! components
+      do i = 1, 3
+         negs = 0
+         if (matrices%P(1, i) < 0d0) negs = negs + 1
+         if (matrices%P(2, i) < 0d0) negs = negs + 1
+         if (matrices%P(3, i) < 0d0) negs = negs + 1
+         if (negs >= 2) matrices%P(:, i) = -matrices%P(:, i)
+      end do
+
+      matrices%I = 0d0
+      matrices%I_inv = 0d0
+
+      forall (i=1:3) matrices%I(i, i) = matrices%Ip(i)
+      forall (i=1:3) matrices%I_inv(i, i) = 1d0/matrices%Ip(i)
+      
+      mesh%alpha = matrices%Ip/(2d0/5d0*mesh%rho*mesh%V*mesh%a**2)
+
+   end subroutine diagonalize_inertia
+
+!****************************************************************************80
+! Computes interstellar environment values needed to solve the equations of 
+! motion in the alignment problem
+   subroutine interstellar_env(matrices, mesh)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
+      integer :: i
+      real(dp) :: urad, lambdamean
+      matrices%wT = (15d0/(8d0*pi*mesh%alpha(3))*k_b*matrices%Td/ &
+                     (mesh%rho*mesh%a**5))**0.5
+      matrices%TDG = (2d0*mesh%alpha(3)*mesh%rho*mesh%a**2)/ &
+                     (5d0*matrices%Kw*matrices%B_len**2)/(4*pi/(mu))
+      matrices%Tdrag = (pi*mesh%alpha(3)*mesh%rho*mesh%a)/(3*mesh%drag*matrices%nH* &
+                        (2d0*pi*1.67d-27*k_b*matrices%Tgas)**0.5)
+      urad = 0d0
+      lambdamean = 0d0
+      do i = 1,matrices%bars
+         urad = urad + (matrices%E_rel(i)*matrices%E)**2/sqrt(mu/epsilon)/2d0/cc
+         lambdamean = lambdamean + 1d0*pi/mesh%ki(i)
+      end do 
+      
+      lambdamean = lambdamean/matrices%bars
+      matrices%M =  urad*lambdamean*mesh%a**2*matrices%Tdrag/ &
+                     (2d0*matrices%Ip(3)*matrices%wT)
+
+      if(debug==1) then
+         print*, 'The interstellar environment values'
+         print*, 'lambda_mean = ', lambdamean
+         print*, 'u_rad = ', urad
+         print*, 'w_T = ', matrices%wT
+         print*, 'T_DG (years) = ', matrices%TDG/(60*60*24*365)
+         print*, 'T_drag (years) = ', matrices%Tdrag/(60*60*24*365)
+         print*, 'M = ', matrices%M
+      end if
+
+   end subroutine interstellar_env
+
+!****************************************************************************80
+
+   subroutine mie_params(matrices, mesh)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
+      mesh%V = 4d0/3d0*pi*mesh%a**3
+      mesh%mass = mesh%V*mesh%rho
+      mesh%CM = [0d0, 0d0, 0d0]
+      mesh%I = 2d0/5d0*mesh%mass*mesh%a**2*eye(3)
+
+      matrices%CM = mesh%CM ! Save real CM if it happens to be not near origin
+      matrices%x_CM = mesh%CM
+      matrices%P = eye(3)
+   end subroutine mie_params
+
+!****************************************************************************80
+! Mass parameters for VIE-mesh
+! output: mesh%V = volume of the mesh
+!         mesh%mass = mass of the mesh
+!         mesh%CM = coordinates of the center of mass
+!         mesh%I = The moment of inertia tensor
+!****************************************************************************80
+   subroutine vie_params(matrices, mesh)
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
+      real(dp) :: rho, V, totV, mass, totMass, detJ, &
+                  a, b, c, ap, bp, cp
+      integer  :: i1
+      real(dp), dimension(3) :: p0, p1, p2, p3, COM, CM
+      real(dp), dimension(4) :: x, y, z
+      real(dp), dimension(3, 3) :: I, E
+
+      rho = mesh%rho ! currently density not in tetrahedral element data
+
+      I = 0.d0
+      totV = 0.d0
+      totMass = 0.d0
+      CM = 0.d0
+
+      do i1 = 1, mesh%N_tet
+         ! Get vertices
+         p0 = mesh%coord(:, mesh%etopol(1, i1))
+         p1 = mesh%coord(:, mesh%etopol(2, i1))
+         p2 = mesh%coord(:, mesh%etopol(3, i1))
+         p3 = mesh%coord(:, mesh%etopol(4, i1))
+         COM = [(p0(1) + p1(1) + p2(1) + p3(1))/4d0, &
+                (p0(2) + p1(2) + p2(2) + p3(2))/4d0, &
+                (p0(3) + p1(3) + p2(3) + p3(3))/4d0]
+
+         V = abs(dot_product((p0 - p3), &
+                             crossRR((p1 - p3), (p2 - p3))))/6d0
+
+         x = [p0(1) - COM(1), p1(1) - COM(1), &
+              p2(1) - COM(1), p3(1) - COM(1)]
+         y = [p0(2) - COM(2), p1(2) - COM(2), &
+              p2(2) - COM(2), p3(2) - COM(2)]
+         z = [p0(3) - COM(3), p1(3) - COM(3), &
+              p2(3) - COM(3), p3(3) - COM(3)]
+
+         detJ = (x(2) - x(1))*((y(3) - y(1))*(z(4) &
+                                              - z(1)) - (y(4) - y(1))*(z(3) - z(1))) - &
+                (x(3) - x(1))*((y(2) - y(1))*(z(4) &
+                                              - z(1)) - (y(4) - y(1))*(z(2) - z(1))) + &
+                (x(4) - x(1))*((y(2) - y(1))*(z(3) &
+                                              - z(1)) - (y(3) - y(1))*(z(2) - z(1)))
+
+         a = rho*detJ*diagterm(y, z)/60d0
+         b = rho*detJ*diagterm(x, z)/60d0
+         c = rho*detJ*diagterm(x, y)/60d0
+
+         ap = rho*detJ*offterm(y, z)/120d0
+         bp = rho*detJ*offterm(x, z)/120d0
+         cp = rho*detJ*offterm(x, y)/120d0
+
+         E = reshape([a, -bp, -cp, -bp, b, -ap, -cp, -ap, c], &
+                     [3, 3])
+         mass = rho*V
+
+         totV = totV + V
+         totMass = totMass + mass
+         CM = CM + mass*COM
+         I = I + E + mass*(dot_product(COM, COM)*eye(3) - &
+                           real_outer_product(COM, COM))
+
+      end do
+
+      mesh%V = totV
+      mesh%mass = totMass
+      mesh%CM = CM/totMass
+      mesh%I = I
+
+      mesh%coord(1, :) = mesh%coord(1, :) - mesh%CM(1)
+      mesh%coord(2, :) = mesh%coord(2, :) - mesh%CM(2)
+      mesh%coord(3, :) = mesh%coord(3, :) - mesh%CM(3)
+      matrices%CM = mesh%CM ! Save real CM if it happens to be not near origin
+      mesh%CM = dble([0d0, 0d0, 0d0])
+      matrices%x_CM = mesh%CM
+
+   end subroutine vie_params
+
+!****************************************************************************80
+
+   function diagterm(y, z) result(a)
+
+      real(dp)                 :: a
+
+      real(dp), dimension(4) :: y, &
+                                z
+
+      a = (y(1)*y(1) &
+           + y(1)*y(2) + y(2)*y(2) &
+           + y(1)*y(3) + y(2)*y(3) + y(3)*y(3) &
+           + y(1)*y(4) + y(2)*y(4) + y(3)*y(4) + y(4)*y(4) &
+           + z(1)*z(1) &
+           + z(1)*z(2) + z(2)*z(2) &
+           + z(1)*z(3) + z(2)*z(3) + z(3)*z(3) &
+           + z(1)*z(4) + z(2)*z(4) + z(3)*z(4) + z(4)*z(4))
+
+   end function diagterm
+
+!****************************************************************************80
+
+   function offterm(y, z) result(ap)
+      real(dp)                 :: ap
+      real(dp), dimension(4) :: y, z
+
+      ap = (2*y(1)*z(1) &
+            + y(2)*z(1) &
+            + y(3)*z(1) &
+            + y(4)*z(1) &
+            + y(1)*z(2) &
+            + 2*y(2)*z(2) &
+            + y(3)*z(2) &
+            + y(4)*z(2) &
+            + y(1)*z(3) &
+            + y(2)*z(3) &
+            + 2*y(3)*z(3) &
+            + y(4)*z(3) &
+            + y(1)*z(4) &
+            + y(2)*z(4) &
+            + y(3)*z(4) &
+            + 2*y(4)*z(4))
+
+   end function offterm
+
 end module setup

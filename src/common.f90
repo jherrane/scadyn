@@ -44,6 +44,7 @@ module common
    integer :: alignment_found = 0
    integer :: T_size = 0
    integer :: relax = 0
+   integer :: shortlog = 0
 
 ! TYPES ***********************************************************************
 !****************************************************************************80
@@ -99,10 +100,11 @@ module common
                                 dw, k_orig, E0_orig, E90_orig, Q_t, Q_f, B
       real(dp) ::  khi_0, rot_max, lambda1, lambda2, temp, dt0, dt, tt, M, &
                   E, refr, refi, tol_m, M1, M3, B_psi, nH, Td, Tgas, &
-                  Kw, wT, Tdrag, TDG, q_param, q_mean, q_var
+                  Kw, wT, Tdrag, TDG, q_param, q_mean, q_var, q_param0, &
+                  w_thermal, tau_rad, tau_int
 ! Run parameters and other auxiliary variables
       integer, dimension(:), allocatable :: Nmaxs
-      integer :: Nmax, polarization, bars, Tmat, which_int, &
+      integer :: Nmax, polarization, bars, Tmat, &
                  is_aggr, whichbar, buffer, N_mean, singleT
 
       character(len=38) :: waves = 'band'
