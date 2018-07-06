@@ -45,8 +45,9 @@ contains
 !****************************************************************************80
 
    subroutine tests(matrices, mesh)
-   type(data) :: matrices
-   type(mesh_struct) :: mesh
+      type(data) :: matrices
+      type(mesh_struct) :: mesh
+      real(dp) :: q
       call polarization(matrices, mesh)
       call allocate_inc_wave(matrices, mesh)
 
@@ -66,8 +67,8 @@ contains
 
       if (run_test == 1) call test_methods(matrices, mesh)
       if (run_test == 2) then
-         call torque_efficiency(matrices, mesh)
-         call RAT_efficiency(matrices, mesh, 60, 20, Npsi_in = 4)
+         call torque_efficiency(matrices, mesh, q)
+         ! call RAT_efficiency(matrices, mesh, 60, 20, Npsi_in = 4)
       end if 
       if (run_test == 3) call write_fields(matrices, mesh)
       if (run_test == 4) call test_mueller(matrices, mesh, 9, 18)

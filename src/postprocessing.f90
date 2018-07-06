@@ -98,9 +98,10 @@ contains
 ! Calculates the torque efficiency of a particle averaged over rotation
 ! about its major axis of inertia (a_3) for angles 0 to pi between
 ! a_3 and incident k0. Results are automatically comparable with DDSCAT.
-   subroutine torque_efficiency(matrices, mesh)
+   subroutine torque_efficiency(matrices, mesh, q_factor)
       type(data) :: matrices
       type(mesh_struct) :: mesh
+      real(dp), intent(out), optional :: q_factor
       integer :: i, Ntheta
       real(dp), dimension(3) :: Q_t
       real(dp), dimension(:), allocatable :: theta
@@ -121,12 +122,16 @@ contains
          Q_coll(:, i) = [Q_t(3),Q_t(1),Q_t(2)]
          call print_bar(i, Ntheta)
       end do
-
+      q_factor = maxval(abs(Q_coll(1,:)))/maxval(abs(Q_coll(2,:)))
       open (unit=1, file="out/Q"//trim(matrices%out), ACTION="write", STATUS="replace")
-      write (1, '(A)') 'cos(theta)  Q_{t,1} Q_{t,2} Q_{t,3}'
-      do i = 1, Ntheta
-         write (1, '(4E12.3)') dcos(theta(i)), Q_coll(:, i)
-      end do
+      if(present(q_factor)) then
+         write (1, '(1E12.3)') q_factor
+      else
+         write (1, '(A)') 'cos(theta)  Q_{t,1} Q_{t,2} Q_{t,3}'
+         do i = 1, Ntheta
+            write (1, '(4E12.3)') dcos(theta(i)), Q_coll(:, i)
+         end do
+      end if 
       close (1)
    end subroutine torque_efficiency
 

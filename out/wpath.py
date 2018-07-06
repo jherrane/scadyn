@@ -37,23 +37,28 @@ def add_arrow(line, position=None, direction='right', size=15, color=None):
  
 if __name__ == "__main__":   
    filename = 'trajectory'
+   fin = 'path'
+   
    argv = sys.argv[1:]
    try:
-      opts, args = getopt.getopt(argv,"hf:",["file="])
+      opts, args = getopt.getopt(argv,"ho:i",["out=", "in="])
    except getopt.GetoptError:
-      print 'wpath.py -f --file <inputfile>'
+      print 'wpath.py -h'
       sys.exit(2)
    for opt, arg in opts:
       if opt == '-h' or opt == '--help':
-         print 'wpath.py -f --file <inputfile>'
+         print 'wpath.py -i --in <inputfile>'
+         print 'wpath.py -o --out <outputfile>'
          sys.exit()
-      elif opt in ("-f", "--file"):
+      elif opt in ("-o", "--out"):
          filename = arg
+      elif opt in ("-i", "--in"):
+         fin = arg
          
    plt.rc('text', usetex=True)
    plt.rc('font', family='serif')
-
-   data = open('path','r')
+   print fin
+   data = open(fin,'r')
 
    s = data.readlines()
    Nxi = int(s[0])
@@ -82,12 +87,12 @@ if __name__ == "__main__":
    currentAxis = plt.gca()
    currentAxis.add_patch(Rectangle((someX - 1, someY - 1.5), 2, 3, edgecolor="grey", facecolor="grey", zorder=4))
 
-   plt.xlabel(r'\cos \xi', fontsize = 24)
-   plt.ylabel(r'\omega', fontsize = 24)
-   plt.yticks(fontsize=16)
-   plt.xticks(fontsize=16)
+   plt.xlabel(r'\cos \xi', fontsize = 40)
+   plt.ylabel(r'\omega/\omega_{T}', fontsize = 40)
+   plt.yticks(fontsize=32)
+   plt.xticks(fontsize=32)
    ax = fig.add_subplot(111)
    ax.set_xlim((-1, 1))
-   plt.savefig(filename)
+   plt.savefig(filename+'.png')
 
 
