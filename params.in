@@ -1,8 +1,8 @@
 #####  Physical setup   #######################################################
 R0 i                    # r = random matrix, i = identity matrix*
-w0 0d0 0d0 1d0          # Initial angular velocity
+w0 0d0 0d0 0d0          # Initial angular velocity
 
-a 5d-8                  # Equivalent radius
+a 2d-7                  # Equivalent radius
 rho 3d3                 # Density
 drag 1                  # Mesh "drag coefficient", for sphere = 1
 
@@ -12,7 +12,7 @@ Tgas 100                # Mean temperature of the gas
 nH 30                   # Number density of hydrogen in cubic cm
 khat 0 0 1              # Wave vector direction (currently disabled)
 B 1d-9                  # External magnetic field (lies in x,z-plane) magnitude
-B_psi 15                 # Angle between B and k (in degrees)
+B_psi 15                # Angle between B and k (in degrees)
 Kw 1d-13                # Imag part of susceptibility over angular velocity
 
 refr 0.0                # Refractive index (set to zero to ignore)
@@ -24,7 +24,7 @@ waves isrf              # Wavelength band options lin, inv, log, bnd*, sil,
                         # isrf
 mueller_mode none       # Mueller matrix type, none*, ave, ori, perf_ori
 
-test_forces 0           # 0 = integrate, 1 = test methods, 2 = calc Qt, 
+test_forces 2           # 0 = integrate, 1 = test methods, 2 = calc Qt, 
                         # 3 = write fields to file
                         # 4 = SOCpol-averaging of Mueller matrices
 
@@ -50,7 +50,7 @@ rot_max 1d-2
 
 is_aggr 0               # 0 = no
 
-shortlog 1              # Use minimal logging (in alignment calculations)
+shortlog 0              # Use minimal logging (in alignment calculations)
 
 #####  T-VIE setup      ##### (Most of the time can be left as is) ############
 tol 1d-5                # GMRES tolerance
