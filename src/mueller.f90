@@ -93,7 +93,7 @@ contains
       real(dp), optional :: xi_in
       complex(dp), dimension(:), allocatable :: p, q, p90, q90
 
-      NB = 72 ! Number of points to calculate the perfect orientations
+      NB = 36 ! Number of points to calculate the perfect orientations
 
       allocate (S(N_theta*N_phi, 18))
       S = 0d0
