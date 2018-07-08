@@ -86,7 +86,7 @@ contains
    subroutine compute_aligned_mueller(matrices, mesh, N_theta, N_phi, ii, E, S, xi_in)
       type(data) :: matrices
       type(mesh_struct) :: mesh
-      integer :: i, j, ii, NB, N_theta, N_phi, Nxi
+      integer :: i, j, ii, NB, N_theta, N_phi, Nxi, ind
       real(dp) :: E, vec(3), phi, R0(3, 3), Qt(3, 3), omega(3), &
       aproj(3), RR(3, 3), theta, xi, B(3), Rxi(3,3), phi_B
       real(dp), dimension(:, :), allocatable :: S
@@ -107,6 +107,7 @@ contains
          xi = xi_in
       end if 
       Rxi = R_aa([0d0,1d0,0d0], xi)
+      ind = 0
       do j = 1,Nxi
          phi_B = dble(j - 1)*2d0*pi/Nxi
          R0 = matmul(Rxi,rotate_a_to_b(matrices%P(:, 3), B))
@@ -128,7 +129,8 @@ contains
             matrices%R = matmul(matrices%R,R_aa(matrices%khat, phi))
 
             S = S + update_mueller(matrices, mesh, N_theta, N_phi, ii, E, p, q, p90, q90)/(NB*Nxi)
-            call print_bar(i, Nxi*NB)
+            ind = ind +1 
+            call print_bar(ind, Nxi*NB)
          end do
       end do
    end subroutine compute_aligned_mueller
