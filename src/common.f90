@@ -113,6 +113,7 @@ module common
       character(LEN=80) :: out = ''
       character(len=8)  :: mueller_mode = 'none'
 
+      real(dp)          :: xi_in = 0d0
       real(dp)          :: B_len = 0d0
       integer :: whichbar = 0
       integer :: is_aggr = 0

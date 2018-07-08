@@ -36,7 +36,11 @@ contains
       case ('ori')
          call compute_log_mueller(matrices, mesh, 180, 90, ii, E, S)
       case ('perf_ori')
-         call compute_aligned_mueller(matrices, mesh, 180, 90, ii, E, S)
+         if(matrices%xi_in>1d-6) then
+            call compute_aligned_mueller(matrices, mesh, 180, 90, ii, E, S, matrices%xi_in)
+         else
+            call compute_aligned_mueller(matrices, mesh, 180, 90, ii, E, S)
+         end if
       end select
 
       call write_mueller(matrices, S)
@@ -77,42 +81,55 @@ contains
 
 !****************************************************************************80
 ! Compute the Mueller matrix of a perfectly aligned particle. The alignment
-! direction is fixed so that the major axis of inertia is always in the
-! +z-direction.
-   subroutine compute_aligned_mueller(matrices, mesh, N_theta, N_phi, ii, E, S, J)
+! direction is such that the major axis is either parallel to external B or
+! precesses about it in angle xi
+   subroutine compute_aligned_mueller(matrices, mesh, N_theta, N_phi, ii, E, S, xi_in)
       type(data) :: matrices
       type(mesh_struct) :: mesh
-      integer :: i, ii, N_points, N_theta, N_phi
-      real(dp) :: E, vec(3), phi, R0(3, 3), Qt(3, 3), omega(3), aproj(3), RR(3, 3), theta
+      integer :: i, j, ii, NB, N_theta, N_phi, Nxi
+      real(dp) :: E, vec(3), phi, R0(3, 3), Qt(3, 3), omega(3), &
+      aproj(3), RR(3, 3), theta, xi, B(3), Rxi(3,3), phi_B
       real(dp), dimension(:, :), allocatable :: S
-      real(dp), dimension(3), optional :: J
+      real(dp), optional :: xi_in
       complex(dp), dimension(:), allocatable :: p, q, p90, q90
 
-      N_points = 500 ! Number of points to calculate the perfect orientations
+      NB = 72 ! Number of points to calculate the perfect orientations
 
       allocate (S(N_theta*N_phi, 18))
       S = 0d0
 
-! Hard coded orientation data
-      omega = [1d0, 0d0, 0d0]
-      R0 = rotate_a_to_b(matrices%P(:, 3), omega)
-      Qt = matmul(R0, matrices%P)
-      aproj = [Qt(1, 3), Qt(2, 3), 0d0]
-      aproj = aproj/vlen(aproj)
-      phi = dacos(aproj(1))
+      B = [sin(matrices%B_psi), 0d0, cos(matrices%B_psi)]
+      Nxi = 20 ! Number of precession averaging directions
+      if(.NOT. present(xi_in)) then
+         xi = 0d0
+         Nxi = 1
+      else
+         xi = xi_in
+      end if 
+      Rxi = R_aa([0d0,1d0,0d0], xi)
+      do j = 1,Nxi
+         phi_B = dble(j - 1)*2d0*pi/Nxi
+         R0 = matmul(Rxi,rotate_a_to_b(matrices%P(:, 3), B))
+         R0 = matmul(R_aa(B,phi_B),R0)
+         omega = matmul(R0, matrices%P(:,3))
+         Qt = matmul(R0, matrices%P)
+         aproj = [Qt(1, 3), Qt(2, 3), 0d0]
+         aproj = aproj/vlen(aproj)
+         phi = dacos(aproj(1))
 
-      do i = 1, N_points
-         theta = dble(i - 1)*2d0*pi/(N_points - 1)
-         RR = matmul(transpose(R_aa(omega, theta)), transpose(R0))
+         do i = 1, NB
+            theta = dble(i - 1)*2d0*pi/NB
+            RR = matmul(transpose(R_aa(omega, theta)), transpose(R0))
 
-         matrices%khat = -matmul(RR, [0d0, 0d0, 1d0])
-         matrices%khat = matrices%khat/vlen(matrices%khat)
+            matrices%khat = -matmul(RR, [0d0, 0d0, 1d0])
+            matrices%khat = matrices%khat/vlen(matrices%khat)
 
-         matrices%R = rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0])
-         matrices%R = matmul(matrices%R,R_aa(matrices%khat, phi))
+            matrices%R = rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0])
+            matrices%R = matmul(matrices%R,R_aa(matrices%khat, phi))
 
-         S = S + update_mueller(matrices, mesh, N_theta, N_phi, ii, E, p, q, p90, q90)/N_points
-         call print_bar(i, N_points)
+            S = S + update_mueller(matrices, mesh, N_theta, N_phi, ii, E, p, q, p90, q90)/(NB*Nxi)
+            call print_bar(i, Nxi*NB)
+         end do
       end do
    end subroutine compute_aligned_mueller
 

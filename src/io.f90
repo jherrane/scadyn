@@ -158,6 +158,9 @@ contains
          case ('-B')
             call get_command_argument(i + 1, arg)
             read (arg, *) calc_extra_torques
+         case ('-x', '--xi')
+            call get_command_argument(i + 1, arg)
+            read (arg, *) matrices%xi_in
          case ('-r', '--relax')
             call get_command_argument(i + 1, arg)
             read (arg, *) relax
@@ -177,6 +180,7 @@ contains
             write (*, '(A)') ' -s --seed       0           RNG seed'
             write (*, '(A)') '    --Mie        1           Use the Mie sphere'
             write (*, '(A)') ' -B              1           Use external magnetic field'
+            write (*, '(A)') ' -x --xi         0.0         Precession angle about B'
             write (*, '(A)') ' -r --relax      1           Use internal relaxation'
 
 
