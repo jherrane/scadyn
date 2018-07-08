@@ -37,9 +37,9 @@ contains
          call compute_log_mueller(matrices, mesh, 180, 90, ii, E, S)
       case ('perf_ori')
          if(matrices%xi_in>1d-6) then
-            call compute_aligned_mueller(matrices, mesh, 180, 90, ii, E, S, matrices%xi_in)
+            call compute_aligned_mueller(matrices, mesh, 180, 1, ii, E, S, matrices%xi_in)
          else
-            call compute_aligned_mueller(matrices, mesh, 180, 90, ii, E, S)
+            call compute_aligned_mueller(matrices, mesh, 180, 1, ii, E, S)
          end if
       end select
 
