@@ -4,7 +4,7 @@ import numpy as np
 plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
 
-data = np.loadtxt('F.out', skiprows=1)
+data = np.loadtxt('F', skiprows=1)
 xi = data[:, 0]
 psi = data[:, 1]
 F = data[:, 2]

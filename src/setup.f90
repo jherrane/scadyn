@@ -706,6 +706,7 @@ contains
                      (mesh%rho*mesh%a**5))**0.5
       matrices%TDG = (2d0*mesh%alpha(3)*mesh%rho*mesh%a**2)/ &
                      (5d0*matrices%Kw*matrices%B_len**2)/(4*pi/(mu))
+
       matrices%Tdrag = (pi*mesh%alpha(3)*mesh%rho*mesh%a)/(3*mesh%drag*matrices%nH* &
                         (2d0*pi*1.67d-27*k_b*matrices%Tgas)**0.5)
       urad = 0d0

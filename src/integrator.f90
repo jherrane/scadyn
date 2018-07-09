@@ -319,7 +319,7 @@ contains
 
                call get_forces(matrices, mesh, 1)
 
-               Q_t = matmul(matrices%R,matrices%Q_t)/Nphi
+               Q_t = matmul(transpose(matrices%R),matrices%Q_t)/Nphi
                F = dot_product(Q_t, xihat(xi(j), phi(k), psi(i)))
                G = dot_product(Q_t, phihat(xi(j), phi(k), psi(i)))
                H = dot_product(Q_t, rhat(xi(j), phi(k), psi(i)))
@@ -530,7 +530,7 @@ contains
       type(mesh_struct) :: mesh
       real(dp) :: dxiw(2), w, xi, dt, coeffs(4), k_w(4), k_xi(4)
 
-      dt = 1d-1
+      dt = 1d-2
 
       dxiw = get_dxiw(matrices, mesh, xi, w)
       k_w(1) = dxiw(2)

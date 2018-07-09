@@ -59,6 +59,7 @@ contains
 
       matrices%x_CM = mesh%CM
       call diagonalize_inertia(matrices, mesh)
+      call interstellar_env(matrices, mesh)
       call init_values(matrices, mesh)
 
       if (beam_shape == 1) call gaussian_beams(matrices, mesh)
@@ -67,8 +68,9 @@ contains
 
       if (run_test == 1) call test_methods(matrices, mesh)
       if (run_test == 2) then
-         call torque_efficiency(matrices, mesh, q)
+         ! call torque_efficiency(matrices, mesh, q)
          ! call RAT_efficiency(matrices, mesh, 60, 20, Npsi_in = 4)
+         call RAT_alignment(matrices, mesh)
       end if 
       if (run_test == 3) call write_fields(matrices, mesh)
       if (run_test == 4) call test_mueller(matrices, mesh, 9, 18)

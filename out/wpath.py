@@ -41,7 +41,7 @@ if __name__ == "__main__":
    
    argv = sys.argv[1:]
    try:
-      opts, args = getopt.getopt(argv,"ho:i",["out=", "in="])
+      opts, args = getopt.getopt(argv,"ho:i:",["out=", "in="])
    except getopt.GetoptError:
       print 'wpath.py -h'
       sys.exit(2)
@@ -57,7 +57,7 @@ if __name__ == "__main__":
          
    plt.rc('text', usetex=True)
    plt.rc('font', family='serif')
-   print fin
+
    data = open(fin,'r')
 
    s = data.readlines()
@@ -66,7 +66,7 @@ if __name__ == "__main__":
    Npoints = int(s[2])
    data.close()
 
-   data = np.loadtxt('path', skiprows=3)
+   data = np.loadtxt(fin, skiprows=3)
 
    path_xi = data[:,0]
    path_w = data[:,1]
