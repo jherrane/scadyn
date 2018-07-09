@@ -115,9 +115,9 @@ module common
 
       real(dp)          :: xi_in = 0d0
       real(dp)          :: B_len = 0d0
-      integer :: whichbar = 0
-      integer :: is_aggr = 0
-      integer :: singleT = 0
+      integer           :: whichbar = 0
+      integer           :: is_aggr = 0
+      integer           :: singleT = 0
    end type data
 
    type data_struct

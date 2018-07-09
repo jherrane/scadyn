@@ -214,7 +214,7 @@ contains
 ! Control file variables
       real(dp) :: khat(3), lambda1, lambda2
       integer :: whichbar
-      character(len=4) :: R0
+      character(len=4) :: R0 = 'i'
       character(len=8) :: mode
 
       open (fh, file=matrices%paramsfile)
@@ -244,13 +244,6 @@ contains
                read (buffer, *, iostat=ios) matrices%w
             case ('R0')
                read (buffer, *, iostat=ios) R0
-               if (R0 == 'r') then
-                  matrices%R = rand_rot()
-               else if (R0 == 't') then
-                  matrices%R = reshape(dble([0, 1, 0, 0, 0, 1, 1, 0, 0]), [3, 3])
-               else
-                  matrices%R = eye(3)
-               end if
             case ('khi_0')
                read (buffer, *, iostat=ios) matrices%khi_0
             case ('dt')
@@ -346,6 +339,14 @@ contains
       end do
 
       close (fh)
+
+      if (R0 == 'r') then
+         matrices%R = rand_rot()
+      else if (R0 == 't') then
+         matrices%R = reshape(dble([0, 1, 0, 0, 0, 1, 1, 0, 0]), [3, 3])
+      else
+         matrices%R = eye(3)
+      end if
 
       if (temp > 1d-7) matrices%refi = tempii
       it_stop = it_max

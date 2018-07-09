@@ -1,0 +1,33 @@
+#####  Physical setup   #######################################################
+# Grain sizes
+# 0.0500 0.0598 0.0715 0.0855 0.1022 0.1223 0.1462 0.17480.2090 0.2500
+# are converted to wavelenghts below.
+
+a 1d-7                  # Equivalent radius
+rho 3d3                 # Density
+E 1d0                   # Amplitude of E at its maximum
+
+#####  Run parameters   #######################################################
+waves log               # Wavelength band options lin, inv, log, bnd*, sil, 
+                        # isrf
+mueller_mode none       # Mueller matrix type, none*, ave, ori, perf_ori
+
+test_forces 1           # 0 = integrate, 1 = test methods, 2 = calc Qt, 
+                        # 3 = write fields to file
+                        # 4 = SOCpol-averaging of Mueller matrices
+
+Tmat 0                  # 1 = file is usable / 0 = force T-matrix calculation
+polarization 2          # 1 = lin / 2 = un*
+bars 10                 # Number of wavelengths in range lmb1-lmb2 nm
+whichbar 0              # 0 = use all*
+lambda1 220
+lambda2 1100
+
+#####  T-VIE setup      ##### (Most of the time can be left as is) ############
+tol 1d-5                # GMRES tolerance
+maxit 50                # Maximum number of GMRES iterations
+restart 4               # GMRES restart
+order 2                 # Order of M_ex
+cell_size 1.8           # Cell size of the auxiliary grid
+near_zone 1             # Near_zone distance (in aux-cells)
+expansion_order 0       # Order of basis and testing functions
