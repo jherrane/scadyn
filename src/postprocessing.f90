@@ -135,28 +135,4 @@ contains
       close (1)
    end subroutine torque_efficiency
 
-!****************************************************************************80
-! Mueller matrices needed in SOCpol.
-   subroutine test_mueller(matrices, mesh, Ntheta, Nphi)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
-      integer :: i, j, ind, halton_init, Nphi, Ntheta
-      real(dp), dimension(:,:), allocatable :: points
-
-      halton_init = 0
-      allocate(points(2,Ntheta*Nphi))
-
-      ind = 1
-      do i = 1, Ntheta
-         do j = 1, Nphi
-            points(1, ind) = pi*(i - 1)/(Ntheta) + pi/Ntheta/2.0
-            points(2, ind) = 2*pi*(j - 1)/Nphi
-            ind = ind + 1
-         end do
-      end do
-
-      call scattering_extinction_matrices(matrices, mesh, points)
-
-   end subroutine test_mueller
-
 end module postprocessing

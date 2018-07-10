@@ -73,7 +73,6 @@ contains
          call RAT_alignment(matrices, mesh)
       end if 
       if (run_test == 3) call write_fields(matrices, mesh)
-      if (run_test == 4) call test_mueller(matrices, mesh, 9, 18)
 
    end subroutine tests
 

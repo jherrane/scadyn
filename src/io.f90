@@ -135,6 +135,7 @@ contains
             call get_command_argument(i + 1, arg)
             matrices%mueller_mode = trim(arg)
             write (*, '(2A)') ' Mueller mode: ', trim(matrices%mueller_mode)
+         case ('-p', '--paramsfile') ! Skip, as already read in check_paramsfile
          case ('--refr')
             call get_command_argument(i + 1, arg)
             read (arg, *) matrices%refr
