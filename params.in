@@ -26,7 +26,6 @@ mueller_mode none       # Mueller matrix type, none*, ave, ori, perf_ori
 
 test_forces 2           # 0 = integrate, 1 = test methods, 2 = calc Qt, 
                         # 3 = write fields to file
-                        # 4 = SOCpol-averaging of Mueller matrices
 
 int_mode 0              # 0 = full scattering dynamics integration,
                         # 1 = alignment integration of stably spinning particle
@@ -60,3 +59,4 @@ order 2                 # Order of M_ex
 cell_size 1.8           # Cell size of the auxiliary grid
 near_zone 1             # Near_zone distance (in aux-cells)
 expansion_order 0       # Order of basis and testing functions
+
