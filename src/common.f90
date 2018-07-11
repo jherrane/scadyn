@@ -56,16 +56,26 @@ module common
       real(dp), dimension(:, :), allocatable  ::  coord, nodes, P
       real(dp), dimension(:), allocatable ::  ki, w, radius
       real(dp), dimension(3)  ::  min_coord, alpha
-      real(dp)  ::  delta, k, box_delta, tol, grid_size, rho, a, V, mass, CM(3), &
-                   I(3, 3), maxrad, drag
+      real(dp)  ::  delta, k, box_delta, V, mass, CM(3), &
+                   I(3, 3), maxrad
 
       integer, dimension(:, :), allocatable :: etopol, etopol_box, tetras, etopol_edges, edges
-      integer :: Nx, Ny, Nz, N_cubes, N_tet, N_tet_cube, M_ex, Nx_cube, Ny_cube, &
-                 Nz_cube, M1_loc, M2_loc, N1_loc, N2_loc, restart, maxit, near_zone, order, &
-                 N_node, is_mesh
+      integer :: Nx, Ny, Nz, N_cubes, N_tet, N_tet_cube, Nx_cube, Ny_cube, &
+                 Nz_cube, M1_loc, M2_loc, N1_loc, N2_loc, N_node
 
+! Initial values set up at the very beginning, changable by input arguments or files
       character(LEN=80) :: meshname = 'shape.h5'
       character(LEN=80) :: projector = 'pfft'
+      integer  :: maxit = 50
+      integer  :: restart = 4
+      integer  :: order = 0
+      integer  :: M_ex = 2
+      integer  :: near_zone = 1
+      real(dp) :: rho = 3d3
+      real(dp) :: a = 1d-7
+      real(dp) :: drag = 1d6
+      real(dp) :: tol = 1d-5
+      real(dp) :: grid_size = 1.8d0
    end type mesh_struct
 
    type data
@@ -98,14 +108,11 @@ module common
       real(dp), dimension(3, 3) :: R, Rn, Rk, P, I, I_inv, R_al, R90_init
       real(dp), dimension(3) :: force, torque, khat, w, x_CM, v_CM, N, wn, xn, vn, J, F, Ip, CM, &
                                 dw, k_orig, E0_orig, E90_orig, Q_t, Q_f, B
-      real(dp) ::  khi_0, rot_max, lambda1, lambda2, temp, dt0, dt, tt, M, &
-                  E, refr, refi, tol_m, M1, M3, B_psi, nH, Td, Tgas, &
-                  Kw, wT, Tdrag, TDG, q_param, q_mean, q_var, q_param0, &
+      real(dp) ::  dt, tt, M, M1, M3, wT, Tdrag, TDG, q_param, q_mean, q_var, q_param0, &
                   w_thermal, tau_rad, tau_int
 ! Run parameters and other auxiliary variables
       integer, dimension(:), allocatable :: Nmaxs
-      integer :: Nmax, polarization, bars, Tmat, &
-                 buffer, N_mean
+      integer :: Nmax, buffer
 
       character(len=38) :: waves = 'band'
       character(len=38) :: paramsfile = 'params.in'
@@ -113,11 +120,29 @@ module common
       character(LEN=80) :: out = ''
       character(len=8)  :: mueller_mode = 'none'
 
+! Initial values set up at the very beginning, changable by input arguments or files
+      real(dp)          :: E = 1d0
+      real(dp)          :: refr = 0d0
+      real(dp)          :: refi = 0d0
+      real(dp)          :: tol_m = 3d-3
+      real(dp)          :: lambda1 = 2d-7
+      real(dp)          :: lambda2 = 2d-6
+      real(dp)          :: temp = 5800d0
+      real(dp)          :: dt0 = 1d0
+      real(dp)          :: Td = 20d0
+      real(dp)          :: Tgas = 100d0
+      real(dp)          :: nH = 30d0
+      real(dp)          :: B_psi = 0d0
+      real(dp)          :: rot_max = 1d-2
+      real(dp)          :: Kw = 1d-13
       real(dp)          :: xi_in = 0d0
       real(dp)          :: B_len = 0d0
+      integer           :: Tmat = 0
       integer           :: whichbar = 0
       integer           :: is_aggr = 0
       integer           :: singleT = 0
+      integer           :: bars = 10
+      integer           :: polarization = 2
    end type data
 
    type data_struct
@@ -128,6 +153,9 @@ module common
       complex(dp) :: eps_r
       complex(dp), dimension(:, :), allocatable :: A, B
    end type data_struct
+
+type(data) :: matrices
+type(mesh_struct) :: mesh
 
 contains
 
@@ -315,8 +343,7 @@ contains
 
 !****************************************************************************80
 
-   function get_tetra_vol(mesh) result(volume)
-      type(mesh_struct) :: mesh
+   function get_tetra_vol() result(volume)
       real(dp)                      ::  volume, V, totV
       integer                       ::  i1
       real(dp), dimension(3)    ::  p0, p1, p2, p3
@@ -1169,8 +1196,7 @@ contains
 !****************************************************************************80
 ! Tests whether a particle is aligned internally, i.e. the q-parameter is 
 ! approximately constant
-   function alignment_state(matrices) result(ans)
-      type(data) :: matrices
+   function alignment_state() result(ans)
       integer :: ans
       real(dp) :: q_oldmean, q_mean
       ans = 0
@@ -1545,31 +1571,6 @@ contains
 
 !****************************************************************************80
 
-subroutine remove_duplicates(arr,k)
-   integer :: i,j,k
-   real(dp), dimension(:), allocatable :: arr, out
-   allocate(out(size(arr)))
-
-   out = -1d0
-   out(1) = arr(1)
-   k = 1
-
-   outer: do i = 2,size(arr,1)
-      do j = 1, k
-         if(out(j)==arr(i)) then
-            cycle outer
-         end if
-      end do 
-      k = k + 1
-      out(k) = arr(i)
-   end do outer
-
-   arr = out
-
-end subroutine remove_duplicates
-
-!****************************************************************************80
-
    function choose(n, k) result(res)
       implicit none
       integer, intent(in) :: n
@@ -1582,8 +1583,7 @@ end subroutine remove_duplicates
 
 !****************************************************************************80
 
-   function R_theta(matrices, theta) result(R)
-      type(data) :: matrices
+   function R_theta(theta) result(R)
       real(dp), dimension(3, 3) ::  R_init, R_thta, R, R_pol
       real(dp), dimension(3) :: a_3, e_3, e_2, k, ninit, a_2, a_1
       real(dp) :: theta, theta0

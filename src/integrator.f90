@@ -9,88 +9,82 @@ contains
 
 !****************************************************************************80
 ! Main routine
-   subroutine integrate(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine integrate()
       integer :: t1, t2, rate
       real(dp) :: stable_direction(3)
 
       write(*,'(A)') ' Integration in progress...'
       call system_clock(t1, rate)
-      call initialize(matrices, mesh)
-      if(int_mode < 2) call solve_eoms(matrices, mesh)
+      call initialize()
+      if(int_mode < 2) call solve_eoms()
       call system_clock(t2, rate)
       write(*,'(2(A,g0))') '  Done in ', real(T2 - T1)/real(rate), ' seconds'
 
       write(*,'(A)') ' Spin-up and dissipation calculations in progress...'
       call system_clock(t1, rate)
-      call solve_dissipation(matrices, mesh)
+      call solve_dissipation()
       call system_clock(t2, rate)
       write(*,'(2(A,g0))') '  Done in ', real(T2 - T1)/real(rate), ' seconds'
 
       write(*,'(A)') ' Alignment calculation in progress...'
       call system_clock(t1, rate)
-      call RAT_alignment(matrices, mesh)
+      call RAT_alignment()
       call system_clock(t2, rate)
       write(*,'(2(A,g0))') '  Done in ', real(T2 - T1)/real(rate), ' seconds'
 
-      if(shortlog == 1) call alignment_log(matrices, mesh)
+      if(shortlog == 1) call alignment_log()
 
    end subroutine integrate
 
 !****************************************************************************
 ! Do the mandatory setup
-   subroutine initialize(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine initialize()
 
 ! Calculates the mass parameters for the mesh
       if (use_mie == 1) then
-         call mie_params(matrices, mesh)
+         call mie_params()
       else
-         call vie_params(matrices, mesh)
+         call vie_params()
       end if
 
-      call diagonalize_inertia(matrices, mesh)
-      call interstellar_env(matrices, mesh)
+      call diagonalize_inertia()
+      call interstellar_env()
 
-      call polarization(matrices, mesh)
-      call init_values(matrices, mesh)
+      call polarization()
+      call init_values()
 
-      call allocate_inc_wave(matrices, mesh)
+      call allocate_inc_wave()
 
-      if (beam_shape == 1) call gaussian_beams(matrices, mesh)
-      if (beam_shape == 2) call laguerre_gaussian_beams(matrices, mesh, p, l)
-      if (beam_shape == 3) call bessel_beams(matrices, mesh)
+      if (beam_shape == 1) call gaussian_beams()
+      if (beam_shape == 2) call laguerre_gaussian_beams(p, l)
+      if (beam_shape == 3) call bessel_beams()
    end subroutine initialize
 
 !****************************************************************************80
 ! Calculates grain dynamics. All radiative torques are calculated in so
 ! called scattering frame, and all ! dynamics are integrated in principal frame.
-   subroutine solve_eoms(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine solve_eoms()
       integer :: i
       real(dp) :: J(3), E, F(3), N(3)
 
-      call start_log(matrices, mesh)
+      call start_log()
 
 ! Iteration of optical force calculation
       do i = 1, it_max
          if (i > it_stop) exit
 
-         call vlv_update(matrices, mesh, F, N)
+         call vlv_update( F, N)
 
          matrices%N = N
          matrices%F = F
 
-         call update_values(matrices, mesh)
+         call update_values()
          J = matmul(matrices%I,matrices%w)
          E = 0.5d0*dot_product(J,matrices%w)
          matrices%q_param = 2d0*matrices%Ip(3)*E/dot_product(J,J)
          
-         call check_stability(matrices, mesh, i)
-         if(shortlog == 0) call append_log(matrices, mesh, i)
+         call check_stability(i)
+         if(shortlog == 0) call append_log(i)
          call print_bar(i+1, it_max)
          
       end do
@@ -99,9 +93,7 @@ contains
 
 !****************************************************************************80
 
-   subroutine check_stability(matrices, mesh, n)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine check_stability(n)
       integer :: n,i
       ! Calculate mean q-parameters for the variance calculation
       if(n<=window) then
@@ -119,7 +111,7 @@ contains
             end do
          end if
          if (is_aligned == 0) then
-            is_aligned = alignment_state(matrices)
+            is_aligned = alignment_state()
             if(n==it_stop)then
                write(*,'(A)') "  Finished integration, using average q-parameter..."
                write(*,'(A,F11.5)') "   q = ", matrices%q_mean
@@ -137,9 +129,7 @@ contains
 
 !****************************************************************************80
 
-   subroutine solve_dissipation(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine solve_dissipation()
       integer :: i, i_h
       real(dp) :: q, E, J(3), I3, t, h, Jlab(3), JJ, dq_max, Jold, HH
 
@@ -152,7 +142,7 @@ contains
       JJ = vlen(J)
 
       write(*,'(A)') '  Calculating spin-up...'
-      call spin_up(matrices, mesh, t, HH, JJ)
+      call spin_up(t, HH, JJ)
       write(*,'(A,F11.3,A)') '  Total spin-up time: ', t/365/24/3600, ' y'
       matrices%tau_rad = t/365/24/3600
       write(*,'(A,ES11.3)') '  Average spin-up torque: ', HH
@@ -162,7 +152,7 @@ contains
       write(1,'(A)') 'q, J, t'
       write(1,'(3(ES11.3))') q, JJ, t
       do i = 0, i_h
-         call relax_step(matrices, mesh, q, t, dq_max, JJ)
+         call relax_step(q, t, dq_max, JJ)
          if(q-1d0<1d-3) exit
          write(1,'(3(ES11.3))') q, JJ, t
       end do
@@ -177,9 +167,7 @@ contains
 
 !****************************************************************************80
 
-   subroutine spin_up(matrices, mesh, t, H, Jout)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine spin_up(t, H, Jout)
       real(dp), intent(out) :: t, H
       real(dp), intent(inout) :: Jout
       integer :: N_i, i
@@ -196,18 +184,18 @@ contains
       do i = 0, window-1
          if (i>20 .AND. near_identity(matmul(transpose(R0),matrices%R),6d-2)) exit
 
-         call vlv_update(matrices, mesh, F, N, 0)
+         call vlv_update(F, N, 0)
 
          matrices%N = N
          matrices%F = F
 
-         call update_values(matrices, mesh)
-         xp = get_xiphi(matrices, mesh)
+         call update_values()
+         xp = get_xiphi()
          xi = xp(1)
          phi = xp(2)
          psi = matrices%B_psi
 
-         call get_forces(matrices, mesh, 1)
+         call get_forces(1)
          Q_t = matmul(matrices%R,matmul(matrices%P,(matrices%N)))
          H = H + dot_product(Q_t, rhat(xi, phi, psi))
          N_i = i
@@ -224,15 +212,13 @@ contains
 
 !****************************************************************************80
 ! Calculate alignment of stably spinning particle. 
-   subroutine RAT_alignment(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine RAT_alignment()
       integer :: i, j, k, ind, Npoints, Nw, Nxi
       real(dp) :: w1, xi1
       real(dp), dimension(:, :, :), allocatable :: path_w, path_xi
       real(dp), dimension(:, :), allocatable :: FGH, xi, w
 
-      call RAT_efficiency(matrices, mesh, 60,20,FGH=FGH)
+      call RAT_efficiency(60,20,FGH=FGH)
       allocate(matrices%FGH(size(FGH, 1), size(FGH,2)))
       matrices%FGH = FGH
 
@@ -257,7 +243,7 @@ contains
             path_xi(i,j,1) = xi1
             write(1,'(2ES12.3)') xi1, w1
             do k = 2, Npoints
-               call ADE_update(matrices, mesh, w1,xi1)
+               call ADE_update(w1,xi1)
                path_w(i,j,k) = w1
                path_xi(i,j,k) = xi1
                write(1,'(2ES12.3)') xi1, w1
@@ -275,9 +261,7 @@ contains
 ! Calculates the torque efficiency of a particle averaged over rotation
 ! about its major axis of inertia (a_3) for angles 0 to pi between
 ! a_3 and incident k0. Results are automatically comparable with DDSCAT.
-   subroutine RAT_efficiency(matrices, mesh, Nxi, Nphi, Npsi_in, FGH)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine RAT_efficiency(Nxi, Nphi, Npsi_in, FGH)
       integer :: i, j, k, l, Nxi, Nphi, Npsi, ind
       integer, optional :: Npsi_in
       real(dp) :: F, G, H
@@ -317,7 +301,7 @@ contains
                R_phi = R_aa(n_phi, phi(k))
                matrices%R = matmul(R_phi, R_xi) ! First a_3 to xi, then beta about a_3
 
-               call get_forces(matrices, mesh, 1)
+               call get_forces(1)
 
                Q_t = matmul(transpose(matrices%R),matrices%Q_t)/Nphi
                F = dot_product(Q_t, xihat(xi(j), phi(k), psi(i)))
@@ -353,9 +337,7 @@ contains
 !****************************************************************************80
 ! Calculates adaptive time step over a maximum angle the particle
 ! can rotate during a step
-   subroutine adaptive_step(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine adaptive_step()
       real(dp) :: max_w, test_dt
 
 ! Use an adaptive time step, integrate over rotation <= rot_max
@@ -415,9 +397,7 @@ contains
 
 !****************************************************************************80
 
-   function get_dxiw(matrices, mesh, xi, w) result(dxiw)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   function get_dxiw(xi, w) result(dxiw)
       real(dp) :: dxiw(2), xi, w, beta
       real(dp), dimension(:), allocatable :: xis, F, H
 
@@ -438,9 +418,7 @@ contains
 
 !****************************************************************************80
 ! Variational Lie-Verlet method for rotational integration
-   subroutine vlv_update(matrices, mesh, F, N, mode)
-      type(data), intent(inout) :: matrices
-      type(mesh_struct), intent(in) :: mesh
+   subroutine vlv_update(F, N, mode)
       real(dp), dimension(3), intent(out) :: F, N
       integer, optional :: mode
       integer :: maxiter, i1
@@ -456,10 +434,10 @@ contains
 
 ! First force calculation for getting a reasonable value for dt
       if (matrices%tt == 0d0 .AND. .NOT. matrices%E < 1d-7) then
-         call get_forces(matrices, mesh)
+         call get_forces()
          N = matrices%N
       end if
-      call adaptive_step(matrices, mesh)
+      call adaptive_step()
       dt = matrices%dt
       if (matrices%E < 1d-7) then 
          N = 0d0
@@ -503,7 +481,7 @@ contains
       matrices%R = matrices%Rn
 
       if (matrices%E > 1d-7) then 
-         call get_forces(matrices, mesh)
+         call get_forces()
       else
          matrices%F = 0d0
          matrices%N = 0d0
@@ -525,26 +503,24 @@ contains
 
 !****************************************************************************80
 ! Runge-Kutta 4 update for the alignment differential equation (ADE) pair
-   subroutine ADE_update(matrices, mesh, w, xi)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine ADE_update(w, xi)
       real(dp) :: dxiw(2), w, xi, dt, coeffs(4), k_w(4), k_xi(4)
 
       dt = 1d-2
 
-      dxiw = get_dxiw(matrices, mesh, xi, w)
+      dxiw = get_dxiw(xi, w)
       k_w(1) = dxiw(2)
       k_xi(1) = dxiw(1)
 
-      dxiw = get_dxiw(matrices, mesh, xi + k_xi(1)*dt/2, w + k_w(1)*dt/2)
+      dxiw = get_dxiw(xi + k_xi(1)*dt/2, w + k_w(1)*dt/2)
       k_w(2) = dxiw(2)
       k_xi(2) = dxiw(1)
 
-      dxiw = get_dxiw(matrices, mesh, xi + k_xi(2)*dt/2, w + k_w(2)*dt/2)
+      dxiw = get_dxiw(xi + k_xi(2)*dt/2, w + k_w(2)*dt/2)
       k_w(3) = dxiw(2)
       k_xi(3) = dxiw(1)
 
-      dxiw = get_dxiw(matrices, mesh, xi + k_xi(3)*dt/2, w + k_w(3)*dt/2)
+      dxiw = get_dxiw(xi + k_xi(3)*dt/2, w + k_w(3)*dt/2)
       k_w(4) = dxiw(2)
       k_xi(4) = dxiw(1)
 

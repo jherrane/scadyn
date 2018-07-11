@@ -84,8 +84,7 @@ contains
 
 ! CLEARTEXT READ **************************************************************
 !****************************************************************************80
-   subroutine check_paramsfile(matrices)
-      type(data) :: matrices
+   subroutine check_paramsfile()
 ! Subroutine to read input parameters
       integer ::  i
       character(len=80) :: arg
@@ -103,9 +102,7 @@ contains
 
 !****************************************************************************80
 ! Subroutine to read input parameters
-   subroutine read_arguments(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine read_arguments()
       integer :: i
       character(len=80) :: arg_name, arg
 
@@ -148,6 +145,7 @@ contains
          case ('-S', '--singleT')
             call get_command_argument(i + 1, arg)
             read (arg, *) matrices%singleT
+            matrices%Tmat = 0
          case ('-s', '--seed')
             call get_command_argument(i + 1, arg)
             read (arg, *) seedling
@@ -200,9 +198,7 @@ contains
 
 !****************************************************************************80
 ! Subroutine to read a input file for nifty usage
-   subroutine read_params(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine read_params()
 ! Input related variables
       character(len=150) :: buffer, label
       real(dp) :: temp, tempii
@@ -234,26 +230,39 @@ contains
             buffer = buffer(pos + 1:)
 
             select case (label)
-            case ('rho')
-               read (buffer, *, iostat=ios) mesh%rho
-            case ('a')
-               read (buffer, *, iostat=ios) mesh%a
-            case ('E')
-               read (buffer, *, iostat=ios) matrices%E
-            case ('w0')
-               read (buffer, *, iostat=ios) matrices%w
-            case ('R0')
-               read (buffer, *, iostat=ios) R0
-            case ('khi_0')
-               read (buffer, *, iostat=ios) matrices%khi_0
-            case ('dt')
-               read (buffer, *, iostat=ios) matrices%dt0
+! Parameters
+            case ('beam_shape')
+               read (buffer, *, iostat=ios) beam_shape
+            case ('pl')
+               read (buffer, *, iostat=ios) p, l
+            case ('int_mode')
+               read (buffer, *, iostat=ios) int_mode
+            case ('shortlog')
+               read (buffer, *, iostat=ios) shortlog
+            case ('test_forces')
+               read (buffer, *, iostat=ios) run_test
             case ('it_max')
                read (buffer, *, iostat=ios) it_max
             case ('window')
                read (buffer, *, iostat=ios) window
             case ('it_log')
                read (buffer, *, iostat=ios) it_log
+! Matrices
+            case ('E')
+               read (buffer, *, iostat=ios) matrices%E
+            case ('w0')
+               read (buffer, *, iostat=ios) matrices%w
+            case ('R0')
+               read (buffer, *, iostat=ios) R0
+            case ('dt')
+               read (buffer, *, iostat=ios) matrices%dt0
+            case ('refr')
+               read (buffer, *, iostat=ios) temp
+               if (temp > 1d-7) matrices%refr = temp
+            case ('refi')
+               read (buffer, *, iostat=ios) tempii
+            case ('tol_m')
+               read (buffer, *, iostat=ios) matrices%tol_m
             case ('rot_max')
                read (buffer, *, iostat=ios) matrices%rot_max
             case ('khat')
@@ -271,6 +280,35 @@ contains
                matrices%lambda2 = lambda2*1.d-9
             case ('T')
                read (buffer, *, iostat=ios) matrices%temp
+            case ('Tmat')
+               read (buffer, *, iostat=ios) matrices%Tmat
+            case ('whichbar')
+               read (buffer, *, iostat=ios) whichbar
+               if (matrices%whichbar == 0) matrices%whichbar = whichbar
+            case ('mueller_mode')
+               read (buffer, *, iostat=ios) mode
+               if (trim(mode) /= 'none') matrices%mueller_mode = mode
+            case ('waves')
+               read (buffer, *, iostat=ios) matrices%waves
+            case ('B')
+               read (buffer, *, iostat=ios) matrices%B_len
+               if (matrices%B_len > 1d-14) calc_extra_torques = 1
+            case ('B_psi')
+               read (buffer, *, iostat=ios) matrices%B_psi
+               matrices%B_psi = matrices%B_psi*pi/180
+            case ('Td')
+               read (buffer, *, iostat=ios) matrices%Td
+            case ('Tgas')
+               read (buffer, *, iostat=ios) matrices%Tgas
+            case ('nH')
+               read (buffer, *, iostat=ios) matrices%nH
+            case ('Kw')
+               read (buffer, *, iostat=ios) matrices%Kw
+! Mesh
+            case ('rho')
+               read (buffer, *, iostat=ios) mesh%rho
+            case ('a')
+               read (buffer, *, iostat=ios) mesh%a
             case ('tol')
                read (buffer, *, iostat=ios) mesh%tol
             case ('maxit')
@@ -285,49 +323,6 @@ contains
                read (buffer, *, iostat=ios) mesh%near_zone
             case ('expansion_order')
                read (buffer, *, iostat=ios) mesh%order
-            case ('Tmat')
-               read (buffer, *, iostat=ios) matrices%Tmat
-            case ('whichbar')
-               read (buffer, *, iostat=ios) whichbar
-               if (matrices%whichbar == 0) matrices%whichbar = whichbar
-            case ('shortlog')
-               read (buffer, *, iostat=ios) shortlog
-            case ('test_forces')
-               read (buffer, *, iostat=ios) run_test
-            case ('is_aggr')
-               read (buffer, *, iostat=ios) matrices%is_aggr
-            case ('mueller_mode')
-               read (buffer, *, iostat=ios) mode
-               if (trim(mode) /= 'none') matrices%mueller_mode = mode
-            case ('waves')
-               read (buffer, *, iostat=ios) matrices%waves
-            case ('refr')
-               read (buffer, *, iostat=ios) temp
-               if (temp > 1d-7) matrices%refr = temp
-            case ('refi')
-               read (buffer, *, iostat=ios) tempii
-            case ('tol_m')
-               read (buffer, *, iostat=ios) matrices%tol_m
-            case ('B')
-               read (buffer, *, iostat=ios) matrices%B_len
-               if (matrices%B_len > 1d-14) calc_extra_torques = 1
-            case ('B_psi')
-               read (buffer, *, iostat=ios) matrices%B_psi
-               matrices%B_psi = matrices%B_psi*pi/180
-            case ('beam_shape')
-               read (buffer, *, iostat=ios) beam_shape
-            case ('pl')
-               read (buffer, *, iostat=ios) p, l
-            case ('int_mode')
-               read (buffer, *, iostat=ios) int_mode
-            case ('Td')
-               read (buffer, *, iostat=ios) matrices%Td
-            case ('Tgas')
-               read (buffer, *, iostat=ios) matrices%Tgas
-            case ('nH')
-               read (buffer, *, iostat=ios) matrices%nH
-            case ('Kw')
-               read (buffer, *, iostat=ios) matrices%Kw
             case ('drag')
                read (buffer, *, iostat=ios) mesh%drag
                mesh%drag = mesh%drag*1d6
@@ -351,7 +346,6 @@ contains
       if (temp > 1d-7) matrices%refi = tempii
       it_stop = it_max
       if(it_log > it_max) it_log = 0
-      mesh%is_mesh = 1 - matrices%is_aggr
       matrices%B = matrices%B_len*(matmul(R_aa([0d0, 1d0, 0d0], matrices%B_psi), [0d0, 0d0, 1d0]))
 
       allocate (mesh%ki(matrices%bars))
@@ -386,9 +380,7 @@ contains
 
 !****************************************************************************80
 
-   subroutine read_log(matrices, mesh, no)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine read_log(no)
       integer, parameter :: fh = 15
       integer :: line
 
@@ -508,8 +500,7 @@ contains
 
 !****************************************************************************80
 
-   subroutine write_mueller(matrices, A)
-      type(data) :: matrices
+   subroutine write_mueller(A)
       real(dp), intent(in) :: A(:, :)
       character(len=120) :: fname
       integer(HSIZE_T), dimension(2) :: dims ! Dataset dimensions
@@ -534,41 +525,7 @@ contains
 
 !****************************************************************************80
 
-   subroutine write_RT_matrix(A, fname, type)
-      real(dp), intent(in) :: A(:, :)
-      character(len=80), intent(in) :: fname
-      integer(HSIZE_T), dimension(2) :: dims ! Dataset dimensions
-
-      integer     :: i, type
-
-      dims = [int(size(A, 1), 8), int(size(A, 2), 8)]
-      open (unit=1, file=trim(fname), ACTION="write", STATUS="replace")
-
-      if (type == 1) then
-         write (1, '(20A)') ' N_size ', '     N_ia ', '    N_pts ', '      S11  ', '         S12  ', &
-            '         S13  ', '         S14  ', '         S21  ', '         S22  ', '         S23  ', &
-            '         S24  ', '         S31  ', '         S32  ', '         S33  ', '         S34  ', &
-            '         S41  ', '         S42  ', '         S43  ', '         S44  ', '        Csca  '
-      else if (type == 2) then
-         write (1, '(20A)') ' N_size ', '     N_ia ', '    N_pts ', '      K11  ', '         K12  ', &
-            '         K13  ', '         K14  ', '         K21  ', '         K22  ', '         K23  ', &
-            '         K24  ', '         K31  ', '         K32  ', '         K33  ', '         K34  ', &
-            '         K41  ', '         K42  ', '         K43  ', '         K44  ', '        Cext  '
-      end if
-
-      do i = 1, int(dims(1))
-         write (1, '(3I8,19ES14.6)') int(A(i, 1:3)), A(i, 4:20)
-      end do
-
-      close (1)
-
-   end subroutine write_RT_matrix
-
-!****************************************************************************80
-
-   subroutine init_values(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine init_values()
       matrices%k_orig = matrices%khat
       matrices%E0_orig = real(matrices%E0hat)
       matrices%E90_orig = real(matrices%E90hat)
@@ -589,9 +546,7 @@ contains
 
 !****************************************************************************80
 
-   subroutine update_values(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine update_values()
 
       matrices%x_CM = matrices%xn ! In lab frame!
       matrices%v_CM = matrices%vn ! In lab frame!
@@ -605,9 +560,7 @@ contains
 
 !****************************************************************************80
 
-   subroutine start_log(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine start_log()
       integer :: i
       character(len=120) :: fname
       fname = 'out/log' // trim(matrices%out)
@@ -649,9 +602,7 @@ contains
 
 !****************************************************************************80
 
-   subroutine append_log(matrices, mesh, n)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine append_log(n)
       integer :: n, i, md, ind
       character(len=120) :: fname, fmt
 
@@ -689,9 +640,7 @@ contains
 
 !****************************************************************************80
 
-   subroutine alignment_log(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine alignment_log()
       integer :: n, i, md, ind
       character(len=120) :: fname, fmt
 

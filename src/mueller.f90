@@ -7,9 +7,7 @@ contains
 
 !****************************************************************************80
 ! Compute the mueller matrix according to the mode chosen.
-   subroutine compute_mueller(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine compute_mueller()
       integer :: ii
       real(dp) :: E
       CHARACTER(LEN=120) :: mueller_out
@@ -32,26 +30,24 @@ contains
 
       select case (trim (matrices%mueller_mode))
       case ('ave')
-         call compute_ave_mueller(matrices, mesh, 180, 1, ii, E, S)
+         call compute_ave_mueller(180, 1, ii, E, S)
       case ('ori')
-         call compute_log_mueller(matrices, mesh, 180, 90, ii, E, S)
+         call compute_log_mueller(180, 90, ii, E, S)
       case ('perf_ori')
          if(matrices%xi_in>1d-6) then
-            call compute_aligned_mueller(matrices, mesh, 180, 1, ii, E, S, matrices%xi_in)
+            call compute_aligned_mueller(180, 1, ii, E, S, matrices%xi_in)
          else
-            call compute_aligned_mueller(matrices, mesh, 180, 1, ii, E, S)
+            call compute_aligned_mueller(180, 1, ii, E, S)
          end if
       end select
 
-      call write_mueller(matrices, S)
+      call write_mueller( S)
    end subroutine compute_mueller
 
 !****************************************************************************80
 ! Compute orientation averaged Mueller matrices for given number of theta, phi.
 ! The phi-dependency is lost due to averaging, so no need to give N_phi /= 1.
-   subroutine compute_ave_mueller(matrices, mesh, N_theta, N_phi, ii, E, S)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine compute_ave_mueller(N_theta, N_phi, ii, E, S)
       integer :: i, ii, halton_init, N_points, N_theta, N_phi
       real(dp) :: E, vec(3)
       real(dp), dimension(:, :), allocatable :: S
@@ -74,7 +70,7 @@ contains
          matrices%khat = -matrices%khat/vlen(matrices%khat)
          matrices%R = rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0])
 
-         S = S + update_mueller(matrices, mesh, N_theta, N_phi, ii, E, p, q, p90, q90)/N_points
+         S = S + update_mueller(N_theta, N_phi, ii, E, p, q, p90, q90)/N_points
          call print_bar(i, N_points)
       end do
    end subroutine compute_ave_mueller
@@ -83,9 +79,7 @@ contains
 ! Compute the Mueller matrix of a perfectly aligned particle. The alignment
 ! direction is such that the major axis is either parallel to external B or
 ! precesses about it in angle xi
-   subroutine compute_aligned_mueller(matrices, mesh, N_theta, N_phi, ii, E, S, xi_in)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine compute_aligned_mueller(N_theta, N_phi, ii, E, S, xi_in)
       integer :: i, j, ii, NB, N_theta, N_phi, Nxi, ind
       real(dp) :: E, vec(3), phi, R0(3, 3), Qt(3, 3), omega(3), &
       aproj(3), RR(3, 3), theta, xi, B(3), Rxi(3,3), phi_B
@@ -128,7 +122,7 @@ contains
             matrices%R = rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0])
             matrices%R = matmul(matrices%R,R_aa(matrices%khat, phi))
 
-            S = S + update_mueller(matrices, mesh, N_theta, N_phi, ii, E, p, q, p90, q90)/(NB*Nxi)
+            S = S + update_mueller(N_theta, N_phi, ii, E, p, q, p90, q90)/(NB*Nxi)
             ind = ind +1 
             call print_bar(ind, Nxi*NB)
          end do
@@ -139,15 +133,13 @@ contains
 ! Compute the Mueller matrix from the data from the dynamical simulation. The
 ! particle alignment state is taken from the logged orientations. Thus, the
 ! situation may be aligned or not.
-   subroutine compute_log_mueller(matrices, mesh, N_theta, N_phi, ii, E, S)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine compute_log_mueller(N_theta, N_phi, ii, E, S)
       integer :: i, ii, N_points, N_theta, N_phi
       real(dp) :: E, RR(3, 3)
       real(dp), dimension(:, :), allocatable :: S
       complex(dp), dimension(:), allocatable :: p, q, p90, q90
 
-      call read_log(matrices, mesh, 5000)
+      call read_log(5000)
       N_points = size(matrices%RRR, 3)
 
       allocate (S(N_theta*N_phi, 18))
@@ -159,23 +151,21 @@ contains
          matrices%khat = -matrices%khat/vlen(matrices%khat)
          matrices%R = transpose(rotate_a_to_b(matrices%khat, [0.d0, 0.d0, 1.d0]))
 
-         S = S + update_mueller(matrices, mesh, N_theta, N_phi, ii, E, p, q, p90, q90)/N_points
+         S = S + update_mueller(N_theta, N_phi, ii, E, p, q, p90, q90)/N_points
          call print_bar(i, N_points)
       end do
    end subroutine compute_log_mueller
 
 !****************************************************************************80
 ! Updates the Mueller matrix average.
-   function update_mueller(matrices, mesh, N_theta, N_phi, ii, E, p, q, p90, q90) result(S)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   function update_mueller(N_theta, N_phi, ii, E, p, q, p90, q90) result(S)
       integer :: N_theta, N_phi, ii
       real(dp) :: E
       real(dp), dimension(:, :), allocatable :: S
       complex(dp), dimension(:), allocatable :: p, q, p90, q90
 
-      call rot_setup(matrices, mesh)
-      call scattered_fields(matrices, mesh, E, p, q, p90, q90, ii)
+      call rot_setup()
+      call scattered_fields(E, p, q, p90, q90, ii)
       call mueller_matrix_coeff(p, q, p90, q90, dcmplx(mesh%k), N_theta, N_phi, S)
    end function update_mueller
 

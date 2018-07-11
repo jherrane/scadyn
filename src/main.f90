@@ -5,74 +5,70 @@ program main
    use postprocessing
 
    implicit none
-   type(data) :: matrices
-   type(mesh_struct) :: mesh
 
    call splash('v0.5')
 
-   call check_paramsfile(matrices)
-   call read_params(matrices, mesh)
-   call read_arguments(matrices, mesh)
-   call setup_band(matrices, mesh)
+   call check_paramsfile()
+   call read_params()
+   call read_arguments()
+   call setup_band()
 
-   call init_geometry(matrices, mesh)
+   call init_geometry()
 
-   call allocate_Ti(matrices, mesh)
+   call allocate_Ti()
 
-   if (matrices%Tmat == 1 .AND. file_exists(matrices%tname)) then
-      call read_T(matrices, mesh)
-      call fix_band(matrices, mesh)
+   if (matrices%Tmat == 1) then
+      call read_T()
+      call fix_band()
       write (*, '(A, 20F6.3)') ' Wavelengths in um: ', 2d6*pi/mesh%ki
    else
       if (matrices%singleT == 1) then
-         call T_empty(matrices, mesh)
+         call T_empty()
       end if
       write (*, '(A, 20F6.3)') ' Wavelengths in um: ', 2d6*pi/mesh%ki
-      call calc_T(matrices, mesh)
-      call write_T(matrices, mesh)
+      call calc_T()
+      call write_T()
    end if
 
    if (run_test == 0) then
-      call integrate(matrices, mesh)
+      call integrate()
    else
-      call tests(matrices, mesh)
+      call tests()
    end if
 
-   call compute_mueller(matrices, mesh)
+   call compute_mueller()
 
 contains
 
 !****************************************************************************80
 
-   subroutine tests(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine tests()
       real(dp) :: q
-      call polarization(matrices, mesh)
-      call allocate_inc_wave(matrices, mesh)
+      call polarization()
+      call allocate_inc_wave()
 
       if (use_mie == 1) then
-         call mie_params(matrices, mesh)
-      else if (mesh%is_mesh == 1) then
-         call vie_params(matrices, mesh)
+         call mie_params()
+      else 
+         call vie_params()
       end if
 
       matrices%x_CM = mesh%CM
-      call diagonalize_inertia(matrices, mesh)
-      call interstellar_env(matrices, mesh)
-      call init_values(matrices, mesh)
+      call diagonalize_inertia()
+      call interstellar_env()
+      call init_values()
 
-      if (beam_shape == 1) call gaussian_beams(matrices, mesh)
-      if (beam_shape == 2) call laguerre_gaussian_beams(matrices, mesh, p, l)
-      if (beam_shape == 3) call bessel_beams(matrices, mesh)
+      if (beam_shape == 1) call gaussian_beams()
+      if (beam_shape == 2) call laguerre_gaussian_beams(p, l)
+      if (beam_shape == 3) call bessel_beams()
 
-      if (run_test == 1) call test_methods(matrices, mesh)
+      if (run_test == 1) call test_methods()
       if (run_test == 2) then
-         ! call torque_efficiency(matrices, mesh, q)
-         ! call RAT_efficiency(matrices, mesh, 60, 20, Npsi_in = 4)
-         call RAT_alignment(matrices, mesh)
+         call torque_efficiency(q)
+         call RAT_efficiency(60, 20, Npsi_in = 4)
+         ! call RAT_alignment()
       end if 
-      if (run_test == 3) call write_fields(matrices, mesh)
+      if (run_test == 3) call write_fields()
 
    end subroutine tests
 
