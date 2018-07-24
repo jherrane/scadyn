@@ -20,5 +20,9 @@
 scadyn
 */bin/**
 /bin/
+*/Geometries/**
+/Geometries/
+*/T/**
+/T/
 *.pyc*
 
