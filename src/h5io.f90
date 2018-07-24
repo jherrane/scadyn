@@ -10,9 +10,7 @@ module h5io
    ! HDF5 READ *******************************************************************
 !****************************************************************************80
 
-   subroutine read_mesh(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine read_mesh()
       character(len=80) :: file
 
       ! character(len=8), PARAMETER :: file = "mesh.h5"
@@ -114,7 +112,7 @@ module h5io
          end if
       end if
 
-      vol = get_tetra_vol(mesh)
+      vol = get_tetra_vol()
       a_eff = (3d0*vol/4d0/pi)**(1d0/3d0)
 
       mesh%coord = mesh%coord*mesh%a/a_eff ! Scale coordinates to correspond the real grain
@@ -124,57 +122,7 @@ module h5io
 
 !****************************************************************************80
 
-   subroutine read_aggr(mesh)
-      type(mesh_struct) :: mesh
-      character(len=16), PARAMETER :: dataset1 = "coord" ! Dataset name
-      character(len=16), PARAMETER :: dataset2 = "radius" ! Dataset name
-
-      integer(HID_T) :: file_id, dataset1_id, dataset2_id, dataspace1_id, dataspace2_id
-      integer(HSIZE_T), dimension(2) :: coord_dims, dims_out
-      integer :: error
-
-      real(dp), dimension(:, :), allocatable :: coord
-      real(dp), dimension(:), allocatable :: radius
-
-      call h5open_f(error) ! initialize interface
-      call h5fopen_f(mesh%meshname, H5F_ACC_RDWR_F, file_id, error) ! open file
-
-!* COORD **********************************************************************
-
-      call h5dopen_f(file_id, dataset1, dataset1_id, error)
-      call h5dget_space_f(dataset1_id, dataspace1_id, error)
-      call H5sget_simple_extent_dims_f(dataspace1_id, dims_out, coord_dims, error)
-      allocate (coord(coord_dims(1), coord_dims(2)))
-      call h5dread_f(dataset1_id, H5T_NATIVE_DOUBLE, coord, coord_dims, error)
-      call h5dclose_f(dataset1_id, error)
-
-!* RADIUS *********************************************************************
-
-      call h5dopen_f(file_id, dataset2, dataset2_id, error)
-      call h5dget_space_f(dataset2_id, dataspace2_id, error)
-      call H5sget_simple_extent_dims_f(dataspace2_id, dims_out, coord_dims, error)
-      allocate (radius(coord_dims(2)))
-      call h5dread_f(dataset2_id, H5T_NATIVE_DOUBLE, radius, coord_dims, error)
-      call h5dclose_f(dataset2_id, error)
-
-!****************************************************************************80
-
-      call h5fclose_f(file_id, error) ! close file
-      call h5close_f(error) ! close inteface
-
-      allocate (mesh%coord(size(coord, 1), size(coord, 2)))
-      allocate (mesh%radius(size(radius)))
-
-      mesh%coord = coord
-      mesh%radius = radius
-
-   end subroutine read_aggr
-
-!****************************************************************************80
-
-   subroutine read_T(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine read_T()
       character(len=80) :: file ! File name
       character(len=16), PARAMETER :: dataset1 = "Taai_r"
       character(len=16), PARAMETER :: dataset2 = "Taai_i"
@@ -351,22 +299,18 @@ module h5io
 
 ! HDF5 WRITE ******************************************************************
 !****************************************************************************80
-   subroutine write_T(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine write_T()
       if (matrices%singleT == 1) then
-         call singleT_write2file(matrices, mesh)
+         call singleT_write2file()
       else
-         call T_write2file(matrices, mesh)
+         call T_write2file()
       end if
 
    end subroutine write_T
 
 !****************************************************************************80
 
-   subroutine T_write2file(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine T_write2file()
       character(len=80) :: fname
       character(len=80) :: filename
 
@@ -499,9 +443,7 @@ module h5io
 
 !****************************************************************************80
 
-   subroutine T_empty(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine T_empty()
       character(len=80) :: fname
       character(len=80) :: filename
 
@@ -621,9 +563,7 @@ module h5io
 
 !****************************************************************************80
 
-   subroutine singleT_write2file(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine singleT_write2file()
       character(len=80) :: filename
 
       character(len=6), PARAMETER :: dsetname1 = "Taai_r"

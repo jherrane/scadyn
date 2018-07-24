@@ -6,9 +6,7 @@ contains
 
 !****************************************************************************80
 ! The routine replaces the incident beams with Bessel beams.
-   subroutine bessel_beams(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine bessel_beams()
       integer :: i
       integer :: Nmax, nm
       complex(dp), dimension(:), allocatable :: a_in, b_in

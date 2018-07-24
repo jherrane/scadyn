@@ -9,16 +9,14 @@ contains
 !****************************************************************************80
 ! The Gaussian amplitude profile in localized approximation (kw0>=5) a'la
 ! MSTM 3.0 (Mackowski et al 2013)
-   subroutine gaussian_beams(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine gaussian_beams()
       real(dp) :: width
       integer :: i
 
       width = 5d0/(maxval(mesh%ki))/sqrt(2d0)
 
       do i = 1, matrices%bars
-         call gaussian_beam_shape(matrices, mesh, i, matrices%Nmaxs(i), width)
+         call gaussian_beam_shape(i, matrices%Nmaxs(i), width)
       end do
 
    end subroutine gaussian_beams
@@ -26,9 +24,7 @@ contains
 !****************************************************************************80
 ! The Gaussian amplitude profile in localized approximation (kw0>=5) a'la
 ! MSTM 3.0 (Mackowski et al 2013)
-   subroutine gaussian_beam_shape(matrices, mesh, i, Nmax, width)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine gaussian_beam_shape(i, Nmax, width)
       real(dp) :: gn, kw0, width
       integer :: n, m, ind, i, Nmax
 
@@ -53,25 +49,21 @@ contains
 
 !****************************************************************************80
 
-   subroutine laguerre_gaussian_beams(matrices, mesh, p, l)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine laguerre_gaussian_beams(p, l)
       real(dp) :: width
       integer :: i, p, l
 
       width = 0.3d0/(maxval(mesh%ki))
 
       do i = 1, matrices%bars
-         call laguerre_gauss_num(matrices, mesh, i, p, l, width)
+         call laguerre_gauss_num(i, p, l, width)
       end do
 
    end subroutine laguerre_gaussian_beams
 
 !****************************************************************************80
 ! Axisymmetric LG-beam. In here, instead of some other routines.
-   subroutine laguerre_gauss_num(matrices, mesh, whichWL, n, m, w0)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine laguerre_gauss_num(whichWL, n, m, w0)
       integer :: whichWL, nmax, i, j, m, n, ind
       real(dp) :: w0, theta, phi, x, f, n_j, norm
       complex(dp), dimension(:), allocatable :: a_jm, b_jm
@@ -401,8 +393,8 @@ contains
 ! Ensure that directions are ok. They might already be...
       matrices%Rk = eye(3)
       allocate (E(3, nn))
-      call rot_setup(matrices, mesh)
-      call scattered_fields(matrices, mesh, 1d0, p, q, p90, q90, which)
+      call rot_setup()
+      call scattered_fields(1d0, p, q, p90, q90, which)
 
       matrices%field_points = grid
       do i = 1, nn
@@ -447,9 +439,7 @@ contains
 
 !****************************************************************************80
 
-   subroutine write_fields(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine write_fields()
       integer :: i, n
       character(LEN=80) :: gridname, fieldname, scatfield
       i = 1

@@ -52,7 +52,6 @@ ${BINDIR}/field.o \
 ${BINDIR}/solver.o \
 ${BINDIR}/transformation_matrices.o \
 ${BINDIR}/clustermie.o \
-${BINDIR}/octtree.o \
 ${BINDIR}/miecoat.o \
 ${BINDIR}/setup.o \
 ${BINDIR}/T_matrix.o \

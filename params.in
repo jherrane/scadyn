@@ -4,7 +4,7 @@ w0 0d0 0d0 0d0          # Initial angular velocity
 
 a 2d-7                  # Equivalent radius
 rho 3d3                 # Density
-drag 1                  # Mesh "drag coefficient", for sphere = 1
+drag 1d0                # Mesh "drag coefficient", for sphere = 1
 
 T 5800                  # Black body temperature (K) of the incident radiation
 Td 20                   # Mean temperature of the dust particles
@@ -26,7 +26,6 @@ mueller_mode none       # Mueller matrix type, none*, ave, ori, perf_ori
 
 test_forces 2           # 0 = integrate, 1 = test methods, 2 = calc Qt, 
                         # 3 = write fields to file
-                        # 4 = SOCpol-averaging of Mueller matrices
 
 int_mode 0              # 0 = full scattering dynamics integration,
                         # 1 = alignment integration of stably spinning particle
@@ -48,15 +47,4 @@ tol_m 3d-3              # Tolerance to when state is declared aligned
 dt 1d0
 rot_max 1d-2
 
-is_aggr 0               # 0 = no
-
 shortlog 0              # Use minimal logging (in alignment calculations)
-
-#####  T-VIE setup      ##### (Most of the time can be left as is) ############
-tol 1d-5                # GMRES tolerance
-maxit 50                # Maximum number of GMRES iterations
-restart 4               # GMRES restart
-order 2                 # Order of M_ex
-cell_size 1.8           # Cell size of the auxiliary grid
-near_zone 1             # Near_zone distance (in aux-cells)
-expansion_order 0       # Order of basis and testing functions
