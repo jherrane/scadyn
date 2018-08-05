@@ -13,11 +13,14 @@ contains
       real(dp) :: width
       integer :: i
 
-      width = 5d0/(maxval(mesh%ki))/sqrt(2d0)
-
-      do i = 1, matrices%bars
-         call gaussian_beam_shape(i, matrices%Nmaxs(i), width)
-      end do
+      width = 10d0/(maxval(mesh%ki))/sqrt(2d0)
+      if(matrices%whichbar /= 0)then
+         call gaussian_beam_shape(matrices%whichbar, matrices%Nmaxs(i), width)
+      else
+         do i = 1, matrices%bars
+            call gaussian_beam_shape(i, matrices%Nmaxs(i), width)
+         end do
+      end if
 
    end subroutine gaussian_beams
 
@@ -53,11 +56,15 @@ contains
       real(dp) :: width
       integer :: i, p, l
 
-      width = 0.3d0/(maxval(mesh%ki))
+      width = 1d0/(maxval(mesh%ki))
 
-      do i = 1, matrices%bars
-         call laguerre_gauss_num(i, p, l, width)
-      end do
+      if(matrices%whichbar /= 0)then
+         call laguerre_gauss_farfield(matrices%whichbar, p, l, width)
+      else
+         do i = 1, matrices%bars
+            call laguerre_gauss_farfield(i, p, l, width)
+         end do
+      end if
 
    end subroutine laguerre_gaussian_beams
 
@@ -226,9 +233,7 @@ contains
 
 !****************************************************************************80
 ! Axisymmetric LG-beam
-   subroutine laguerre_gauss_farfield(matrices, mesh, i, p, l, w0)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine laguerre_gauss_farfield(i, p, l, w0)
       integer :: i, nmax, total_modes, iii, jjj, ntheta, nphi, p, l, tp, info, lwork, ind
       integer, dimension(:), allocatable :: nn, mm, nn_old
       complex(dp) :: x, y, BCP(9)
@@ -242,22 +247,28 @@ contains
       k = mesh%ki(i)
       nmax = matrices%Nmaxs(i)
       allocate (a_nm((nmax + 1)**2 - 1), b_nm((nmax + 1)**2 - 1))
+      a_nm = dcmplx(0d0)
+      b_nm = dcmplx(0d0)
       truncation_angle = 90d0
       x = dcmplx(1d0, 0d0)
-      y = dcmplx(0d0, 0d0)
+      y = dcmplx(0d0, 1d0)
 
+      
       ! total_modes = nmax**2 + 2*nmax
       total_modes = 2*nmax
       allocate (nn(total_modes), mm(total_modes), nn_old(total_modes))
       do iii = 1, total_modes
          nn(iii) = ceiling(dble(iii)/2d0)
          mm(iii) = int((-1d0)**(iii) + l)
+         ! nn(iii) = floor(sqrt(dble(iii)))
+         ! mm(iii) = iii-nn(iii)**2-nn(iii)
       end do
       nn_old = nn
       nn = PACK(nn, nn_old >= abs(mm))
       mm = PACK(mm, nn_old >= abs(mm))
-      ntheta = 2*(nmax + 1)
-      nphi = 3
+      ntheta = nmax + 1
+      nphi = 2*p+abs(l)
+      nphi = nphi+3-mod(nphi,2)
       tp = ntheta*nphi
       allocate (theta(tp), phi(tp))
       call angular_grid(ntheta, nphi, theta, phi)
@@ -265,33 +276,26 @@ contains
                 Etheta(tp), Ephi(tp))
 
       do iii = 1, tp
-         rw(i) = k**2*w0**2*(dtan(theta(iii)))**2/2d0
+         rw(iii) = 2d0*k**2*w0**2*(dtan(theta(iii)))**2
       end do
 
       LL = laguerre(p, abs(l), rw)
 
       do iii = 1, tp
-         beam_envelope(i) = dcmplx(rw(iii)**(abs(l/2))*LL(iii)* &
-                                   zexp(dcmplx(-rw(iii)/2, l*phi(iii))))
-         if (theta(iii) < pi*(180-truncation_angle)/180) beam_envelope(iii) = dcmplx(0d0)
+         beam_envelope(iii) = dcmplx(rw(iii)**(abs(l/2))*LL(iii)* &
+                                   zexp(dcmplx(-rw(iii)/2, l*phi(iii) + pi/2d0*(p*2+abs(l)+1))))
+         if (theta(iii) > pi*(180-truncation_angle)/180) beam_envelope(iii) = dcmplx(0d0)
       end do
-
-      ! if(vlen(offset)>1d-9)
-      ! Phase shift is exp(-i*k * offset.rhat)
-      ! rhat = rtpv2xyzv( ones(size(theta)), zeros(size(theta)), zeros(size(theta)), ones(size(theta)), theta, phi );
-      ! [offset,rhat] = matchsize(offset,rhat);
-      ! phase_shift = exp( -i * k * dot(offset,rhat,2) );
-      ! beam_envelope = beam_envelope .* phase_shift;
-      ! endif
 
       Ex = x*beam_envelope
       Ey = y*beam_envelope
       do iii = 1, tp
-         Etheta(iii) = dcmplx(-Ex(i)*dcos(phi(iii)) - Ey(iii)*dsin(phi(iii)))
-         Ephi = dcmplx(-Ex(iii)*dsin(phi(iii)) + Ey(iii)*dcos(phi(iii)))
+         Etheta(iii) = -Ex(i)*dcos(phi(iii)) - Ey(iii)*dsin(phi(iii))
+         Ephi(iii) = -Ex(iii)*dsin(phi(iii)) + Ey(iii)*dcos(phi(iii))
       end do
 
       e_field = [Etheta, Ephi]
+
       allocate (coefficient_matrix(2*tp, 2*size(nn, 1)), expansion_coefficients(2*size(nn, 1)))
 
       do iii = 1, size(nn, 1)
@@ -310,10 +314,12 @@ contains
 
       lwork = 64*min(2*tp, 2*size(nn, 1))
       allocate (work(lwork))
+
       call zgels('N', 2*tp, 2*size(nn, 1), 1, coefficient_matrix, 2*tp, e_field, &
                  2*tp, work, lwork, info)
 
       expansion_coefficients = e_field(1:2*size(nn, 1))
+
       allocate (a(size(nn, 1)), b(size(nn, 1)))
       a = expansion_coefficients(1:size(nn, 1))
       b = expansion_coefficients(size(nn, 1) + 1:2*size(nn, 1))
@@ -322,6 +328,10 @@ contains
          ind = nn(iii)*(nn(iii) + 1) + mm(iii)
          a_nm(ind) = a(iii)
          b_nm(ind) = b(iii)
+         if (zabs(a(iii))**2 + zabs(b(iii))**2 < 1d-8) then
+            a_nm(ind) = 0d0
+            b_nm(ind) = 0d0
+         end if
       end do
 
       matrices%as(1:(nmax + 1)**2 - 1, i) = a_nm
@@ -443,6 +453,7 @@ contains
       integer :: i, n
       character(LEN=80) :: gridname, fieldname, scatfield
       i = 1
+      if(matrices%whichbar /= 0) i = matrices%whichbar
       n = 100
       gridname = 'grid_xyz.h5'
       fieldname = 'E_field.h5'
@@ -456,5 +467,16 @@ contains
       call write2file(matrices%E_field, scatfield)
 
    end subroutine write_fields
+
+!****************************************************************************80
+
+   subroutine bsc_farfield(nn,mm,E,theta,phi,zero_rejection_level,a,b)
+      integer, dimension(:), allocatable, intent(in) :: nn, mm
+      real(dp), dimension(:), allocatable, intent(in) :: theta, phi
+      complex(dp), dimension(:), allocatable, intent(in) :: E 
+      complex(dp), dimension(:), allocatable, intent(out) :: a, b
+      real(dp) :: zero_rejection_level 
+
+   end subroutine bsc_farfield
 
 end module shapebeam
