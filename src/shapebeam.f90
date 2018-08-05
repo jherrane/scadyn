@@ -69,169 +69,6 @@ contains
    end subroutine laguerre_gaussian_beams
 
 !****************************************************************************80
-! Axisymmetric LG-beam. In here, instead of some other routines.
-   subroutine laguerre_gauss_num(whichWL, n, m, w0)
-      integer :: whichWL, nmax, i, j, m, n, ind
-      real(dp) :: w0, theta, phi, x, f, n_j, norm
-      complex(dp), dimension(:), allocatable :: a_jm, b_jm
-      complex(dp) :: Enm, dEnm, Yjm
-      real(dp), dimension(:, :), allocatable :: PP
-      real(dp), dimension(:), allocatable :: w
-      real(dp), dimension(:), allocatable :: Pjm
-
-      call integ_points(PP, w, 20, 20)
-      ! call sample_points(PP,w,20,20)
-      ! call write2file(dcmplx(PP),fname)
-
-      f = 1d0/(mesh%ki(whichWL)*w0)
-      nmax = matrices%Nmaxs(whichWL)
-
-      allocate (a_jm((nmax + 1)**2 - 1), b_jm((nmax + 1)**2 - 1))
-      a_jm = dcmplx(0d0)
-      b_jm = dcmplx(0d0)
-
-      ind = 0
-      do j = 1, nmax
-         if (allocated(Pjm)) then
-            deallocate (Pjm)
-         end if
-         allocate (Pjm(j + 1))
-
-         ind = j*(j + 1) + m
-
-! Theta-phi-integration is done using Gaussian quadratures in the i-loop
-         do i = 1, size(PP, 2)
-            theta = PP(2, i)
-            phi = PP(3, i)
-
-! Calculate the normalized spherical harmonics
-            call legendre2(j, cos(theta), Pjm) ! The same as legendre of MATLAB
-            if (m + 1 > j) then
-               Yjm = dcmplx(0d0)
-            else
-               Yjm = Pjm(m + 1)*exp(i1*m*phi)* &
-                     sqrt((2d0*j + 1)/(4d0*pi)*factorial(j - m)/factorial(j + m))
-            end if
-            n_j = 1/(sqrt(dble(j*(j + 1))))
-
-            x = sin(theta)/f/sqrt(2d0)
-            Enm = E_nm(x, f, n, m)
-            dEnm = dE_nm(theta, f, n, m)
-
-            a_jm(ind) = a_jm(ind) + 2d0*n_j*i1**j*dconjg(Yjm)*exp(i1*m*phi)* &
-                        ((2d0*sin(phi)*sin(theta)**2 - (i1*m)*cos(phi))*Enm &
-                         - sin(phi)*sin(theta)*cos(theta)*dEnm)*w(i)
-
-            b_jm(ind) = b_jm(ind) - 2d0*n_j*i1**j*dconjg(Yjm)*exp(i1*m*phi)* &
-                        (sin(theta)*cos(phi)*dEnm - i1*m*cos(theta)*sin(phi)*Enm)*w(i)
-         end do
-      end do
-
-! Normalization so that sum_jm(a_jm + b_jm) = 1
-      norm = 0d0
-      do i = 1, size(a_jm)
-         norm = norm + abs(a_jm(i)) + abs(b_jm(i))
-      end do
-
-      matrices%as(1:(nmax + 1)**2 - 1, whichWL) = a_jm/norm
-      matrices%bs(1:(nmax + 1)**2 - 1, whichWL) = b_jm/norm
-
-   end subroutine laguerre_gauss_num
-
-!****************************************************************************80
-
-   subroutine gaussi(P, w, order)
-      real(dp), dimension(:), allocatable :: P
-      real(dp), dimension(:), allocatable :: w
-      integer, intent(in) :: order
-
-      allocate (P(order), w(order))
-
-      call cpquad(order, dble(0), "Legendre", w, P)
-
-      P = P/2.0d0 + 0.5d0
-      w = w/2.0d0
-
-   end subroutine gaussi
-
-!****************************************************************************80
-
-   subroutine integ_points(P, w, M, N)
-      real(dp), dimension(:, :), allocatable :: P
-      real(dp), dimension(:), allocatable :: w
-      integer :: M, N
-      real(dp), dimension(:), allocatable :: P_theta, w_theta
-      integer :: i1, i2, j1
-      real(dp) :: phi
-      call gaussi(P_theta, w_theta, M)
-
-      allocate (P(3, M*N), w(M*N))
-      P_theta = pi*P_theta
-      w_theta = pi*w_theta
-
-      j1 = 1
-      do i1 = 1, N
-         phi = dble(i1 - 1)*2*pi/dble(N)
-         do i2 = 1, M
-            P(1, j1) = cos(phi)*sin(P_theta(i2))
-            P(2, j1) = sin(phi)*sin(P_theta(i2))
-            P(3, j1) = cos(P_theta(i2))
-            w(j1) = W_theta(i2)/dble(N)*sin(P_theta(i2))*2*pi
-
-            j1 = j1 + 1
-         end do
-      end do
-
-   end subroutine integ_points
-
-!****************************************************************************80
-
-   function E_nm(x, f, n, m) result(Enm)
-      integer :: n, m
-      real(dp) :: x, f
-      real(dp) :: L
-      complex(dp) :: Enm
-
-      L = L_pl(n, m, x**2)
-      if (n < 0) then
-         Enm = 0
-      else
-         Enm = (x**m/(i1**(2*n + m + 1)*2*f**2))*L*exp(-0.5d0*x**2)
-      end if
-
-   end function E_nm
-
-!****************************************************************************80
-
-   function dE_nm(theta, f, n, m) result(dEnm)
-      integer :: n, m
-      real(dp) :: theta, f, x
-      complex(dp) :: dEnm
-
-      x = sin(theta)/sqrt(2d0)/f
-
-      dEnm = ((m + x**2)/tan(theta))*E_nm(x, f, n, m) &
-             - i1*(2*x**2/tan(theta))*E_nm(x, f, n - 1, m + 1)
-      if (theta < 1d-9) dEnm = dcmplx(0d0)
-
-   end function dE_nm
-
-!****************************************************************************80
-! The generalized Laguerre polynomial as a summation, same as in MATLAB
-   function L_pl(p, l, x) result(Lpl)
-      real(dp) :: x, Lpl
-      integer :: m, p, l
-
-      Lpl = 1d0
-      Lpl = Lpl*choose(p + l, p)
-
-      do m = 1, p
-         Lpl = Lpl + (-1)**m/factorial(m)*choose(p + l, p - m)*x**m
-      enddo
-
-   end function L_pl
-
-!****************************************************************************80
 ! Axisymmetric LG-beam
    subroutine laguerre_gauss_farfield(i, p, l, w0)
       integer :: i, nmax, total_modes, iii, jjj, ntheta, nphi, p, l, tp, info, lwork, ind
@@ -284,13 +121,13 @@ contains
       do iii = 1, tp
          beam_envelope(iii) = dcmplx(rw(iii)**(abs(l/2))*LL(iii)* &
                                    zexp(dcmplx(-rw(iii)/2, l*phi(iii) + pi/2d0*(p*2+abs(l)+1))))
-         if (theta(iii) > pi*(180-truncation_angle)/180) beam_envelope(iii) = dcmplx(0d0)
+         if (theta(iii) < pi*(180-truncation_angle)/180) beam_envelope(iii) = dcmplx(0d0)
       end do
 
       Ex = x*beam_envelope
       Ey = y*beam_envelope
       do iii = 1, tp
-         Etheta(iii) = -Ex(i)*dcos(phi(iii)) - Ey(iii)*dsin(phi(iii))
+         Etheta(iii) = -Ex(iii)*dcos(phi(iii)) - Ey(iii)*dsin(phi(iii))
          Ephi(iii) = -Ex(iii)*dsin(phi(iii)) + Ey(iii)*dcos(phi(iii))
       end do
 
@@ -301,13 +138,13 @@ contains
       do iii = 1, size(nn, 1)
          do jjj = 1, tp
             BCP = vsh(nn(iii), mm(iii), theta(jjj), phi(jjj))
-            coefficient_matrix(jjj, iii) = BCP(5)*dcmplx(0d0, 1d0)**(nn(iii) + 1)/ &
+            coefficient_matrix(jjj, iii) = BCP(6)*dcmplx(0d0, 1d0)**(nn(iii) + 1)/ &
                                            dsqrt(dble(nn(iii))*(nn(iii) + 1))
-            coefficient_matrix(tp + jjj, iii) = BCP(6)*dcmplx(0d0, 1d0)**(nn(iii) + 1)/ &
+            coefficient_matrix(tp + jjj, iii) = -BCP(5)*dcmplx(0d0, 1d0)**(nn(iii) + 1)/ &
                                                 dsqrt(dble(nn(iii))*(nn(iii) + 1))
-            coefficient_matrix(jjj, iii + size(nn, 1)) = BCP(2)*dcmplx(0d0, 1d0)**(nn(iii))/ &
+            coefficient_matrix(jjj, iii + size(nn, 1)) = BCP(5)*dcmplx(0d0, 1d0)**(nn(iii))/ &
                                                          dsqrt(dble(nn(iii))*(nn(iii) + 1))
-            coefficient_matrix(tp + jjj, iii + size(nn, 1)) = BCP(3)*dcmplx(0d0, 1d0)**(nn(iii))/ &
+            coefficient_matrix(tp + jjj, iii + size(nn, 1)) = BCP(6)*dcmplx(0d0, 1d0)**(nn(iii))/ &
                                                               dsqrt(dble(nn(iii))*(nn(iii) + 1))
          end do
       end do
@@ -339,25 +176,6 @@ contains
 
    end subroutine laguerre_gauss_farfield
 
-!****************************************************************************80
-
-   function LG_mode(p, l, r, phi) result(res)
-      integer :: p, l, fp, fpl
-      real(dp), dimension(:), allocatable :: r2
-      real(dp) :: r, phi
-      complex(dp) :: LG(1), res
-
-      fp = int(factorial(p))
-      fpl = int(factorial(p + abs(l)))
-      allocate (r2(1))
-      r2(1) = 2*r**2
-      LG = dcmplx(sqrt(2d0*fp/(pi*fpl))* &
-                  (sqrt(2d0)*r)**abs(l)*laguerre(p, abs(l), r2)*exp(dcmplx(0, 1)*l*phi)* &
-                  exp(-r**2)*exp(dcmplx(0, 1)*(2*p + abs(l) + 1)*pi/2))
-
-      res = LG(1)
-
-   end function LG_mode
 
 !****************************************************************************80
 

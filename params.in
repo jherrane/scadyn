@@ -37,7 +37,7 @@ lambda1 200
 lambda2 2000
 whichbar 1              # 0 = use all*
 beam_shape 2            # 0 = plane wave*, 1 = Gaussian, 2 = LG, 3 = Bessel
-pl 0 3                  # Laguerre-Gaussian beam mode
+pl 1 0                  # Laguerre-Gaussian beam mode
 
 it_max 10000
 it_log 0                # From end backwards, 0 = log every step
