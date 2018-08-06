@@ -179,9 +179,7 @@ contains
 
 !****************************************************************************80
 
-   subroutine fields_out(matrices, mesh, which, n)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine fields_out(which, n)
       integer :: n, nn, i, which
       real(dp), allocatable :: grid(:, :)
       complex(dp) :: F(3), G(3)
@@ -189,13 +187,12 @@ contains
 
       nn = n*n
 
-      grid = field_grid(mesh)
-
       allocate (E(3, nn))
-      matrices%field_points = grid
+
       do i = 1, nn
          call calc_fields(matrices%as(:, which), matrices%bs(:, which), &
-                          dcmplx(mesh%ki(which)), grid(:, i), F, G, 0)
+                          dcmplx(mesh%ki(which)), matrices%field_points(:, i), &
+                          F, G, 0)
          E(:, i) = F
          ! E(:,i) = crossCC(F,G)/mu
       end do
@@ -205,9 +202,7 @@ contains
 
 !****************************************************************************80
 
-   subroutine scat_fields_out(matrices, mesh, which, n)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine scat_fields_out(which, n)
       integer :: n, nn, i, which
       real(dp), allocatable :: grid(:, :)
       complex(dp), dimension(:), allocatable :: p, q, p90, q90
@@ -216,17 +211,15 @@ contains
 
       nn = n*n
 
-      grid = field_grid(mesh)
-
 ! Ensure that directions are ok. They might already be...
       matrices%Rk = eye(3)
       allocate (E(3, nn))
       call rot_setup()
       call scattered_fields(1d0, p, q, p90, q90, which)
 
-      matrices%field_points = grid
       do i = 1, nn
-         call calc_fields(p, q, dcmplx(mesh%ki(which)), grid(:, i), F, G, 1)
+         call calc_fields(p, q, dcmplx(mesh%ki(which)), &
+            matrices%field_points(:, i), F, G, 1)
          E(:, i) = F
          ! E(:,i) = crossCC(F,G)/mu
       end do
@@ -237,8 +230,7 @@ contains
 
 !****************************************************************************80
 
-   function field_grid(mesh) result(grid)
-      type(mesh_struct) :: mesh
+   function field_grid() result(grid)
       integer :: n, nn, i, j, ind
       real(dp) :: lim
       real(dp), allocatable :: z(:), y(:), grid(:, :)
@@ -277,11 +269,13 @@ contains
       fieldname = 'E_field.h5'
       scatfield = 'E_scat.h5'
 
-      call fields_out(matrices, mesh, i, n)
+      matrices%field_points = field_grid()
+
+      call fields_out(i, n)
       call write2file(dcmplx(matrices%field_points), gridname)
       call write2file(matrices%E_field, fieldname)
 
-      call scat_fields_out(matrices, mesh, i, n)
+      call scat_fields_out(i, n)
       call write2file(matrices%E_field, scatfield)
 
    end subroutine write_fields
