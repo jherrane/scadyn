@@ -252,6 +252,8 @@ contains
                read (buffer, *, iostat=ios) matrices%E
             case ('w0')
                read (buffer, *, iostat=ios) matrices%w
+            case ('pos')
+               read (buffer, *, iostat=ios) matrices%x_CM
             case ('R0')
                read (buffer, *, iostat=ios) R0
             case ('dt')
@@ -342,6 +344,8 @@ contains
       else
          matrices%R = eye(3)
       end if
+
+      matrices%x_CM = matrices%x_CM*matrices%lambda2
 
       if (temp > 1d-7) matrices%refi = tempii
       it_stop = it_max
@@ -580,7 +584,7 @@ contains
       write (1, '(A, 3ES11.3)') 'wB0      = ', matrices%w
       write (1, '(A, 9f7.3)') 'R0       = ', matrices%R
       write (1, '(A, 3ES11.3)') 'rho      = ', mesh%rho
-      write (1, '(A, 3ES11.3)') 'CM       = ', matrices%CM
+      write (1, '(A, 3ES11.3)') 'CM       = ', matrices%x_CM
       write (1, '(A, 3ES11.3)') 'a        = ', mesh%a
       write (1, '(A, 80ES11.3)') 'ki       = ', mesh%ki
       write (1, '(A, 2f8.2)') 'range nm = ', matrices%lambda1*1d9, matrices%lambda2*1d9
@@ -593,7 +597,7 @@ contains
       do i = 1, 3
          write (1, '(3f7.3)') matrices%P(i, :)
       end do
-      if(shortlog==0) write (1, '(A)') ' Log: n | t | w(1:3) | N(1:3) | R(1:9) '
+      if(shortlog==0) write (1, '(A)') ' Log: n | t | x(1:3) | w(1:3) | v(1:3) | N(1:3) | F(1:3) | R(1:9) '
       write (1, '(A)') ' '
 
       close (1)
@@ -607,15 +611,18 @@ contains
       character(len=120) :: fname, fmt
 
       fname = 'out/log'//trim(matrices%out)
-      fmt = '(I0, A, ES16.8, A, 2(3ES16.8, A), 9ES16.8)'
+      fmt = '(I0, A, ES16.8, A, 5(3ES16.8, A), 9ES16.8)'
       md = mod(n, 1000)
 
 ! If the modulo if zero, we are at the final place of the buffer. Otherwise, 
 ! just save to buffer position given by the modulo.
       ind = md
       if (md == 0) ind = 1000
+      matrices%x_buf(:, ind) = matrices%x_CM
       matrices%w_buf(:, ind) = matrices%w
+      matrices%v_buf(:, ind) = matrices%v_CM
       matrices%N_buf(:, ind) = matrices%N
+      matrices%F_buf(:, ind) = matrices%F
       matrices%t_buf(:, ind) = matrices%tt
       matrices%R_buf(:, :, ind) = matrices%R
 
@@ -626,8 +633,11 @@ contains
                if (i + matrices%buffer <= it_stop) then
                   write (1, fmt) i + matrices%buffer,  ' |',&
                      matrices%t_buf(:, i),  ' |',&
+                     matrices%x_buf(:, i),  ' |',&
                      matrices%w_buf(:, i),  ' |',&
+                     matrices%v_buf(:, i),  ' |',&
                      matrices%N_buf(:, i),  ' |',&
+                     matrices%F_buf(:, i),  ' |',&
                      matrices%R_buf(:, :, i)
                end if
             end do

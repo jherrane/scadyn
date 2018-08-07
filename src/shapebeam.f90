@@ -56,7 +56,7 @@ contains
       real(dp) :: width
       integer :: i, p, l
 
-      width = 1d0/(maxval(mesh%ki))
+      width = 2d0*pi/(minval(mesh%ki))
 
       if(matrices%whichbar /= 0)then
          call laguerre_gauss_farfield(matrices%whichbar, p, l, width)
@@ -90,7 +90,6 @@ contains
       x = dcmplx(1d0, 0d0)
       y = dcmplx(0d0, 1d0)
 
-      
       ! total_modes = nmax**2 + 2*nmax
       total_modes = 2*nmax
       allocate (nn(total_modes), mm(total_modes), nn_old(total_modes))
@@ -235,7 +234,7 @@ contains
       real(dp) :: lim
       real(dp), allocatable :: z(:), y(:), grid(:, :)
 
-      lim = 3.5d0
+      lim = 2d0*pi*mesh%a*(maxval(mesh%ki))
       n = 100
       nn = n*n
       allocate (z(n), y(n), grid(3, nn))

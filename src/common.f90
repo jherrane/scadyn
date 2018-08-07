@@ -106,7 +106,7 @@ module common
 ! All physical quantities in human-readable form (more or less)
       real(dp), dimension(4) :: q, qn
       real(dp), dimension(3, 3) :: R, Rn, Rk, P, I, I_inv, R_al, R90_init
-      real(dp), dimension(3) :: force, torque, khat, w, x_CM, v_CM, N, wn, xn, vn, J, F, Ip, CM, &
+      real(dp), dimension(3) :: force, torque, khat, v_CM, N, wn, xn, vn, J, F, Ip, &
                                 dw, k_orig, E0_orig, E90_orig, Q_t, Q_f, B
       real(dp) ::  dt, tt, M, M1, M3, wT, Tdrag, TDG, q_param, q_mean, q_var, q_param0, &
                   w_thermal, tau_rad, tau_int
@@ -121,28 +121,30 @@ module common
       character(len=8)  :: mueller_mode = 'none'
 
 ! Initial values set up at the very beginning, changable by input arguments or files
-      real(dp)          :: E = 1d0
-      real(dp)          :: refr = 0d0
-      real(dp)          :: refi = 0d0
-      real(dp)          :: tol_m = 3d-3
-      real(dp)          :: lambda1 = 2d-7
-      real(dp)          :: lambda2 = 2d-6
-      real(dp)          :: temp = 5800d0
-      real(dp)          :: dt0 = 1d0
-      real(dp)          :: Td = 20d0
-      real(dp)          :: Tgas = 100d0
-      real(dp)          :: nH = 30d0
-      real(dp)          :: B_psi = 0d0
-      real(dp)          :: rot_max = 1d-2
-      real(dp)          :: Kw = 1d-13
-      real(dp)          :: xi_in = 0d0
-      real(dp)          :: B_len = 0d0
-      integer           :: Tmat = 0
-      integer           :: whichbar = 0
-      integer           :: is_aggr = 0
-      integer           :: singleT = 0
-      integer           :: bars = 10
-      integer           :: polarization = 2
+      real(dp)                :: E = 1d0
+      real(dp)                :: refr = 0d0
+      real(dp)                :: refi = 0d0
+      real(dp)                :: tol_m = 3d-3
+      real(dp)                :: lambda1 = 2d-7
+      real(dp)                :: lambda2 = 2d-6
+      real(dp)                :: temp = 5800d0
+      real(dp)                :: dt0 = 1d0
+      real(dp)                :: Td = 20d0
+      real(dp)                :: Tgas = 100d0
+      real(dp)                :: nH = 30d0
+      real(dp)                :: B_psi = 0d0
+      real(dp)                :: rot_max = 1d-2
+      real(dp)                :: Kw = 1d-13
+      real(dp)                :: xi_in = 0d0
+      real(dp)                :: B_len = 0d0
+      real(dp), dimension(3)  :: w = [0d0, 0d0, 0d0]
+      real(dp), dimension(3)  :: x_CM = [0d0, 0d0, 0d0]
+      integer                 :: Tmat = 0
+      integer                 :: whichbar = 0
+      integer                 :: is_aggr = 0
+      integer                 :: singleT = 0
+      integer                 :: bars = 10
+      integer                 :: polarization = 2
    end type data
 
    type data_struct

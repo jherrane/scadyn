@@ -68,7 +68,8 @@ contains
 ! tensor
    subroutine forcetorque_num(j)
       complex(dp), dimension(:), allocatable :: a_in, b_in, a90, b90, &
-                                                a, b, a_nm, b_nm, a_nm90, b_nm90
+                                                a, b, a_nm, a90_temp, b90_temp, &
+                                                a_temp, b_temp, b_nm, a_nm90, b_nm90
       complex(dp), dimension(:, :), allocatable :: Taa, Tab, Tba, Tbb
       complex(8), dimension(:), allocatable :: rotD, rotD90
       integer, dimension(:, :), allocatable :: indD, indD90
@@ -109,6 +110,18 @@ contains
       b = sparse_matmul(rotD, indD, b_in, nm)
       a90 = sparse_matmul(rotD90, indD90, a_in, nm)
       b90 = sparse_matmul(rotD90, indD90, b_in, nm)
+
+      if(beam_shape /= 0) then
+         call translate(-matrices%x_CM, Nmax, Nmax, dcmplx(mesh%k), &
+            a_temp, b_temp, a, b, 0)
+         call translate(-matrices%x_CM, Nmax, Nmax, dcmplx(mesh%k), &
+            a90_temp, b90_temp, a90, b90, 0)
+      else
+         a = a_temp
+         b = b_temp
+         a90 = a90_temp
+         b90 = b90_temp
+      end if
 
       if (matrices%polarization == 1) then
          a90 = dcmplx(0d0)
@@ -190,7 +203,10 @@ contains
 ! Calculate forces and torques using the analytical z-formulae
    subroutine forcetorque(i)
       complex(dp), dimension(:), allocatable :: a_in, b_in, a90, b90, &
-                                                a, b, p, q, p90, q90, a2, b2, p2, q2, a290, b290, p290, q290
+                                                a, b, a_temp, b_temp, &
+                                                p, q, p90, q90, &
+                                                a2, b2, p2, q2, a290, &
+                                                b290, p290, q290
       complex(dp), dimension(:, :), allocatable :: Taa, Tab, Tba, Tbb
       complex(8), dimension(:), allocatable :: rotD, rotD90
       integer, dimension(:, :), allocatable :: indD, indD90
@@ -204,7 +220,9 @@ contains
       las = (Nmax + 1)*(2*Nmax + 1)*(2*Nmax + 3)/3 - 1
       nm = (Nmax + 1)**2 - 1
 
-      allocate (a(nm), b(nm), a90(nm), b90(nm), p(nm), q(nm), p90(nm), q90(nm))
+      allocate (a(nm), b(nm), a_in(nm), b_in(nm), a_temp(nm), b_temp(nm), &
+         a90(nm), b90(nm), p(nm), q(nm), p90(nm), q90(nm), &
+         a2(nm), b2(nm), a290(nm), b290(nm), p2(nm), q2(nm), p290(nm), q290(nm))
 
       rotD = matrices%rotDs(1:las, i)
       indD = matrices%indDs(1:las, :, i)
@@ -216,15 +234,24 @@ contains
       Tba = matrices%Tbai(1:nm, 1:nm, i)
       Tbb = matrices%Tbbi(1:nm, 1:nm, i)
 
-      a_in = E*matrices%as(1:nm, i)/sqrt(2d0*sqrt(mu/epsilon)*mesh%k**2)/2d0
-      b_in = E*matrices%bs(1:nm, i)/sqrt(2d0*sqrt(mu/epsilon)*mesh%k**2)/2d0
+      a_temp = E*matrices%as(1:nm, i)/sqrt(2d0*sqrt(mu/epsilon)*mesh%k**2)/2d0
+      b_temp = E*matrices%bs(1:nm, i)/sqrt(2d0*sqrt(mu/epsilon)*mesh%k**2)/2d0
+
+      if(beam_shape /= 0) then
+         call translate(-matrices%x_CM, Nmax, Nmax, dcmplx(mesh%k), &
+            a_temp, b_temp, a_in, b_in, 0)
+      else
+         a_in = a_temp
+         b_in = b_temp
+      end if
 
       a = sparse_matmul(rotD, indD, a_in, nm)
       b = sparse_matmul(rotD, indD, b_in, nm)
 
       a90 = sparse_matmul(rotD90, indD90, a_in, nm)
       b90 = sparse_matmul(rotD90, indD90, b_in, nm)
-      if (matrices%polarization == 1) then
+
+      if (matrices%polarization == 1 .OR. beam_shape /= 0) then
          a90 = dcmplx(0d0)
          b90 = dcmplx(0d0)
       end if

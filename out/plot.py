@@ -112,6 +112,9 @@ if __name__ == "__main__":
    I = np.diag(I)
    log.seek(0)
    Q = np.genfromtxt(islice(log,17,20))
+   log.seek(0)
+   a = np.genfromtxt(islice(log,10,11))
+   a = a[3]*1e-9
    log.close()
    
    markevery = round(Nmax/1000)
@@ -120,25 +123,31 @@ if __name__ == "__main__":
    if markevery < 1: markevery = 1
    
    t = lines[:,1]
-   w = lines[:,2:5]
+   x = lines[:,2:5]/a
+   w = lines[:,5:8]
+   v = lines[:,8:11]
    J = 0*w
-   N = lines[:,5:8]
-   R = lines[:,8:18]
+   N = lines[:,11:14]
+   F = lines[:,14:17]
+   R = lines[:,17:27]
       
    for i in range(0,w.shape[0]):
       J[i,:] = np.matmul(I,w[i,:])
       w[i,:] = np.matmul(Q,np.matmul(np.reshape(R[i,:],(3,3),order='F'),w[i,:]  ))
       J[i,:] = np.matmul(Q,np.matmul(np.reshape(R[i,:],(3,3),order='F'),J[i,:]  ))
-      w[i,:] = 1.1*w[i,:]/np.sqrt(np.sum(np.power(w[i,:],2)))
-      J[i,:] = 1.1*J[i,:]/np.sqrt(np.sum(np.power(J[i,:],2)))
+#      w[i,:] = 1.1*w[i,:]/np.sqrt(np.sum(np.power(w[i,:],2)))
+#      J[i,:] = 1.1*J[i,:]/np.sqrt(np.sum(np.power(J[i,:],2)))
 
    Jb = np.zeros(J.shape)
    wb = np.zeros(w.shape)
 
    with cd(pth):
+      plot_fig(t,x,markevery,'Position of CM vs. Time','t (s)','x (\lambda)','x.png')
       plot_fig(t,w,markevery,'Angular velocity vs. Time','t (s)','\omega','w.png')
+      plot_fig(t,v,markevery,'Velocity vs. Time','t (s)','\omega','v.png')
       plot_fig(t,J,markevery,'Angular momentum vs. Time','t (s)','J (Nms)','J.png')
       plot_fig(t,N,markevery,'Torque vs. Time','t (s)','N (Nm)','N.png')
+      plot_fig(t,F,markevery,'Force vs. Time','t (s)','F (N)','F.png')
       plot_orbit(w,'Spin of angular velocity','worbit.png')
       plot_orbit(J,'Time evolution of angular momentum','Jorbit.png')
       plot_mav(t,w,mav,'Running average of angular velocity vs. Time','t (s)','\omega (rad/s)','wav.png')

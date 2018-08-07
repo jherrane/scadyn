@@ -123,14 +123,20 @@ if __name__ == "__main__":
    log.seek(0)
    I = np.genfromtxt(islice(log,15,16))
    I = np.diag(I)
+   log.seek(0)
+   a = np.genfromtxt(islice(log,10,11))
+   a = a[3]*1e-9
    log.close()
    title = 'Evolution of rotation between\nsteps ' + str(skip) + '-' +str(num_lines-22) 
 
    t = lines[:,1]
-   w = lines[:,2:5]
+   x = lines[:,2:5]/a
+   w = lines[:,5:8]
+   v = lines[:,8:11]
    J = 0*w
-   N = lines[:,5:8]
-   R = lines[:,8:18]
+   N = lines[:,11:14]
+   F = lines[:,14:17]
+   R = lines[:,17:27]
       
    for i in range(0,w.shape[0]):
       J[i,:] = np.matmul(I,w[i,:])

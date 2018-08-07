@@ -25,4 +25,6 @@ scadyn
 */T/**
 /T/
 *.pyc*
+*.h5
+*.in
 

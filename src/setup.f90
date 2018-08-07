@@ -662,8 +662,6 @@ contains
       mesh%CM = [0d0, 0d0, 0d0]
       mesh%I = 2d0/5d0*mesh%mass*mesh%a**2*eye(3)
 
-      matrices%CM = mesh%CM ! Save real CM if it happens to be not near origin
-      matrices%x_CM = mesh%CM
       matrices%P = eye(3)
    end subroutine mie_params
 
@@ -744,9 +742,6 @@ contains
       mesh%coord(1, :) = mesh%coord(1, :) - mesh%CM(1)
       mesh%coord(2, :) = mesh%coord(2, :) - mesh%CM(2)
       mesh%coord(3, :) = mesh%coord(3, :) - mesh%CM(3)
-      matrices%CM = mesh%CM ! Save real CM if it happens to be not near origin
-      mesh%CM = dble([0d0, 0d0, 0d0])
-      matrices%x_CM = mesh%CM
 
    end subroutine vie_params
 

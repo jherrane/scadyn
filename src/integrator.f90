@@ -16,21 +16,23 @@ contains
       write(*,'(A)') ' Integration in progress...'
       call system_clock(t1, rate)
       call initialize()
-      if(int_mode < 2) call solve_eoms()
+      if(int_mode /= 1) call solve_eoms()
       call system_clock(t2, rate)
       write(*,'(2(A,g0))') '  Done in ', real(T2 - T1)/real(rate), ' seconds'
 
-      write(*,'(A)') ' Spin-up and dissipation calculations in progress...'
-      call system_clock(t1, rate)
-      call solve_dissipation()
-      call system_clock(t2, rate)
-      write(*,'(2(A,g0))') '  Done in ', real(T2 - T1)/real(rate), ' seconds'
+      if(int_mode < 2) then
+         write(*,'(A)') ' Spin-up and dissipation calculations in progress...'
+         call system_clock(t1, rate)
+         call solve_dissipation()
+         call system_clock(t2, rate)
+         write(*,'(2(A,g0))') '  Done in ', real(T2 - T1)/real(rate), ' seconds'
 
-      write(*,'(A)') ' Alignment calculation in progress...'
-      call system_clock(t1, rate)
-      call RAT_alignment()
-      call system_clock(t2, rate)
-      write(*,'(2(A,g0))') '  Done in ', real(T2 - T1)/real(rate), ' seconds'
+         write(*,'(A)') ' Alignment calculation in progress...'
+         call system_clock(t1, rate)
+         call RAT_alignment()
+         call system_clock(t2, rate)
+         write(*,'(2(A,g0))') '  Done in ', real(T2 - T1)/real(rate), ' seconds'
+      end if
 
       if(shortlog == 1) call alignment_log()
 
@@ -73,7 +75,7 @@ contains
       do i = 1, it_max
          if (i > it_stop) exit
 
-         call vlv_update( F, N)
+         call vlv_update(F, N)
 
          matrices%N = N
          matrices%F = F
@@ -117,7 +119,7 @@ contains
                write(*,'(A,F11.5)') "   q = ", matrices%q_mean
                matrices%q_param0 = matrices%q_mean
             end if 
-         else if (alignment_found == 0) then
+         else if (alignment_found == 0 .AND. int_mode < 2) then
             write(*,'(A)') "  Found nearly stable q-parameter, stopping..."
             write(*,'(A,F11.5)') "   q = ", matrices%q_mean
             it_stop = n + it_log + 1
@@ -422,7 +424,7 @@ contains
       real(dp), dimension(3), intent(out) :: F, N
       integer, optional :: mode
       integer :: maxiter, i1
-      real(dp) :: Rn(3, 3), wnh(3), dt, I(3), Jw(3), Ff, dtheta
+      real(dp) :: Rn(3, 3), wnh(3), dt, I(3), Jw(3), Ff, dtheta, FFD(3)
       real(dp) :: PxW(3), hel(3), Jac(3, 3), Jwn(3), iterstop
 
       maxiter = 50
@@ -436,16 +438,31 @@ contains
       if (matrices%tt == 0d0 .AND. .NOT. matrices%E < 1d-7) then
          call get_forces()
          N = matrices%N
+         call adaptive_step()
+         dt = matrices%dt
+         matrices%N = dcmplx(0d0)
+         matrices%F = dcmplx(0d0)
       end if
+
       call adaptive_step()
       dt = matrices%dt
       if (matrices%E < 1d-7) then 
          N = 0d0
          matrices%F = 0d0
       end if
+
       if(present(mode)) then
          if(mode==0) N = 0d0
       end if
+
+      if(beam_shape /= 0) then
+         FFD = (dble(matrices%F) - vlen(matrices%v_CM)*pi*mesh%a**2*matrices%v_CM)/mesh%mass
+         matrices%xn = matrices%x_CM + euler_3D(FFD, dt)
+      else
+         FFD = (dble(matrices%F))
+         matrices%vn = matrices%v_CM + euler_3D(FFD, dt)*dt
+         matrices%xn = matrices%x_CM + euler_3D(matrices%v_CM, dt)*dt
+      end if 
 
 ! Step 1) Newton solve
       wnh = matrices%w ! Body angular velocity
@@ -495,8 +512,6 @@ contains
       Jwn = Jw + PxW + 0.25d0*dt**2d0*dot_product(wnh, Jw)*wnh + 0.5d0*dt*N
       matrices%wn = matmul(matrices%I_inv, Jwn)
 
-      matrices%vn = matrices%v_CM + euler_3D(dble(matrices%F)/mesh%mass, dt)
-      matrices%xn = matrices%x_CM + euler_3D(matrices%v_CM, dt)
       F = matrices%F
 
    end subroutine vlv_update
