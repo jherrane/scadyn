@@ -1,6 +1,7 @@
 #####  Physical setup   #######################################################
 R0 i                    # r = random matrix, i = identity matrix*
 w0 0d0 0d0 0d0          # Initial angular velocity
+pos 0.5d0 0.5d0 0d0     # Initial position (in units largest wavelength)
 
 a 2d-7                  # Equivalent radius
 rho 3d3                 # Density
@@ -28,6 +29,7 @@ test_forces 1           # 0 = integrate, 1 = test methods, 2 = calc Qt,
 
 int_mode 0              # 0 = full scattering dynamics integration,
                         # 1 = alignment integration of stably spinning particle
+                        # 2 = explicit integration only (optical tweezers etc.)
 
 Tmat 1                  # 1 = file is usable / 0 = force T-matrix calculation
 polarization 2          # 1 = lin / 2 = un*
@@ -39,13 +41,11 @@ beam_shape 0            # 0 = plane wave*, 1 = Gaussian, 2 = LG, 3 = Bessel
 pl 0 0                  # Laguerre-Gaussian beam mode
 
 it_max 50000
-it_log 0             # From end backwards, 0 = log every step
+it_log 0                # From end backwards, 0 = log every step
 window 5000             # Rolling variance window size
 tol_m 3d-3              # Tolerance to when state is declared aligned
 
 dt 1d0
 rot_max 1d-2
-
-is_aggr 0               # 0 = no
 
 shortlog 0              # Use minimal logging (in alignment calculations)= no
