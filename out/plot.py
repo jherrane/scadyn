@@ -1,4 +1,6 @@
 # Module to plot the results of T-VIEDYN integration (WIP)
+# -*- coding: utf-8 -*-
+from __future__ import unicode_literals
 from cd import *
 from arrow import *
 import StringIO
@@ -10,6 +12,7 @@ import numpy as np
 import math
 from itertools import islice
 from io import StringIO
+from matplotlib import rc
 import codecs
 
 def Round_To_n(x, n):
@@ -27,11 +30,16 @@ def plot_orbit(orbit, title, figname):
    NPOINTS = len(x1)
    fig = plt.figure(figsize=(12,12))
    ax = fig.add_subplot(111, projection='3d')
+   
+   font = {'weight' : 'bold', 'size' : 40}
+   plt.rc('text', usetex=True)
+   plt.rc('font', family='serif')
+   
    ax.set_aspect('equal')
    ax.plot(x1,x2,x3)
-   ax.plot(x1,x2,(mid_z - max_range)*np.ones(len(x3)),alpha=0.1,color='k')
-   ax.plot(x1,np.ones(len(x2))*(mid_y + max_range),x3,alpha=0.1,color='k')
-   ax.plot((mid_x - max_range)*np.ones(len(x1)),x2,x3,alpha=0.1,color='k')
+   ax.plot(x1,x2,(mid_z - max_range)*np.ones(len(x3)),alpha=0.1,lw=3,color='k')
+   ax.plot(x1,np.ones(len(x2))*(mid_y + max_range),x3,alpha=0.1,lw=3,color='k')
+   ax.plot((mid_x - max_range)*np.ones(len(x1)),x2,x3,alpha=0.1,lw=3,color='k')
 
    ax.set_xlim(mid_x - max_range, mid_x + max_range)
    ax.set_ylim(mid_y - max_range, mid_y + max_range)
@@ -46,6 +54,10 @@ def plot_fig(x, y, markevery, title, xlabel, ylabel, figname):
 			   'size'   : 18}
    fig = plt.figure(figsize=(12,12))
    plt.autoscale(enable=True, axis='x', tight=True)
+   
+   font = {'weight' : 'bold', 'size' : 40}
+   plt.rc('text', usetex=True)
+   plt.rc('font', family='serif')
 
    mpl.rc('font',**font)
    y1,y2,y3 = zip(*y)
@@ -68,6 +80,11 @@ def plot_mav(x,y,n,title,xlabel,ylabel,figname):
 			   'size'   : 18}
    fig = plt.figure(figsize=(12,12))
    plt.autoscale(enable=True, axis='x', tight=True)
+   
+   font = {'weight' : 'bold', 'size' : 40}
+   plt.rc('text', usetex=True)
+   plt.rc('font', family='serif')
+   
    miny = min(np.ndarray.flatten(np.asarray(y)))
    maxy = max(np.ndarray.flatten(np.asarray(y)))
    plt.ylim(1.3*miny,1.3*maxy)

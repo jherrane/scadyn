@@ -127,7 +127,7 @@ if __name__ == "__main__":
    a = np.genfromtxt(islice(log,10,11))
    a = a[3]*1e-9
    log.close()
-   title = 'Evolution of rotation between\nsteps ' + str(skip) + '-' +str(num_lines-22) 
+   title = 'Evolution of rotation between\nsteps ' + str(skip-22+1) + '-' +str(num_lines-22) 
 
    t = lines[:,1]
    x = lines[:,2:5]/a
