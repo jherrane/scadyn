@@ -44,24 +44,24 @@ contains
 
    subroutine tests()
       real(dp) :: q
-      call polarization()
-      call allocate_inc_wave()
-
       if (use_mie == 1) then
          call mie_params()
-      else 
+      else
          call vie_params()
       end if
 
-      matrices%x_CM = mesh%CM
       call diagonalize_inertia()
       call interstellar_env()
+
+      call polarization()
       call init_values()
+
+      call allocate_inc_wave()
 
       if (beam_shape == 1) call gaussian_beams()
       if (beam_shape == 2) call laguerre_gaussian_beams(p, l)
       if (beam_shape == 3) call bessel_beams()
-
+      
       if (run_test == 1) call test_methods()
       if (run_test == 2) then
          call torque_efficiency(q)

@@ -93,6 +93,9 @@ contains
       las = (Nmax + 1)*(2*Nmax + 1)*(2*Nmax + 3)/3 - 1
       nm = (Nmax + 1)**2 - 1
 
+      allocate (a(nm), b(nm), a_in(nm), b_in(nm), a_temp(nm), b_temp(nm), &
+         a90(nm), b90(nm), a_nm(nm), b_nm(nm), a_nm90(nm), b_nm90(nm))
+
       rotD = matrices%rotDs(1:las, j)
       indD = matrices%indDs(1:las, :, j)
       rotD90 = matrices%rotD90s(1:las, j)
@@ -103,24 +106,26 @@ contains
       Tba = matrices%Tbai(1:nm, 1:nm, j)
       Tbb = matrices%Tbbi(1:nm, 1:nm, j)
       
-      a_in = E*matrices%as(1:nm, j)
-      b_in = E*matrices%bs(1:nm, j)
-
-      a = sparse_matmul(rotD, indD, a_in, nm)
-      b = sparse_matmul(rotD, indD, b_in, nm)
-      a90 = sparse_matmul(rotD90, indD90, a_in, nm)
-      b90 = sparse_matmul(rotD90, indD90, b_in, nm)
+      a_temp = E*matrices%as(1:nm, j)/sqrt(2d0*sqrt(mu/epsilon)*mesh%k**2)/2d0
+      b_temp = E*matrices%bs(1:nm, j)/sqrt(2d0*sqrt(mu/epsilon)*mesh%k**2)/2d0
 
       if(beam_shape /= 0) then
          call translate(-matrices%x_CM, Nmax, Nmax, dcmplx(mesh%k), &
-            a_temp, b_temp, a, b, 0)
-         call translate(-matrices%x_CM, Nmax, Nmax, dcmplx(mesh%k), &
-            a90_temp, b90_temp, a90, b90, 0)
+            a_temp, b_temp, a_in, b_in, 0)
       else
-         a = a_temp
-         b = b_temp
-         a90 = a90_temp
-         b90 = b90_temp
+         a_in = a_temp
+         b_in = b_temp
+      end if
+
+      a = sparse_matmul(rotD, indD, a_in, nm)
+      b = sparse_matmul(rotD, indD, b_in, nm)
+
+      a90 = sparse_matmul(rotD90, indD90, a_in, nm)
+      b90 = sparse_matmul(rotD90, indD90, b_in, nm)
+
+      if (matrices%polarization == 1 .OR. beam_shape /= 0) then
+         a90 = dcmplx(0d0)
+         b90 = dcmplx(0d0)
       end if
 
       if (matrices%polarization == 1) then

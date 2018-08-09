@@ -13,7 +13,9 @@ contains
       real(dp) :: width
       integer :: i
 
-      width = 10d0/(maxval(mesh%ki))/sqrt(2d0)
+      i = matrices%whichbar
+      matrices%width = 2d0*pi/(maxval(mesh%ki))
+      width = matrices%width
       if(matrices%whichbar /= 0)then
          call gaussian_beam_shape(matrices%whichbar, matrices%Nmaxs(i), width)
       else
@@ -56,7 +58,8 @@ contains
       real(dp) :: width
       integer :: i, p, l
 
-      width = 2d0*pi/(minval(mesh%ki))
+      matrices%width = 2d0*pi/(minval(mesh%ki))
+      width = matrices%width
 
       if(matrices%whichbar /= 0)then
          call laguerre_gauss_farfield(matrices%whichbar, p, l, width)
@@ -234,7 +237,7 @@ contains
       real(dp) :: lim
       real(dp), allocatable :: z(:), y(:), grid(:, :)
 
-      lim = 2d0*pi*mesh%a*(maxval(mesh%ki))
+      lim = 2d0*matrices%width
       n = 100
       nn = n*n
       allocate (z(n), y(n), grid(3, nn))
@@ -245,8 +248,8 @@ contains
       do i = 1, n
          do j = 1, n
             ind = n*(j - 1) + i
-            grid(1, ind) = z(i)*mesh%a
-            grid(2, ind) = y(j)*mesh%a
+            grid(1, ind) = z(i)
+            grid(2, ind) = y(j)
          end do
       end do
 
@@ -278,16 +281,5 @@ contains
       call write2file(matrices%E_field, scatfield)
 
    end subroutine write_fields
-
-!****************************************************************************80
-
-   subroutine bsc_farfield(nn,mm,E,theta,phi,zero_rejection_level,a,b)
-      integer, dimension(:), allocatable, intent(in) :: nn, mm
-      real(dp), dimension(:), allocatable, intent(in) :: theta, phi
-      complex(dp), dimension(:), allocatable, intent(in) :: E 
-      complex(dp), dimension(:), allocatable, intent(out) :: a, b
-      real(dp) :: zero_rejection_level 
-
-   end subroutine bsc_farfield
 
 end module shapebeam
