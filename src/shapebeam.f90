@@ -13,11 +13,10 @@ contains
       real(dp) :: width
       integer :: i
 
-      i = matrices%whichbar
-      matrices%width = 2d0*pi/(maxval(mesh%ki))
+      matrices%width = 2d0*pi/(minval(mesh%ki))
       width = matrices%width
       if(matrices%whichbar /= 0)then
-         call gaussian_beam_shape(matrices%whichbar, matrices%Nmaxs(i), width)
+         call gaussian_beam_shape(matrices%whichbar, matrices%Nmaxs(matrices%whichbar), width)
       else
          do i = 1, matrices%bars
             call gaussian_beam_shape(i, matrices%Nmaxs(i), width)
@@ -77,7 +76,7 @@ contains
       integer :: i, nmax, total_modes, iii, jjj, ntheta, nphi, p, l, tp, info, lwork, ind
       integer, dimension(:), allocatable :: nn, mm, nn_old
       complex(dp) :: x, y, BCP(9)
-      real(dp) :: k, w0, truncation_angle
+      real(dp) :: k, w0, truncation_angle, beam_angle, wscaling
       real(dp), dimension(:), allocatable :: theta, phi, rw, LL, work
       complex(dp), dimension(:), allocatable :: beam_envelope, Ex, Ey, &
                                                 Etheta, Ephi, e_field, expansion_coefficients, &
@@ -93,29 +92,27 @@ contains
       x = dcmplx(1d0, 0d0)
       y = dcmplx(0d0, 1d0)
 
-      ! total_modes = nmax**2 + 2*nmax
-      total_modes = 2*nmax
+      total_modes = nmax**2 + 2*nmax
       allocate (nn(total_modes), mm(total_modes), nn_old(total_modes))
       do iii = 1, total_modes
-         nn(iii) = ceiling(dble(iii)/2d0)
-         mm(iii) = int((-1d0)**(iii) + l)
-         ! nn(iii) = floor(sqrt(dble(iii)))
-         ! mm(iii) = iii-nn(iii)**2-nn(iii)
+         nn(iii) = floor(sqrt(dble(iii)))
+         mm(iii) = iii-nn(iii)**2-nn(iii)
       end do
       nn_old = nn
       nn = PACK(nn, nn_old >= abs(mm))
       mm = PACK(mm, nn_old >= abs(mm))
       ntheta = nmax + 1
-      nphi = 2*p+abs(l)
-      nphi = nphi+3-mod(nphi,2)
+      nphi = 2*(nmax+1)
       tp = ntheta*nphi
       allocate (theta(tp), phi(tp))
       call angular_grid(ntheta, nphi, theta, phi)
       allocate (e_field(2*tp), rw(tp), LL(tp), beam_envelope(tp), Ex(tp), Ey(tp), &
                 Etheta(tp), Ephi(tp))
 
+      beam_angle = dasin(0.8d0)
+      wscaling=1.0d0/dtan(abs(beam_angle));
       do iii = 1, tp
-         rw(iii) = 2d0*k**2*w0**2*(dtan(theta(iii)))**2
+         rw(iii) = 2d0*(wscaling*w0)**2*(dtan(theta(iii)))**2
       end do
 
       LL = laguerre(p, abs(l), rw)
@@ -139,7 +136,10 @@ contains
 
       do iii = 1, size(nn, 1)
          do jjj = 1, tp
+! Get the spherical harmonics, only the derivative theta and phi components of the
+! gradient are needed.
             BCP = vsh(nn(iii), mm(iii), theta(jjj), phi(jjj))
+! Coefficient matrix A is the solution to A*e_field(=B) = expansion_coefficients (=x)
             coefficient_matrix(jjj, iii) = BCP(6)*dcmplx(0d0, 1d0)**(nn(iii) + 1)/ &
                                            dsqrt(dble(nn(iii))*(nn(iii) + 1))
             coefficient_matrix(tp + jjj, iii) = -BCP(5)*dcmplx(0d0, 1d0)**(nn(iii) + 1)/ &
@@ -153,10 +153,10 @@ contains
 
       lwork = 64*min(2*tp, 2*size(nn, 1))
       allocate (work(lwork))
-
+! Solve the linear problem, same as x = A\B in matlab
       call zgels('N', 2*tp, 2*size(nn, 1), 1, coefficient_matrix, 2*tp, e_field, &
                  2*tp, work, lwork, info)
-
+! Solution is written in the e_field variable in zgels, then some book keeping
       expansion_coefficients = e_field(1:2*size(nn, 1))
 
       allocate (a(size(nn, 1)), b(size(nn, 1)))
