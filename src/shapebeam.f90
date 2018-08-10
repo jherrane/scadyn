@@ -54,17 +54,14 @@ contains
 !****************************************************************************80
 
    subroutine laguerre_gaussian_beams(p, l)
-      real(dp) :: width
       integer :: i, p, l
 
       matrices%width = 2d0*pi/(minval(mesh%ki))
-      width = matrices%width
-
       if(matrices%whichbar /= 0)then
-         call laguerre_gauss_farfield(matrices%whichbar, p, l, width)
+         call laguerre_gauss_farfield(matrices%whichbar, p, l)
       else
          do i = 1, matrices%bars
-            call laguerre_gauss_farfield(i, p, l, width)
+            call laguerre_gauss_farfield(i, p, l)
          end do
       end if
 
@@ -72,18 +69,21 @@ contains
 
 !****************************************************************************80
 ! Axisymmetric LG-beam
-   subroutine laguerre_gauss_farfield(i, p, l, w0)
-      integer :: i, nmax, total_modes, iii, jjj, ntheta, nphi, p, l, tp, info, lwork, ind
+   subroutine laguerre_gauss_farfield(i, p, l)
+      integer :: i, nmax, total_modes, iii, jjj, ntheta, nphi, p, l, tp, info, &
+      lwork, ind, paraxial_order
       integer, dimension(:), allocatable :: nn, mm, nn_old
       complex(dp) :: x, y, BCP(9)
-      real(dp) :: k, w0, truncation_angle, beam_angle, wscaling
-      real(dp), dimension(:), allocatable :: theta, phi, rw, LL, work
+      real(dp) :: k, w0, truncation_angle, beam_angle, wscaling, mode_input_power, &
+      aperture_power_normalization, NA, invL, zz, w, expw
+      real(dp), dimension(:), allocatable :: theta, phi, rw, LL, work, dr
       complex(dp), dimension(:), allocatable :: beam_envelope, Ex, Ey, &
-                                                Etheta, Ephi, e_field, expansion_coefficients, &
+                                                Etheta, Ephi, e_field, &
                                                 a, b, a_nm, b_nm
       complex(dp), dimension(:, :), allocatable :: coefficient_matrix
 
       k = mesh%ki(i)
+      NA = 0.8d0
       nmax = matrices%Nmaxs(i)
       allocate (a_nm((nmax + 1)**2 - 1), b_nm((nmax + 1)**2 - 1))
       a_nm = dcmplx(0d0)
@@ -91,6 +91,26 @@ contains
       truncation_angle = 90d0
       x = dcmplx(1d0, 0d0)
       y = dcmplx(0d0, 1d0)
+
+      paraxial_order = 2*p+abs(l)
+
+      w0 = 1d0
+      ! if (paraxial_order /= 0) then
+      !    invL=1d0/abs(paraxial_order )
+      !    zz = exp(-(abs(paraxial_order )+2d0)*invL)
+      !    w=-(1d0+2d0*sqrt(invL)+invL)
+
+      !    w0=-w
+
+      !    do while (abs(w-w0)>0.00001d0)
+      !      w0=w;
+      !      expw = exp(w);
+           
+      !      w=w0-(w0*expw+zz)/(expw+w0*expw)
+      !    end do
+
+      !    w0 = sqrt(-abs(paraxial_order )/2d0*w)
+      ! end if
 
       total_modes = nmax**2 + 2*nmax
       allocate (nn(total_modes), mm(total_modes), nn_old(total_modes))
@@ -106,13 +126,16 @@ contains
       tp = ntheta*nphi
       allocate (theta(tp), phi(tp))
       call angular_grid(ntheta, nphi, theta, phi)
-      allocate (e_field(2*tp), rw(tp), LL(tp), beam_envelope(tp), Ex(tp), Ey(tp), &
+      allocate (e_field(2*tp), rw(tp), dr(tp), LL(tp), beam_envelope(tp), Ex(tp), Ey(tp), &
                 Etheta(tp), Ephi(tp))
 
-      beam_angle = dasin(0.8d0)
-      wscaling=1.0d0/dtan(abs(beam_angle));
+      beam_angle = dasin(NA)
+      wscaling=1.0d0/dtan(abs(beam_angle))
+      mode_input_power = 0d0
+      aperture_power_normalization = 0d0
       do iii = 1, tp
          rw(iii) = 2d0*(wscaling*w0)**2*(dtan(theta(iii)))**2
+         dr(iii) = (wscaling*w0)*dabs(dcos(theta(iii)))
       end do
 
       LL = laguerre(p, abs(l), rw)
@@ -120,6 +143,16 @@ contains
       do iii = 1, tp
          beam_envelope(iii) = dcmplx(rw(iii)**(abs(l/2))*LL(iii)* &
                                    zexp(dcmplx(-rw(iii)/2, l*phi(iii) + pi/2d0*(p*2+abs(l)+1))))
+         mode_input_power = mode_input_power + &
+            2d0*pi*abs(beam_envelope(iii))**2*sqrt(rw(iii)/2)*abs(dr(iii))
+         aperture_power_normalization = aperture_power_normalization + &
+            2d0*pi*abs(beam_envelope(iii))**2*dsin(theta(iii))
+      end do
+      mode_input_power = sqrt(mode_input_power)
+      aperture_power_normalization = sqrt(aperture_power_normalization)
+
+      do iii = 1, tp
+         beam_envelope(iii) = beam_envelope(iii)*mode_input_power/aperture_power_normalization
          if (theta(iii) < pi*(180-truncation_angle)/180) beam_envelope(iii) = dcmplx(0d0)
       end do
 
@@ -132,7 +165,7 @@ contains
 
       e_field = [Etheta, Ephi]
 
-      allocate (coefficient_matrix(2*tp, 2*size(nn, 1)), expansion_coefficients(2*size(nn, 1)))
+      allocate (coefficient_matrix(2*tp, 2*size(nn, 1)))
 
       do iii = 1, size(nn, 1)
          do jjj = 1, tp
@@ -156,12 +189,11 @@ contains
 ! Solve the linear problem, same as x = A\B in matlab
       call zgels('N', 2*tp, 2*size(nn, 1), 1, coefficient_matrix, 2*tp, e_field, &
                  2*tp, work, lwork, info)
-! Solution is written in the e_field variable in zgels, then some book keeping
-      expansion_coefficients = e_field(1:2*size(nn, 1))
 
+! Solution is written in the e_field variable in zgels, then some book keeping
       allocate (a(size(nn, 1)), b(size(nn, 1)))
-      a = expansion_coefficients(1:size(nn, 1))
-      b = expansion_coefficients(size(nn, 1) + 1:2*size(nn, 1))
+      a = e_field(1:size(nn, 1))
+      b = e_field(size(nn, 1) + 1:2*size(nn, 1))
 
       do iii = 1, size(nn, 1)
          ind = nn(iii)*(nn(iii) + 1) + mm(iii)
