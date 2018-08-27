@@ -124,6 +124,7 @@ module common
       real(dp)                :: E = 1d0
       real(dp)                :: refr = 0d0
       real(dp)                :: refi = 0d0
+      real(dp)                :: ref_med = 1d0
       real(dp)                :: tol_m = 3d-3
       real(dp)                :: lambda1 = 2d-7
       real(dp)                :: lambda2 = 2d-6

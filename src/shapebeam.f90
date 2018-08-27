@@ -7,51 +7,6 @@ module shapebeam
 contains
 
 !****************************************************************************80
-! The Gaussian amplitude profile in localized approximation (kw0>=5) a'la
-! MSTM 3.0 (Mackowski et al 2013)
-   subroutine gaussian_beams()
-      real(dp) :: width
-      integer :: i
-
-      matrices%width = 2d0*pi/(minval(mesh%ki))
-      width = matrices%width
-      if(matrices%whichbar /= 0)then
-         call gaussian_beam_shape(matrices%whichbar, matrices%Nmaxs(matrices%whichbar), width)
-      else
-         do i = 1, matrices%bars
-            call gaussian_beam_shape(i, matrices%Nmaxs(i), width)
-         end do
-      end if
-
-   end subroutine gaussian_beams
-
-!****************************************************************************80
-! The Gaussian amplitude profile in localized approximation (kw0>=5) a'la
-! MSTM 3.0 (Mackowski et al 2013)
-   subroutine gaussian_beam_shape(i, Nmax, width)
-      real(dp) :: gn, kw0, width
-      integer :: n, m, ind, i, Nmax
-
-      kw0 = mesh%ki(i)*width
-
-      if (kw0 < 5d0) then
-         write (*, '(A)') "    Problem: width of Gaussian beam at focal point is smaller than wavelength!"
-         write (*, '(2(A, ES9.3))') "     Wavelength is ", 2d0*pi/mesh%ki(i), ", width is ", width
-      end if
-
-      ind = 0
-      do n = 1, Nmax
-         gn = dexp(-((dble(n) + .5d0)/kw0)**2)
-         do m = -n, n
-            ind = ind + 1
-            matrices%as(ind, i) = gn*matrices%as(ind, i)
-            matrices%bs(ind, i) = gn*matrices%bs(ind, i)
-         end do
-      end do
-
-   end subroutine gaussian_beam_shape
-
-!****************************************************************************80
 
    subroutine laguerre_gaussian_beams(p, l)
       integer :: i, p, l
@@ -83,7 +38,7 @@ contains
       complex(dp), dimension(:, :), allocatable :: coefficient_matrix
 
       k = mesh%ki(i)
-      NA = 0.8d0
+      NA = 0.9398d0
       nmax = matrices%Nmaxs(i)
       allocate (a_nm((nmax + 1)**2 - 1), b_nm((nmax + 1)**2 - 1))
       a_nm = dcmplx(0d0)
@@ -95,22 +50,6 @@ contains
       paraxial_order = 2*p+abs(l)
 
       w0 = 1d0
-      ! if (paraxial_order /= 0) then
-      !    invL=1d0/abs(paraxial_order )
-      !    zz = exp(-(abs(paraxial_order )+2d0)*invL)
-      !    w=-(1d0+2d0*sqrt(invL)+invL)
-
-      !    w0=-w
-
-      !    do while (abs(w-w0)>0.00001d0)
-      !      w0=w;
-      !      expw = exp(w);
-           
-      !      w=w0-(w0*expw+zz)/(expw+w0*expw)
-      !    end do
-
-      !    w0 = sqrt(-abs(paraxial_order )/2d0*w)
-      ! end if
 
       total_modes = nmax**2 + 2*nmax
       allocate (nn(total_modes), mm(total_modes), nn_old(total_modes))
@@ -165,7 +104,7 @@ contains
 
       e_field = [Etheta, Ephi]
 
-      allocate (coefficient_matrix(2*tp, 2*size(nn, 1)))
+      allocate(coefficient_matrix(2*tp, 2*size(nn, 1)))
 
       do iii = 1, size(nn, 1)
          do jjj = 1, tp
@@ -184,8 +123,9 @@ contains
          end do
       end do
 
-      lwork = 64*min(2*tp, 2*size(nn, 1))
+      lwork = 64*max(2*tp, 2*size(nn, 1))
       allocate (work(lwork))
+
 ! Solve the linear problem, same as x = A\B in matlab
       call zgels('N', 2*tp, 2*size(nn, 1), 1, coefficient_matrix, 2*tp, e_field, &
                  2*tp, work, lwork, info)

@@ -57,9 +57,8 @@ contains
 
       call allocate_inc_wave()
 
-      if (beam_shape == 1) call gaussian_beams()
-      if (beam_shape == 2) call laguerre_gaussian_beams(p, l)
-      if (beam_shape == 3) call bessel_beams()
+      if (beam_shape == 1) call laguerre_gaussian_beams(p, l)
+      if (beam_shape == 2) call bessel_beams()
    end subroutine initialize
 
 !****************************************************************************80

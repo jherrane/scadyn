@@ -139,6 +139,9 @@ contains
          case ('--refi')
             call get_command_argument(i + 1, arg)
             read (arg, *) matrices%refi
+         case ('--refmed')
+            call get_command_argument(i + 1, arg)
+            read (arg, *) matrices%ref_med
          case ('-w', '--wavelen')
             call get_command_argument(i + 1, arg)
             read (arg, *) matrices%whichbar
@@ -173,6 +176,7 @@ contains
             write (*, '(A)') ' -p --paramsfile params.in   Read input parameters from file'
             write (*, '(A)') '    --refr       0.0         Real part of refractive index'
             write (*, '(A)') '    --refi       0.0         Imaginary part of refractive index'
+            write (*, '(A)') '    --refmed     1.0         Refractive index of the medium (real)'
             write (*, '(A)') ' -w --wavelen    0           Choose wavelength from the T-matrix'
             write (*, '(A)') ' -S --singleT    0           Calculate only one T-matrix, of wb'
             write (*, '(A)') ' -s --seed       0           RNG seed'
@@ -201,7 +205,7 @@ contains
    subroutine read_params()
 ! Input related variables
       character(len=150) :: buffer, label
-      real(dp) :: temp, tempii
+      real(dp) :: temp, tempii, temp_med
       integer :: pos
       integer, parameter :: fh = 15
       integer :: ios = 0
@@ -263,6 +267,9 @@ contains
                if (temp > 1d-7) matrices%refr = temp
             case ('refi')
                read (buffer, *, iostat=ios) tempii
+            case ('ref_med')
+               read (buffer, *, iostat=ios) temp_med
+               if(temp_med>1.0d0) matrices%ref_med = temp_med
             case ('tol_m')
                read (buffer, *, iostat=ios) matrices%tol_m
             case ('rot_max')
