@@ -11,7 +11,6 @@ contains
 ! Main routine
    subroutine integrate()
       integer :: t1, t2, rate
-      real(dp) :: stable_direction(3)
 
       write(*,'(A)') ' Integration in progress...'
       call system_clock(t1, rate)
@@ -59,6 +58,7 @@ contains
 
       if (beam_shape == 1) call laguerre_gaussian_beams(p, l)
       if (beam_shape == 2) call bessel_beams()
+
    end subroutine initialize
 
 !****************************************************************************80
@@ -74,7 +74,11 @@ contains
       do i = 1, it_max
          if (i > it_stop) exit
 
-         call vlv_update(F, N)
+         if(beam_shape == 0) then
+            call vlv_update(F, N)
+         else
+            call ot_update(F,N)
+         end if
 
          matrices%N = N
          matrices%F = F
@@ -82,7 +86,9 @@ contains
          call update_values()
          J = matmul(matrices%I,matrices%w)
          E = 0.5d0*dot_product(J,matrices%w)
-         matrices%q_param = 2d0*matrices%Ip(3)*E/dot_product(J,J)
+         if(dot_product(J,J)/=0d0) then
+            matrices%q_param = 2d0*matrices%Ip(3)*E/dot_product(J,J)
+         end if
          
          call check_stability(i)
          if(shortlog == 0) call append_log(i)
@@ -132,7 +138,7 @@ contains
 
    subroutine solve_dissipation()
       integer :: i, i_h
-      real(dp) :: q, E, J(3), I3, t, h, Jlab(3), JJ, dq_max, Jold, HH
+      real(dp) :: q, J(3), I3, t, h, JJ, dq_max, HH
 
       I3 = matrices%Ip(3)
       J = matmul(matrices%I,matrices%w)
@@ -179,6 +185,7 @@ contains
       R0 = matrices%R
       H = 0d0
       t = 0d0
+      J = 0d0
       N_i = 0
 
       ! Iteration of optical force calculation
@@ -263,7 +270,7 @@ contains
 ! about its major axis of inertia (a_3) for angles 0 to pi between
 ! a_3 and incident k0. Results are automatically comparable with DDSCAT.
    subroutine RAT_efficiency(Nxi, Nphi, Npsi_in, FGH)
-      integer :: i, j, k, l, Nxi, Nphi, Npsi, ind
+      integer :: i, j, k, Nxi, Nphi, Npsi, ind
       integer, optional :: Npsi_in
       real(dp) :: F, G, H
       real(dp), dimension(3) :: Q_t, n_phi
@@ -305,7 +312,7 @@ contains
 
                call get_forces(1)
 
-               Q_t = matmul(transpose(matrices%R),matrices%Q_t)/Nphi
+               Q_t = matmul(transpose(matrices%R),matrices%Q_t)/dble(Nphi)
                F = dot_product(Q_t, xihat(xi(j), phi(k), psi(i)))
                G = dot_product(Q_t, phihat(xi(j), phi(k), psi(i)))
                H = dot_product(Q_t, rhat(xi(j), phi(k), psi(i)))
@@ -340,25 +347,23 @@ contains
 ! Calculates adaptive time step over a maximum angle the particle
 ! can rotate during a step
    subroutine adaptive_step()
-      real(dp) :: max_w, test_dt
+      real(dp) :: max_w, test_dt, dw(3)
 
+      dw = get_dotw(matrices%N, matrices%w, matrices%I, matrices%I_inv)
+      if(vlen(dw)<1d-7) dw = 1d-7
 ! Use an adaptive time step, integrate over rotation <= rot_max
-      ! max_w = vlen(matrices%w + &
-      !    get_dotw(matrices%N, matrices%w, matrices%I, matrices%I_inv))
-      ! test_dt = matrices%rot_max/max_w
+      max_w = vlen(matrices%w + dw*matrices%dt)
+      if(max_w>1d-8) then
+         test_dt = matrices%rot_max/max_w
+      else
+         test_dt = matrices%dt
+      end if 
 
-! Use an adaptive time step, integrate over rotation <= rot_max
-      max_w = vlen(matrices%w)
-      max_w = max_w + &
-      vlen(get_dotw(matrices%N, matrices%w, matrices%I, matrices%I_inv))*matrices%dt
-      test_dt = matrices%rot_max/max_w
-
-      if (test_dt < matrices%dt0) then
+      if(vlen(matrices%w)/vlen(dw*matrices%dt) < 0.2d0) then
          matrices%dt = test_dt
       else
-         matrices%dt = matrices%dt0
+         matrices%dt = 0.9d0*matrices%dt*min(max(test_dt/matrices%dt,0.3d0),2d0)
       end if
-
    end subroutine adaptive_step
 
 !****************************************************************************80
@@ -421,7 +426,7 @@ contains
                   beta*dsin(xi)*dcos(xi)
 ! dw = MH -(1+betasin^2(xi))w
       dxiw(2) = matrices%M*interp1D(H,xis,dcos(xi)) - &
-                  (1+beta*(dsin(xi))**2)*w
+                  (1d0+beta*(dsin(xi))**2)*w
 
    end function get_dxiw
 
@@ -431,12 +436,10 @@ contains
       real(dp), dimension(3), intent(out) :: F, N
       integer, optional :: mode
       integer :: maxiter, i1
-      real(dp) :: Rn(3, 3), wnh(3), dt, I(3), Jw(3), Ff, dtheta, FFD(3)
-      real(dp) :: PxW(3), hel(3), Jac(3, 3), Jwn(3), iterstop, drag
+      real(dp) :: Rn(3, 3), wnh(3), dt, I(3), Jw(3), Ff, FFD(3)
+      real(dp) :: PxW(3), hel(3), Jac(3, 3), Jwn(3), iterstop
 
       maxiter = 50
-
-      drag = 1d4
 
       I = matrices%Ip
       Jac = 0.d0
@@ -444,15 +447,13 @@ contains
       Jw = 0.d0
 
 ! First force calculation for getting a reasonable value for dt
-      if (matrices%tt == 0d0 .AND. .NOT. matrices%E < 1d-7) then
+      if (matrices%tt == 0d0) then
          call get_forces()
          N = matrices%N
-         call adaptive_step()
-         dt = matrices%dt
-      else
-         call adaptive_step()
-         dt = matrices%dt
       end if
+
+      call adaptive_step()
+      dt = matrices%dt
 
       if (matrices%E < 1d-7) then 
          N = 0d0
@@ -463,18 +464,9 @@ contains
          if(mode==0) N = 0d0
       end if
 
-      if(beam_shape /= 0) then
-         FFD = (dble(matrices%F) - &
-            drag*vlen(matrices%v_CM)*pi*mesh%a**2*matrices%v_CM)/mesh%mass
-         ! matrices%xn = matrices%x_CM + euler_3D(FFD, dt)
-         matrices%vn = matrices%v_CM + euler_3D(FFD, dt)*dt
-         matrices%xn = matrices%x_CM + euler_3D(matrices%vn, dt)*dt
-         ! print*, FFD, dt, matrices%vn, matrices%xn
-      else
-         FFD = (dble(matrices%F))/mesh%mass
-         matrices%vn = matrices%v_CM + euler_3D(FFD, dt)*dt
-         matrices%xn = matrices%x_CM + euler_3D(matrices%vn, dt)*dt
-      end if 
+      FFD = (dble(matrices%F))/mesh%mass
+      matrices%vn = matrices%v_CM + euler_3D(FFD, dt)*dt
+      matrices%xn = matrices%x_CM + euler_3D(matrices%vn, dt)*dt
 
 ! Step 1) Newton solve
       wnh = matrices%w ! Body angular velocity
@@ -487,6 +479,7 @@ contains
 
          hel = matmul(matrices%I, matrices%w) - Jw + PxW - &
          0.25d0*dt**2*Ff*wnh + 0.5d0*dt*N
+
          if (vlen(hel) < iterstop) then
             exit
             ! else if(i1==maxiter) then
@@ -529,9 +522,103 @@ contains
    end subroutine vlv_update
 
 !****************************************************************************80
+! Simpler integration for optical tweezers. Includes numerical shenanigans to
+! take into account drag, gravity and some other more realistic effects. 
+! Especially the rotational rates are heavily capped, as they would not be 
+! expected.
+   subroutine ot_update(F, N)
+      real(dp), dimension(3), intent(out) :: F, N
+      integer :: maxiter, i1
+      real(dp) :: Rn(3, 3), wnh(3), dt, I(3), Jw(3), Ff, FFD(3), NND(3)
+      real(dp) :: PxW(3), hel(3), Jac(3, 3), Jwn(3), iterstop, drag
+
+      maxiter = 50
+
+      drag = 2d2
+
+      I = matrices%Ip
+      Jac = 0.d0
+      PxW = 0.d0
+      Jw = 0.d0
+
+! First force calculation for getting a reasonable value for dt
+      if (matrices%tt == 0d0) then
+         call get_forces()
+      end if
+
+      N = matmul(matrices%I_inv,matrices%N)
+      if(vlen(NND)>vlen(matrices%F/mesh%mass)) then
+         N = 1.3d0*N*vlen(matrices%F/mesh%mass)/vlen(N)
+      end if
+      N = matmul(matrices%I,N) 
+      matrices%N = N
+      call adaptive_step()
+      dt = matrices%dt
+
+! Calculate total force, or really its acceleration, including gravity, 
+! bouyancy, drag
+      FFD = dble(matrices%F)/mesh%mass - &
+         (mesh%rho-1d3)*mesh%V*9.81d0*[0d0,0d0,1d0]/mesh%mass - &
+         drag*vlen(matrices%v_CM)*pi*mesh%a**2*matrices%v_CM/mesh%mass
+      matrices%vn = matrices%v_CM + euler_3D(FFD, dt)*dt
+      matrices%xn = matrices%x_CM + euler_3D(matrices%vn, dt)*dt
+
+! Step 1) Newton solve
+      wnh = matrices%w ! Body angular velocity
+      Jw = matmul(matrices%I, wnh)
+      iterstop = maxval(matrices%I)*1.d-12
+
+      do i1 = 1, maxiter
+         Ff = dot_product(wnh, Jw)
+         PxW = 0.5*dt*crossRR(Jw, wnh)
+
+         hel = matmul(matrices%I, matrices%w) - Jw + PxW - &
+         0.25d0*dt**2*Ff*wnh + 0.5d0*dt*N
+
+         if (vlen(hel) < iterstop) then
+            exit
+         end if
+
+         Jac = -matrices%I + 0.5d0*dt*(reshape( &
+              [0.d0, Jw(3) - I(1)*wnh(3), -Jw(2) + I(1)*wnh(2), &
+              -Jw(3) + I(2)*wnh(3), 0.d0, Jw(1) - I(2)*wnh(1), &
+               Jw(2) - I(3)*wnh(2), -Jw(1) + I(3)*wnh(1), 0.d0], [3, 3]) &
+               - dt*real_outer_product(wnh, Jw)) - 0.25d0*dt*dt*Ff*eye(3)
+         wnh = wnh - matmul(inv(Jac), hel)
+         Jw = matmul(matrices%I, wnh)
+      end do
+      NND = matmul(matrices%I_inv,matrices%N)
+      if(vlen(NND)>vlen(matrices%F/mesh%mass)) then
+         NND = 1.3d0*NND*vlen(matrices%F/mesh%mass)/vlen(NND)
+         matrices%N = NND
+      end if
+! Step 2) Explicit configuration update
+      Rn = matmul(matrices%R, cay(dt*wnh))
+      matrices%qn = mat2quat(Rn)
+      matrices%qn = normalize_quat(matrices%qn)
+      matrices%Rn = quat2mat(matrices%qn)
+
+      matrices%R = matrices%Rn
+      call get_forces()
+      N = matmul(matrices%I_inv,matrices%N)
+      if(vlen(NND)>vlen(matrices%F/mesh%mass)) then
+         N = 1.3d0*N*vlen(matrices%F/mesh%mass)/vlen(N)
+      end if
+      N = matmul(matrices%I,N) 
+      matrices%N = N
+
+! Step 3) Explicit angular velocity update
+      Jwn = Jw + PxW + 0.25d0*dt**2d0*dot_product(wnh, Jw)*wnh + 0.5d0*dt*N
+      matrices%wn = matmul(matrices%I_inv, Jwn)
+
+      F = matrices%F
+      ! print*, vlen(matrices%F/mesh%mass), vlen(matmul(matrices%I_inv,matrices%N))
+   end subroutine ot_update
+
+!****************************************************************************80
 ! Runge-Kutta 4 update for the alignment differential equation (ADE) pair
    subroutine ADE_update(w, xi)
-      real(dp) :: dxiw(2), w, xi, dt, coeffs(4), k_w(4), k_xi(4)
+      real(dp) :: dxiw(2), w, xi, dt, k_w(4), k_xi(4)
 
       dt = 1d-2
 
@@ -564,9 +651,7 @@ contains
       real(dp), optional :: w_limits(2)
       real(dp), dimension(:,:), allocatable, intent(out) :: w_grid, xi_grid
 ! Local variables
-      integer :: i, j
       real(dp), dimension(:), allocatable :: w, xi
-      real(dp) :: dxiw(2)
       
       allocate(w(Nw), xi(Nxi))
       allocate(xi_grid(Nxi, Nw), w_grid(Nxi, Nw))

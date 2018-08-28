@@ -3,7 +3,7 @@ HOSTNAME = $(firstword $(subst -, ,$(shell hostname)))
 FC = gfortran
 FCFLAGS = -O3 -ffast-math -funroll-loops -march=native
 DEBUG = -O0 -ffast-math -funroll-loops -march=native -fcheck=bounds -g -fbacktrace
-DEBUGALL = -O0 -ffast-math -funroll-loops -march=native -Wall -pedantic -Wconversion-extra -fcheck=all -g -fbacktrace
+DEBUGALL = -Wall -pedantic -fcheck=all -ffpe-trap=invalid,zero,overflow
 
 # Required libraries: Lapack, FFTW3, HDF5
 LIBS = -lm -L/usr/local/lib -L/usr/lib -L/usr/lib/x86_64-linux-gnu/hdf5/serial -lfftw3 -llapack -lhdf5_fortran -lhdf5 -lhdf5_hl -lblas
@@ -94,7 +94,7 @@ post-build:
 debug: FCFLAGS = $(DEBUG)
 debug: all
 
-debugall: FCFLAGS = $(DEBUGALL)
+debugall: FCFLAGS = $(DEBUG) $(DEBUGALL)
 debugall: all
 
 $(BINDIR):

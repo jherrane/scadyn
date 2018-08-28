@@ -8,8 +8,7 @@ contains
 !****************************************************************************80
 ! Calculate forces and torques during single step
    subroutine get_forces(mode)
-      real(dp), dimension(3, 3) :: RT, R_k, R_k90
-      real(dp), dimension(3) :: Q_t
+      real(dp), dimension(3) :: Q_t, Q_f
       real(dp) :: u, wl
       real(dp), dimension(3) :: F, N, N_DG, N_B
       integer :: i
@@ -18,6 +17,7 @@ contains
       call rot_setup()
 
       Q_t = 0d0
+      Q_f = 0d0
       N = 0d0
       F = 0d0
       if(present(mode)) then
@@ -48,6 +48,9 @@ contains
          Q_t = Q_t + matrices%torque*(mesh%ki(matrices%whichbar))/&
                (epsilon*(matrices%E_rel(matrices%whichbar)*matrices%E)**2/2d0)/&
                pi/mesh%a**2/matrices%bars
+         Q_f = Q_f + matrices%force/&
+               (epsilon*(matrices%E_rel(matrices%whichbar)*matrices%E)**2/2d0)/&
+               pi/mesh%a**2/matrices%bars
       end if
 
       if (calc_extra_torques == 1) then
@@ -59,6 +62,7 @@ contains
       matrices%F = matmul(matrices%R, F) ! {x}_sca -> {x}_lab
       matrices%N = matmul(transpose(matrices%P), N) ! {N}_sca -> {N}_b
       matrices%Q_t = Q_t
+      matrices%Q_f = Q_f
 
    end subroutine get_forces
 
@@ -100,8 +104,8 @@ contains
       a_temp = E*matrices%as(1:nm, i)/sqrt(2d0*sqrt(mu/epsilon)*mesh%k**2)/2d0
       b_temp = E*matrices%bs(1:nm, i)/sqrt(2d0*sqrt(mu/epsilon)*mesh%k**2)/2d0
 
-      if(beam_shape /= 0) then
-         call translate(-matrices%x_CM, Nmax, Nmax, dcmplx(mesh%k), &
+      if(beam_shape /= 0 .AND. vlen(matrices%x_CM) > 1d-10) then
+         call translate(matrices%x_CM, Nmax, Nmax, dcmplx(mesh%k), &
             a_temp, b_temp, a_in, b_in, 0)
       else
          a_in = a_temp
@@ -161,10 +165,9 @@ contains
 
 ! Averaging now, thus division by the number of polarization states
       if(matrices%polarization > 1) then
-         matrices%force = [fx, fy, fz]/cc/2d0
-         matrices%torque = [tx, ty, tz]/(cc*mesh%k)/2d0
+         matrices%force = dble([fx, fy, fz]/cc/2d0)
+         matrices%torque = dble([tx, ty, tz]/(cc*mesh%k)/2d0)
       end if
-
    end subroutine forcetorque
 
 !****************************************************************************80
@@ -172,7 +175,6 @@ contains
    subroutine relax_step(q, t, dq_max, J)
       real(dp), intent(inout) :: q, t
       real(dp), intent(in) :: J, dq_max
-      integer :: iii, jjj, NH, Ntau
       real(dp) :: tau_n, tau_e, tau_int, dq, I1, I3, dt
 
       I1 = matrices%Ip(1)
@@ -256,8 +258,7 @@ contains
 ! Calculate the Barnett relaxation (nuclear/electron) time scale before next 
 ! step
    function barnett_time(chi0, g, w, T1, T2) result(tau)
-      real(dp) :: tau, T1, T2, chi0, I1, I3, w, ww,  V, g
-      real(dp), dimension(3) :: Jb, a_3, J, axis
+      real(dp) :: tau, T1, T2, chi0, I1, I3, w, V, g
 
       V = mesh%V
       I1 = matrices%Ip(1)
@@ -273,7 +274,7 @@ contains
    function DG_torque() result(N)
       real(dp) :: psi, xi, phi, Kw, V, tau, mag_B
       real(dp), dimension(3) :: N
-      real(dp), dimension(3)    :: a3, tmp, w, B, B_perp, proj_Bperp_a3, psi_vec
+      real(dp), dimension(3)    :: a3, w, B, B_perp, proj_Bperp_a3, psi_vec
 
       mag_B = vlen(matrices%B)
       Kw = 10d0**(-13)
@@ -301,7 +302,7 @@ contains
 
       N = -(dsin(xi)*dcos(xi)*psi_vec + dsin(xi)*dsin(xi)*a3)*matrices%Ip(3)*vlen(w)/tau
 
-      if (mag_B < 1d-16) N = dcmplx(0d0)
+      if (mag_B < 1d-16) N = 0d0
 
    end function DG_torque
 
@@ -328,8 +329,6 @@ contains
    function get_Q(theta, phi, beta) result(Q)
       real(dp) :: R_thta(3, 3), nbeta(3), R_beta(3, 3), Q(3), theta, beta, phi, &
                   a_3(3), R_phi(3, 3)
-      complex(dp) :: call(6)
-      integer :: k
 
       a_3 = matrices%P(1:3, 3)
 

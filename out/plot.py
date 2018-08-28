@@ -14,6 +14,8 @@ from itertools import islice
 from io import StringIO
 from matplotlib import rc
 import codecs
+from matplotlib import rcParams
+rcParams.update({'figure.autolayout': True})
 
 def Round_To_n(x, n):
    return round(x, -int(np.floor(np.sign(x) * np.log10(abs(x)))) + n)
@@ -52,8 +54,9 @@ def plot_orbit(orbit, title, figname):
 def plot_fig(x, y, markevery, title, xlabel, ylabel, figname):
    font = {'weight' : 'bold',
 			   'size'   : 18}
-   fig = plt.figure(figsize=(12,12))
+   fig = plt.figure(figsize=(14,14))
    plt.autoscale(enable=True, axis='x', tight=True)
+   plt.tight_layout()
    
    font = {'weight' : 'bold', 'size' : 40}
    plt.rc('text', usetex=True)
@@ -80,6 +83,7 @@ def plot_mav(x,y,n,title,xlabel,ylabel,figname):
 			   'size'   : 18}
    fig = plt.figure(figsize=(12,12))
    plt.autoscale(enable=True, axis='x', tight=True)
+   plt.tight_layout()
    
    font = {'weight' : 'bold', 'size' : 40}
    plt.rc('text', usetex=True)
@@ -142,7 +146,7 @@ if __name__ == "__main__":
    t = lines[:,1]
    x = lines[:,2:5]/a
    w = lines[:,5:8]
-   v = lines[:,8:11]
+   v = lines[:,8:11]/a
    J = 0*w
    N = lines[:,11:14]
    F = lines[:,14:17]
@@ -161,7 +165,7 @@ if __name__ == "__main__":
    with cd(pth):
       plot_fig(t,x,markevery,'Position of CM vs. Time','t (s)','x (\lambda)','x.png')
       plot_fig(t,w,markevery,'Angular velocity vs. Time','t (s)','\omega','w.png')
-      plot_fig(t,v,markevery,'Velocity vs. Time','t (s)','\omega','v.png')
+      plot_fig(t,v,markevery,'Velocity vs. Time','t (s)','v (\lambda/s)','v.png')
       plot_fig(t,J,markevery,'Angular momentum vs. Time','t (s)','J (Nms)','J.png')
       plot_fig(t,N,markevery,'Torque vs. Time','t (s)','N (Nm)','N.png')
       plot_fig(t,F,markevery,'Force vs. Time','t (s)','F (N)','F.png')

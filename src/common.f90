@@ -616,7 +616,11 @@ contains
       real(dp) :: vec(3)
 
       vec(1) = sqrt(x(1)**2 + x(2)**2 + x(3)**2) ! r
-      vec(2) = acos(x(3)/vec(1)) ! theta
+      if(vec(1) /= 0d0) then
+         vec(2) = acos(x(3)/vec(1)) ! theta
+      else
+         vec(2) = 0d0
+      end if
       vec(3) = atan2(x(2), x(1))
 
    end function cart2sph
@@ -1202,7 +1206,7 @@ contains
 ! approximately constant
    function alignment_state() result(ans)
       integer :: ans
-      real(dp) :: q_oldmean, q_mean
+      real(dp) :: q_oldmean
       ans = 0
 
       q_oldmean = matrices%q_mean
@@ -1516,7 +1520,6 @@ contains
      real(dp), allocatable, intent(in),  optional     :: ygv(:) ! y grid vector [start, stop, step] or [start, stop]
 
      ! Local variables
-     integer:: sv
      integer:: nx
      integer:: ny
      logical:: only_xgv_available
