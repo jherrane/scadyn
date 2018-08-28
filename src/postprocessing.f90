@@ -31,64 +31,59 @@ contains
          write (*, '(A, 20F6.3)') ' Chosen wavelength: ', 2d6*pi/mesh%ki(matrices%whichbar)
       end if
 
-      do j = 1, 2
-         N = dcmplx(0.0d0, 0.0d0)
-         F = dcmplx(0.0d0, 0.0d0)
-         Q_tcoll = 0d0
-         Q_fcoll = 0d0
+      N = dcmplx(0.0d0, 0.0d0)
+      F = dcmplx(0.0d0, 0.0d0)
+      Q_tcoll = 0d0
+      Q_fcoll = 0d0
 
-         do i = range(1), range(2)
-            select case (j)
-            case (1); call forcetorque_num(i)
-            case (2); call forcetorque(i)
-            end select
-            ii = i
-            if (matrices%whichbar > 0) ii = matrices%whichbar
-            F = F + matrices%force
-            N = N + matrices%torque
-            urad = epsilon*(matrices%E_rel(ii)*matrices%E)**2/2d0
-            Q_fcoll(:, ii) = matmul(matrices%R, &
-               matrices%force/urad/pi/mesh%a**2)
-            Q_tcoll(:, ii) = matmul(matrices%R, &
-               matrices%torque*(mesh%ki(ii))/urad/pi/mesh%a**2)
-         end do
-
-         NN = matmul(matrices%R, N)
-         FF = matmul(matrices%R, F)
-
-         print *, ''
-         select case (j)
-         case (1); write (*, '(A)') 'Numerical integration of MST:'
-         case (2); write (*, '(A)') 'Analytical VSWF coefficient integration of MST:'
-         end select
-         write (*, '(A,3ES11.3,A)') ' F = (', real(FF), ' ) N'
-         write (*, '(A,3ES11.3,A)') ' N = (', real(NN), ' ) Nm'
-
-         if (j == 2) then
-            N_DG = DG_torque()
-            N_B = barnett_torque()
-
-            write (*, '(A,3ES11.3,A)') ' N_DG = (', real(N_DG), ' ) Nm'
-            write (*, '(A,3ES11.3,A)') ' N_B = (', real(N_B), ' ) Nm'
-         end if
-
-         print *, ''
-
-         print *, 'Efficiencies for each wavelength separately'
-         do i = 1, size(Q_fcoll, 2)
-            Q_fcoll(:, i) = matmul(matrices%R, Q_fcoll(:, i))
-            Q_tcoll(:, i) = matmul(matrices%R, Q_tcoll(:, i))
-         end do
-
-         write (*, '(A, 80F7.1)') 'WL(nm):', 2d9*pi/mesh%ki
-         write (*, '(A, 80F7.3)') '   Qfx:', Q_fcoll(1, :)
-         write (*, '(A, 80F7.3)') '   Qfy:', Q_fcoll(2, :)
-         write (*, '(A, 80F7.3)') '   Qfz:', Q_fcoll(3, :)
-
-         write (*, '(A, 80F7.3)') '   Qtx:', Q_tcoll(1, :)
-         write (*, '(A, 80F7.3)') '   Qty:', Q_tcoll(2, :)
-         write (*, '(A, 80F7.3)') '   Qtz:', Q_tcoll(3, :)
+      do i = range(1), range(2)
+         call forcetorque(i)
+         ii = i
+         if (matrices%whichbar > 0) ii = matrices%whichbar
+         F = F + matrices%force
+         N = N + matrices%torque
+         urad = epsilon*(matrices%E_rel(ii)*matrices%E)**2/2d0
+         Q_fcoll(:, ii) = matmul(matrices%R, &
+            matrices%force/urad/pi/mesh%a**2)
+         Q_tcoll(:, ii) = matmul(matrices%R, &
+            matrices%torque*(mesh%ki(ii))/urad/pi/mesh%a**2)
       end do
+
+      NN = matmul(matrices%R, N)
+      FF = matmul(matrices%R, F)
+
+      print *, ''
+      write (*, '(A)') 'Analytical VSWF coefficient integration of MST:'
+
+      write (*, '(A,3ES11.3,A)') ' F   = (', real(FF), ' ) N'
+      write (*, '(A,3ES11.3,A)') ' N   = (', real(NN), ' ) Nm'
+      write (*, '(A,3ES11.3,A)') ' a_F = (', real(FF)/mesh%mass, ' ) m/s^2'
+      write (*, '(A,3ES11.3,A)') ' a_N = (', matmul(matrices%I_inv,real(NN)), ' ) rad/s^2'
+
+      if (j == 2) then
+         N_DG = DG_torque()
+         N_B = barnett_torque()
+
+         write (*, '(A,3ES11.3,A)') ' N_DG = (', real(N_DG), ' ) Nm'
+         write (*, '(A,3ES11.3,A)') ' N_B = (', real(N_B), ' ) Nm'
+      end if
+
+      print *, ''
+
+      print *, 'Efficiencies for each wavelength separately'
+      do i = 1, size(Q_fcoll, 2)
+         Q_fcoll(:, i) = matmul(matrices%R, Q_fcoll(:, i))
+         Q_tcoll(:, i) = matmul(matrices%R, Q_tcoll(:, i))
+      end do
+
+      write (*, '(A, 80F7.1)') '  WL(nm):', 2d9*pi/mesh%ki
+      write (*, '(A, 80F7.3)') '   Qfx:', Q_fcoll(1, :)
+      write (*, '(A, 80F7.3)') '   Qfy:', Q_fcoll(2, :)
+      write (*, '(A, 80F7.3)') '   Qfz:', Q_fcoll(3, :)
+
+      write (*, '(A, 80F7.3)') '   Qtx:', Q_tcoll(1, :)
+      write (*, '(A, 80F7.3)') '   Qty:', Q_tcoll(2, :)
+      write (*, '(A, 80F7.3)') '   Qtz:', Q_tcoll(3, :)
 
    end subroutine test_methods
 

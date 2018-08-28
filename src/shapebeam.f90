@@ -38,14 +38,24 @@ contains
       complex(dp), dimension(:, :), allocatable :: coefficient_matrix
 
       k = mesh%ki(i)
+! The numerical aperture can be above 1 only when refractive index of the medium
+! is larger than unity.
       NA = 0.9398d0
       nmax = matrices%Nmaxs(i)
       allocate (a_nm((nmax + 1)**2 - 1), b_nm((nmax + 1)**2 - 1))
       a_nm = dcmplx(0d0)
       b_nm = dcmplx(0d0)
       truncation_angle = 90d0
-      x = dcmplx(1d0, 0d0)
-      y = dcmplx(0d0, 1d0)
+      if(matrices%polarization == 1) then
+         x = dcmplx(1d0, 0d0)
+         y = dcmplx(0d0, 0d0)
+      else if (matrices%polarization == 2) then
+         x = dcmplx(1d0, 0d0)
+         y = dcmplx(1d0, 0d0)
+      else if (matrices%polarization == 3) then
+         x = dcmplx(1d0, 0d0)
+         y = dcmplx(0d0, 1d0)
+      end if
 
       paraxial_order = 2*p+abs(l)
 
@@ -65,8 +75,8 @@ contains
       tp = ntheta*nphi
       allocate (theta(tp), phi(tp))
       call angular_grid(ntheta, nphi, theta, phi)
-      allocate (e_field(2*tp), rw(tp), dr(tp), LL(tp), beam_envelope(tp), Ex(tp), Ey(tp), &
-                Etheta(tp), Ephi(tp))
+      allocate (e_field(2*tp), rw(tp), dr(tp), LL(tp), beam_envelope(tp), Ex(tp), &
+                Ey(tp), Etheta(tp), Ephi(tp))
 
       beam_angle = dasin(NA)
       wscaling=1.0d0/dtan(abs(beam_angle))
@@ -81,7 +91,8 @@ contains
 
       do iii = 1, tp
          beam_envelope(iii) = dcmplx(rw(iii)**(abs(l/2))*LL(iii)* &
-                                   zexp(dcmplx(-rw(iii)/2, l*phi(iii) + pi/2d0*(p*2+abs(l)+1))))
+                              zexp(dcmplx(-rw(iii)/2, l*phi(iii) + &
+                              pi/2d0*(p*2+abs(l)+1))))
          mode_input_power = mode_input_power + &
             2d0*pi*abs(beam_envelope(iii))**2*sqrt(rw(iii)/2)*abs(dr(iii))
          aperture_power_normalization = aperture_power_normalization + &
@@ -91,8 +102,11 @@ contains
       aperture_power_normalization = sqrt(aperture_power_normalization)
 
       do iii = 1, tp
-         beam_envelope(iii) = beam_envelope(iii)*mode_input_power/aperture_power_normalization
-         if (theta(iii) < pi*(180-truncation_angle)/180) beam_envelope(iii) = dcmplx(0d0)
+         beam_envelope(iii) = beam_envelope(iii)*&
+         mode_input_power/aperture_power_normalization
+         if (theta(iii) < pi*(180-truncation_angle)/180) then
+            beam_envelope(iii) = dcmplx(0d0)
+         end if
       end do
 
       Ex = x*beam_envelope
@@ -112,14 +126,17 @@ contains
 ! gradient are needed.
             BCP = vsh(nn(iii), mm(iii), theta(jjj), phi(jjj))
 ! Coefficient matrix A is the solution to A*e_field(=B) = expansion_coefficients (=x)
-            coefficient_matrix(jjj, iii) = BCP(6)*dcmplx(0d0, 1d0)**(nn(iii) + 1)/ &
-                                           dsqrt(dble(nn(iii))*(nn(iii) + 1))
-            coefficient_matrix(tp + jjj, iii) = -BCP(5)*dcmplx(0d0, 1d0)**(nn(iii) + 1)/ &
-                                                dsqrt(dble(nn(iii))*(nn(iii) + 1))
-            coefficient_matrix(jjj, iii + size(nn, 1)) = BCP(5)*dcmplx(0d0, 1d0)**(nn(iii))/ &
-                                                         dsqrt(dble(nn(iii))*(nn(iii) + 1))
-            coefficient_matrix(tp + jjj, iii + size(nn, 1)) = BCP(6)*dcmplx(0d0, 1d0)**(nn(iii))/ &
-                                                              dsqrt(dble(nn(iii))*(nn(iii) + 1))
+            coefficient_matrix(jjj, iii) = &
+            BCP(6)*dcmplx(0d0, 1d0)**(nn(iii) + 1)/dsqrt(dble(nn(iii))*(nn(iii) + 1))
+
+            coefficient_matrix(tp + jjj, iii) = &
+            -BCP(5)*dcmplx(0d0, 1d0)**(nn(iii) + 1)/ dsqrt(dble(nn(iii))*(nn(iii) + 1))
+            
+            coefficient_matrix(jjj, iii + size(nn, 1)) = &
+            BCP(5)*dcmplx(0d0, 1d0)**(nn(iii))/dsqrt(dble(nn(iii))*(nn(iii) + 1))
+
+            coefficient_matrix(tp + jjj, iii + size(nn, 1)) = &
+            BCP(6)*dcmplx(0d0, 1d0)**(nn(iii))/dsqrt(dble(nn(iii))*(nn(iii) + 1))
          end do
       end do
 

@@ -35,7 +35,6 @@ contains
             call forcetorque(i)
             F = F + matrices%force
             N = N + matrices%torque
-
             if(present(mode))then
                Q_t = Q_t + matrices%torque/epsilon/mesh%a**2/(wl*u)/matrices%bars
             else
@@ -62,147 +61,6 @@ contains
       matrices%Q_t = Q_t
 
    end subroutine get_forces
-
-!****************************************************************************80
-! Calculate forces and torques using numerical integration of Maxwell stress
-! tensor
-   subroutine forcetorque_num(j)
-      complex(dp), dimension(:), allocatable :: a_in, b_in, a90, b90, &
-                                                a, b, a_nm, a90_temp, b90_temp, &
-                                                a_temp, b_temp, b_nm, a_nm90, b_nm90
-      complex(dp), dimension(:, :), allocatable :: Taa, Tab, Tba, Tbb
-      complex(8), dimension(:), allocatable :: rotD, rotD90
-      integer, dimension(:, :), allocatable :: indD, indD90
-      complex(dp) :: F(3), G(3), F90(3), G90(3)
-      integer :: Nmax, j, las, nm
-
-      integer :: i1
-      real(dp) :: r(3), n(3), E
-      complex(dp) :: E1(3), H1(3), E2(3), H2(3), T1(3, 3), ED1(3, 3), &
-                     HB1(3, 3), T2(3, 3), ED2(3, 3), HB2(3, 3), I(3, 3), H0(3), &
-                     H90(3)
-      complex(dp) :: torque1(3), torque2(3), torque(3), force1(3), force2(3), force(3)
-
-      E = matrices%E_rel(j)*matrices%E
-
-      matrices%E0 = E*matrices%E0hat
-      matrices%E90 = E*matrices%E90hat
-      mesh%k = mesh%ki(j)
-
-      Nmax = matrices%Nmaxs(j)
-      las = (Nmax + 1)*(2*Nmax + 1)*(2*Nmax + 3)/3 - 1
-      nm = (Nmax + 1)**2 - 1
-
-      allocate (a(nm), b(nm), a_in(nm), b_in(nm), a_temp(nm), b_temp(nm), &
-         a90(nm), b90(nm), a_nm(nm), b_nm(nm), a_nm90(nm), b_nm90(nm))
-
-      rotD = matrices%rotDs(1:las, j)
-      indD = matrices%indDs(1:las, :, j)
-      rotD90 = matrices%rotD90s(1:las, j)
-      indD90 = matrices%indD90s(1:las, :, j)
-
-      Taa = matrices%Taai(1:nm, 1:nm, j)
-      Tab = matrices%Tabi(1:nm, 1:nm, j)
-      Tba = matrices%Tbai(1:nm, 1:nm, j)
-      Tbb = matrices%Tbbi(1:nm, 1:nm, j)
-      
-      a_temp = E*matrices%as(1:nm, j)/sqrt(2d0*sqrt(mu/epsilon)*mesh%k**2)/2d0
-      b_temp = E*matrices%bs(1:nm, j)/sqrt(2d0*sqrt(mu/epsilon)*mesh%k**2)/2d0
-
-      if(beam_shape /= 0) then
-         call translate(-matrices%x_CM, Nmax, Nmax, dcmplx(mesh%k), &
-            a_temp, b_temp, a_in, b_in, 0)
-      else
-         a_in = a_temp
-         b_in = b_temp
-      end if
-
-      a = sparse_matmul(rotD, indD, a_in, nm)
-      b = sparse_matmul(rotD, indD, b_in, nm)
-
-      a90 = sparse_matmul(rotD90, indD90, a_in, nm)
-      b90 = sparse_matmul(rotD90, indD90, b_in, nm)
-
-      if (matrices%polarization == 1 .OR. beam_shape /= 0) then
-         a90 = dcmplx(0d0)
-         b90 = dcmplx(0d0)
-      end if
-
-      if (matrices%polarization == 1) then
-         a90 = dcmplx(0d0)
-         b90 = dcmplx(0d0)
-      end if
-
-      a_nm = matmul(Taa, a) + matmul(Tab, b)
-      b_nm = matmul(Tbb, b) + matmul(Tba, a)
-      a_nm90 = matmul(Taa, a90) + matmul(Tab, b90)
-      b_nm90 = matmul(Tbb, b90) + matmul(Tba, a90)
-
-      matrices%force = 0.0d0
-      matrices%torque = 0.0d0
-
-      H0 = crossCC(dcmplx(matrices%khat, 0.0d0), matrices%E0)*dcmplx(sqrt(epsilon/mu))
-      H90 = crossCC(dcmplx(matrices%khat, 0.0d0), matrices%E90)*dcmplx(sqrt(epsilon/mu))
-
-      I = dcmplx(eye(3))
-
-      force1(:) = dcmplx(0.0d0, 0.0d0)
-      torque1(:) = dcmplx(0.0d0, 0.0d0)
-      force2(:) = dcmplx(0.0d0, 0.0d0)
-      torque2(:) = dcmplx(0.0d0, 0.0d0)
-
-      do i1 = 1, size(mesh%P, 2)
-         r = mesh%P(:, i1)
-         n = r/vlen(r)
-
-         call calc_fields(a_nm, b_nm, dcmplx(mesh%k), r, F, G, 1) ! 1 inout means outgoing wave
-         call calc_fields(a_nm90, b_nm90, dcmplx(mesh%k), r, F90, G90, 1)
-
-         E1 = F + matrices%E0*exp(dcmplx(0.0d0, mesh%k*dot_product(matrices%khat, r)))
-         H1 = G + H0*exp(dcmplx(0.0d0, mesh%k*dot_product(matrices%khat, r)))
-
-         ED1(:, 1) = epsilon*E1(:)*conjg(E1(1))
-         ED1(:, 2) = epsilon*E1(:)*conjg(E1(2))
-         ED1(:, 3) = epsilon*E1(:)*conjg(E1(3))
-
-         HB1(:, 1) = mu*H1(:)*conjg(H1(1))
-         HB1(:, 2) = mu*H1(:)*conjg(H1(2))
-         HB1(:, 3) = mu*H1(:)*conjg(H1(3))
-
-         E2 = F90+matrices%E90*exp(dcmplx(0.0d0, mesh%k*dot_product(matrices%khat, r)))
-         H2 = G90+H90*exp(dcmplx(0.0d0, mesh%k*dot_product(matrices%khat, r)))
-
-         ED2(:, 1) = epsilon*E2(:)*conjg(E2(1))
-         ED2(:, 2) = epsilon*E2(:)*conjg(E2(2))
-         ED2(:, 3) = epsilon*E2(:)*conjg(E2(3))
-
-         HB2(:, 1) = mu*H2(:)*conjg(H2(1))
-         HB2(:, 2) = mu*H2(:)*conjg(H2(2))
-         HB2(:, 3) = mu*H2(:)*conjg(H2(3))
-
-! Maxwell's stress tensor
-         T1 = -ED1 - HB1 + dcmplx(0.5d0)*(dcmplx(epsilon)*dot_product(E1, E1) + &
-                                          dcmplx(mu)*dot_product(H1, H1))*I
-         T2 = -ED2 - HB2 + dcmplx(0.5d0)*(dcmplx(epsilon)*dot_product(E2, E2) + &
-                                          dcmplx(mu)*dot_product(H2, H2))*I
-
-! Force
-         force1 = force1 - dcmplx(0.5d0)*matmul(T1, dcmplx(n))*dcmplx(mesh%w(i1))
-         force2 = force2 - dcmplx(0.5d0)*matmul(T2, dcmplx(n))*dcmplx(mesh%w(i1))
-
-! Torque
-         torque1 = torque1 - dcmplx(0.5d0)*crossRC(r, matmul(T1, dcmplx(n)))*dcmplx(mesh%w(i1))
-         torque2 = torque2 - dcmplx(0.5d0)*crossRC(r, matmul(T2, dcmplx(n)))*dcmplx(mesh%w(i1))
-      end do
-
-! The total optical force is the average of the forces, according to the number of polarizations
-      force = real(force1 + force2)/matrices%polarization
-      torque = real(torque1 + torque2)/matrices%polarization
-
-      matrices%force = force
-      matrices%torque = torque
-
-   end subroutine forcetorque_num
 
 !****************************************************************************80
 ! Calculate forces and torques using the analytical z-formulae
@@ -302,8 +160,10 @@ contains
       ty = T_z(Nmax, a2, b2, p2, q2) + T_z(Nmax, a290, b290, p290, q290)
 
 ! Averaging now, thus division by the number of polarization states
-      matrices%force = [fx, fy, fz]/cc/matrices%polarization
-      matrices%torque = [tx, ty, tz]/(cc*mesh%k)/matrices%polarization
+      if(matrices%polarization > 1) then
+         matrices%force = [fx, fy, fz]/cc/2d0
+         matrices%torque = [tx, ty, tz]/(cc*mesh%k)/2d0
+      end if
 
    end subroutine forcetorque
 

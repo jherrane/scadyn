@@ -286,7 +286,8 @@ contains
       call linspace(0d0, pi*2d0, Nphi, phi)
       F_coll(:, :) = 0d0
 
-! Radiative torque calculations, emulating work of Draine & Weingartner (1997), ApJ 480:633  
+! Radiative torque calculations, emulating work of Draine & Weingartner (1997),
+ ! ApJ 480:633  
       ind = 0
       write (*, '(A)') '  Starting the calculation of phi-averaged radiative torques:'
 ! First, set up rotation axis for precession averaging in the direction of psi (B)     
@@ -342,8 +343,14 @@ contains
       real(dp) :: max_w, test_dt
 
 ! Use an adaptive time step, integrate over rotation <= rot_max
+      ! max_w = vlen(matrices%w + &
+      !    get_dotw(matrices%N, matrices%w, matrices%I, matrices%I_inv))
+      ! test_dt = matrices%rot_max/max_w
+
+! Use an adaptive time step, integrate over rotation <= rot_max
       max_w = vlen(matrices%w)
-      if (max_w < 1d-7) max_w = max_w + vlen(get_dotw(matrices%N, matrices%w, matrices%I, matrices%I_inv))
+      max_w = max_w + &
+      vlen(get_dotw(matrices%N, matrices%w, matrices%I, matrices%I_inv))*matrices%dt
       test_dt = matrices%rot_max/max_w
 
       if (test_dt < matrices%dt0) then
@@ -402,7 +409,8 @@ contains
       real(dp) :: dxiw(2), xi, w, beta
       real(dp), dimension(:), allocatable :: xis, F, H
 
-      allocate(xis(size(matrices%FGH,2)), F(size(matrices%FGH,2)), H(size(matrices%FGH,2)))
+      allocate(xis(size(matrices%FGH,2)), &
+         F(size(matrices%FGH,2)), H(size(matrices%FGH,2)))
       xis = dcos(matrices%FGH(1,:))
       F = matrices%FGH(2,:)
       H = matrices%FGH(4,:)
@@ -424,9 +432,11 @@ contains
       integer, optional :: mode
       integer :: maxiter, i1
       real(dp) :: Rn(3, 3), wnh(3), dt, I(3), Jw(3), Ff, dtheta, FFD(3)
-      real(dp) :: PxW(3), hel(3), Jac(3, 3), Jwn(3), iterstop
+      real(dp) :: PxW(3), hel(3), Jac(3, 3), Jwn(3), iterstop, drag
 
       maxiter = 50
+
+      drag = 1d4
 
       I = matrices%Ip
       Jac = 0.d0
@@ -439,12 +449,11 @@ contains
          N = matrices%N
          call adaptive_step()
          dt = matrices%dt
-         matrices%N = dcmplx(0d0)
-         matrices%F = dcmplx(0d0)
+      else
+         call adaptive_step()
+         dt = matrices%dt
       end if
 
-      call adaptive_step()
-      dt = matrices%dt
       if (matrices%E < 1d-7) then 
          N = 0d0
          matrices%F = 0d0
@@ -455,12 +464,16 @@ contains
       end if
 
       if(beam_shape /= 0) then
-         FFD = (dble(matrices%F) - vlen(matrices%v_CM)*pi*mesh%a**2*matrices%v_CM)/mesh%mass
-         matrices%xn = matrices%x_CM + euler_3D(FFD, dt)
-      else
-         FFD = (dble(matrices%F))
+         FFD = (dble(matrices%F) - &
+            drag*vlen(matrices%v_CM)*pi*mesh%a**2*matrices%v_CM)/mesh%mass
+         ! matrices%xn = matrices%x_CM + euler_3D(FFD, dt)
          matrices%vn = matrices%v_CM + euler_3D(FFD, dt)*dt
-         matrices%xn = matrices%x_CM + euler_3D(matrices%v_CM, dt)*dt
+         matrices%xn = matrices%x_CM + euler_3D(matrices%vn, dt)*dt
+         ! print*, FFD, dt, matrices%vn, matrices%xn
+      else
+         FFD = (dble(matrices%F))/mesh%mass
+         matrices%vn = matrices%v_CM + euler_3D(FFD, dt)*dt
+         matrices%xn = matrices%x_CM + euler_3D(matrices%vn, dt)*dt
       end if 
 
 ! Step 1) Newton solve
@@ -472,7 +485,8 @@ contains
          Ff = dot_product(wnh, Jw)
          PxW = 0.5*dt*crossRR(Jw, wnh)
 
-         hel = matmul(matrices%I, matrices%w) - Jw + PxW - 0.25d0*dt**2*Ff*wnh + 0.5d0*dt*N
+         hel = matmul(matrices%I, matrices%w) - Jw + PxW - &
+         0.25d0*dt**2*Ff*wnh + 0.5d0*dt*N
          if (vlen(hel) < iterstop) then
             exit
             ! else if(i1==maxiter) then
@@ -480,10 +494,10 @@ contains
          end if
 
          Jac = -matrices%I + 0.5d0*dt*(reshape( &
-                                       [0.d0, Jw(3) - I(1)*wnh(3), -Jw(2) + I(1)*wnh(2), &
-                                        -Jw(3) + I(2)*wnh(3), 0.d0, Jw(1) - I(2)*wnh(1), &
-                                        Jw(2) - I(3)*wnh(2), -Jw(1) + I(3)*wnh(1), 0.d0], [3, 3]) &
-                                       - dt*real_outer_product(wnh, Jw)) - 0.25d0*dt*dt*Ff*eye(3)
+              [0.d0, Jw(3) - I(1)*wnh(3), -Jw(2) + I(1)*wnh(2), &
+              -Jw(3) + I(2)*wnh(3), 0.d0, Jw(1) - I(2)*wnh(1), &
+               Jw(2) - I(3)*wnh(2), -Jw(1) + I(3)*wnh(1), 0.d0], [3, 3]) &
+               - dt*real_outer_product(wnh, Jw)) - 0.25d0*dt*dt*Ff*eye(3)
          wnh = wnh - matmul(inv(Jac), hel)
          Jw = matmul(matrices%I, wnh)
       end do
@@ -495,7 +509,6 @@ contains
       matrices%Rn = quat2mat(matrices%qn)
 
       matrices%R = matrices%Rn
-
       if (matrices%E > 1d-7) then 
          call get_forces()
       else
