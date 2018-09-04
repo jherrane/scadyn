@@ -528,13 +528,19 @@ contains
 ! expected.
    subroutine ot_update(F, N)
       real(dp), dimension(3), intent(out) :: F, N
-      integer :: maxiter, i1
-      real(dp) :: Rn(3, 3), wnh(3), dt, I(3), Jw(3), Ff, FFD(3), NND(3)
-      real(dp) :: PxW(3), hel(3), Jac(3, 3), Jwn(3), iterstop, drag
+      integer :: maxiter, i1, tested_gravity
+      real(dp) :: Rn(3, 3), wnh(3), dt, I(3), Jw(3), Ff, FFD(3), NND(3), Fg, Fnorm
+      real(dp) :: PxW(3), hel(3), Jac(3, 3), Jwn(3), iterstop, drag, rot_drag(3,3)
+      real(dp) :: N_drag(3)
 
       maxiter = 50
+      tested_gravity = 0
 
-      drag = 2d2
+      drag = 2d0
+      rot_drag = eye(3)
+      rot_drag(1,1) = 5d0
+      rot_drag(2,2) = 5d1
+      rot_drag(3,3) = 5d0
 
       I = matrices%Ip
       Jac = 0.d0
@@ -543,7 +549,17 @@ contains
 
 ! First force calculation for getting a reasonable value for dt
       if (matrices%tt == 0d0) then
-         call get_forces()
+         Fg = (mesh%rho-1d3)*mesh%V*9.81d0
+         do while (tested_gravity == 0)
+            call get_forces()
+            Fnorm = vlen(matrices%F)
+            if (Fnorm/Fg > 0.8 .AND. Fnorm/Fg < 1.2) then
+               write(*,'(A,ES9.3,A)') '  E-field intensity adjusted to ', matrices%E, ' V/m'
+               tested_gravity = 1
+            else
+               matrices%E = sqrt(Fg/Fnorm)*matrices%E
+            end if
+         end do
       end if
 
       N = matrices%N
@@ -591,10 +607,12 @@ contains
 
       matrices%R = matrices%Rn
       call get_forces()
-      N = matrices%N
+      N = matrices%N 
+      N_drag = 0.5d0*mesh%rho*(mesh%a/2d0)**5*vlen(wnh)*matmul(rot_drag,wnh)
 
 ! Step 3) Explicit angular velocity update
-      Jwn = Jw + PxW + 0.25d0*dt**2d0*dot_product(wnh, Jw)*wnh + 0.5d0*dt*N
+      Jwn = Jw + PxW + 0.25d0*dt**2d0*dot_product(wnh, Jw)*wnh &
+      + 0.5d0*dt*(N - N_drag)
       matrices%wn = matmul(matrices%I_inv, Jwn)
 
       F = matrices%F
