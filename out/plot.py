@@ -134,8 +134,12 @@ if __name__ == "__main__":
    log.seek(0)
    Q = np.genfromtxt(islice(log,17,20))
    log.seek(0)
+   # Even though named a, this is the wavelength, sorry
    a = np.genfromtxt(islice(log,10,11))
    a = a[3]*1e-9
+   log.seek(0)
+   mass = np.genfromtxt(islice(log,11,12))
+   mass = mass[2]
    log.close()
    
    markevery = round(Nmax/1000)
@@ -149,7 +153,7 @@ if __name__ == "__main__":
    v = lines[:,8:11]/a
    J = 0*w
    N = lines[:,11:14]
-   F = lines[:,14:17]
+   F = lines[:,14:17]/mass
    R = lines[:,17:27]
       
    for i in range(0,w.shape[0]):

@@ -372,12 +372,12 @@ contains
 ! input:  v(3) = velocity at previous timestep
 !         dt = timestep
 ! output: dx(3) = RK-coefficient for calculating
-!         x_next = x + dt*dx
+!         x_next = x + dt*v
    function euler_3D(v, dt) result(dx)
 
       real(dp) :: dx(3), v(3), dt
 
-      dx = 0.5d0*v*dt
+      dx = v*dt
 
    end function euler_3D
 
@@ -449,9 +449,9 @@ contains
 ! First force calculation for getting a reasonable value for dt
       if (matrices%tt == 0d0) then
          call get_forces()
-         N = matrices%N
       end if
 
+      N = matrices%N
       call adaptive_step()
       dt = matrices%dt
 
@@ -546,12 +546,13 @@ contains
          call get_forces()
       end if
 
-      N = matmul(matrices%I_inv,matrices%N)
-      if(vlen(NND)>vlen(matrices%F/mesh%mass)) then
-         N = 1.3d0*N*vlen(matrices%F/mesh%mass)/vlen(N)
-      end if
-      N = matmul(matrices%I,N) 
-      matrices%N = N
+      NND = matmul(matrices%I_inv,matrices%N)
+      ! print*, 1.3d1*NND*vlen(matrices%F/mesh%mass)/vlen(NND)
+      ! if(vlen(NND)>vlen(matrices%F/mesh%mass)) then
+      !    NND = 1.3d1*NND*vlen(matrices%F/mesh%mass)/vlen(NND)
+      ! end if
+      ! matrices%N = matmul(matrices%I,NND) 
+      N = matrices%N
       call adaptive_step()
       dt = matrices%dt
 
@@ -560,8 +561,8 @@ contains
       FFD = dble(matrices%F)/mesh%mass - &
          (mesh%rho-1d3)*mesh%V*9.81d0*[0d0,0d0,1d0]/mesh%mass - &
          drag*vlen(matrices%v_CM)*pi*mesh%a**2*matrices%v_CM/mesh%mass
-      matrices%vn = matrices%v_CM + euler_3D(FFD, dt)*dt
-      matrices%xn = matrices%x_CM + euler_3D(matrices%vn, dt)*dt
+      matrices%vn = matrices%v_CM + euler_3D(FFD, dt)
+      matrices%xn = matrices%x_CM + euler_3D(matrices%vn, dt)
 
 ! Step 1) Newton solve
       wnh = matrices%w ! Body angular velocity
@@ -587,11 +588,11 @@ contains
          wnh = wnh - matmul(inv(Jac), hel)
          Jw = matmul(matrices%I, wnh)
       end do
-      NND = matmul(matrices%I_inv,matrices%N)
-      if(vlen(NND)>vlen(matrices%F/mesh%mass)) then
-         NND = 1.3d0*NND*vlen(matrices%F/mesh%mass)/vlen(NND)
-         matrices%N = NND
-      end if
+      ! NND = matmul(matrices%I_inv,matrices%N)
+      ! if(vlen(NND)>vlen(matrices%F/mesh%mass)) then
+      !    NND = 1.3d0*NND*vlen(matrices%F/mesh%mass)/vlen(NND)
+      !    matrices%N = NND
+      ! end if
 ! Step 2) Explicit configuration update
       Rn = matmul(matrices%R, cay(dt*wnh))
       matrices%qn = mat2quat(Rn)
@@ -600,18 +601,19 @@ contains
 
       matrices%R = matrices%Rn
       call get_forces()
-      N = matmul(matrices%I_inv,matrices%N)
-      if(vlen(NND)>vlen(matrices%F/mesh%mass)) then
-         N = 1.3d0*N*vlen(matrices%F/mesh%mass)/vlen(N)
-      end if
-      N = matmul(matrices%I,N) 
-      matrices%N = N
+      ! NND = matmul(matrices%I_inv,matrices%N)
+      ! if(vlen(NND)>vlen(matrices%F/mesh%mass)) then
+      !    NND = 1.3d0*NND*vlen(matrices%F/mesh%mass)/vlen(NND)
+      ! end if
+      ! N = matmul(matrices%I,NND) 
+      ! matrices%N = N
 
 ! Step 3) Explicit angular velocity update
       Jwn = Jw + PxW + 0.25d0*dt**2d0*dot_product(wnh, Jw)*wnh + 0.5d0*dt*N
       matrices%wn = matmul(matrices%I_inv, Jwn)
 
       F = matrices%F
+      N = matrices%N
       ! print*, vlen(matrices%F/mesh%mass), vlen(matmul(matrices%I_inv,matrices%N))
    end subroutine ot_update
 
