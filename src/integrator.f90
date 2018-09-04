@@ -546,12 +546,6 @@ contains
          call get_forces()
       end if
 
-      NND = matmul(matrices%I_inv,matrices%N)
-      ! print*, 1.3d1*NND*vlen(matrices%F/mesh%mass)/vlen(NND)
-      ! if(vlen(NND)>vlen(matrices%F/mesh%mass)) then
-      !    NND = 1.3d1*NND*vlen(matrices%F/mesh%mass)/vlen(NND)
-      ! end if
-      ! matrices%N = matmul(matrices%I,NND) 
       N = matrices%N
       call adaptive_step()
       dt = matrices%dt
@@ -588,11 +582,7 @@ contains
          wnh = wnh - matmul(inv(Jac), hel)
          Jw = matmul(matrices%I, wnh)
       end do
-      ! NND = matmul(matrices%I_inv,matrices%N)
-      ! if(vlen(NND)>vlen(matrices%F/mesh%mass)) then
-      !    NND = 1.3d0*NND*vlen(matrices%F/mesh%mass)/vlen(NND)
-      !    matrices%N = NND
-      ! end if
+
 ! Step 2) Explicit configuration update
       Rn = matmul(matrices%R, cay(dt*wnh))
       matrices%qn = mat2quat(Rn)
@@ -601,20 +591,13 @@ contains
 
       matrices%R = matrices%Rn
       call get_forces()
-      ! NND = matmul(matrices%I_inv,matrices%N)
-      ! if(vlen(NND)>vlen(matrices%F/mesh%mass)) then
-      !    NND = 1.3d0*NND*vlen(matrices%F/mesh%mass)/vlen(NND)
-      ! end if
-      ! N = matmul(matrices%I,NND) 
-      ! matrices%N = N
+      N = matrices%N
 
 ! Step 3) Explicit angular velocity update
       Jwn = Jw + PxW + 0.25d0*dt**2d0*dot_product(wnh, Jw)*wnh + 0.5d0*dt*N
       matrices%wn = matmul(matrices%I_inv, Jwn)
 
       F = matrices%F
-      N = matrices%N
-      ! print*, vlen(matrices%F/mesh%mass), vlen(matmul(matrices%I_inv,matrices%N))
    end subroutine ot_update
 
 !****************************************************************************80
