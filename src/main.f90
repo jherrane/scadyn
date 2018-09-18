@@ -20,12 +20,12 @@ program main
    if (matrices%Tmat == 1) then
       call read_T()
       call fix_band()
-      write (*, '(A, 20F6.3)') ' Wavelengths in um: ', 2d6*pi/mesh%ki
+      write (*, '(A, 20F6.3)') ' Wavelengths in medium (um): ', 2d6*pi/mesh%ki
    else
       if (matrices%singleT == 1) then
          call T_empty()
       end if
-      write (*, '(A, 20F6.3)') ' Wavelengths in um: ', 2d6*pi/mesh%ki
+      write (*, '(A, 20F6.3)') ' Wavelengths in medium (um): ', 2d6*pi/mesh%ki
       call calc_T()
       call write_T()
    end if

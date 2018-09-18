@@ -410,7 +410,7 @@ contains
 ! Calculate the final wavelengths and the corresponding wave numbers
       do i = 1, n
          c(i) = c(i) + fix
-         mesh%ki(i) = 2d0*pi/c(i)
+         mesh%ki(i) = matrices%ref_med*2d0*pi/c(i)
       end do
 
    end subroutine find_k
@@ -533,7 +533,7 @@ contains
 
 ! Calculate the final wavelengths and the corresponding wave numbers
       do i = 1, n
-         mesh%ki(i) = 2d0*pi/c(i)
+         mesh%ki(i) = matrices%ref_med*2d0*pi/c(i)
       end do
       matrices%E_rel = 1d0
 

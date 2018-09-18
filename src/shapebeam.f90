@@ -34,15 +34,19 @@ contains
       real(dp), dimension(:), allocatable :: theta, phi, rw, LL, work, dr
       complex(dp), dimension(:), allocatable :: beam_envelope, Ex, Ey, &
                                                 Etheta, Ephi, e_field, &
-                                                a, b, a_nm, b_nm
+                                                a, b, a_nm, b_nm, a_nm2, b_nm2
       complex(dp), dimension(:, :), allocatable :: coefficient_matrix
+      complex(8), dimension(:), allocatable :: rotD
+      integer, dimension(:, :), allocatable :: indD
 
       k = mesh%ki(i)
 ! The numerical aperture can be above 1 only when refractive index of the medium
 ! is larger than unity.
-      NA = 0.9398d0
+      NA = matrices%NA
+      write (*, '(2(A,F5.3))') '  NA of the optical system =   ', matrices%NA 
       nmax = matrices%Nmaxs(i)
       allocate (a_nm((nmax + 1)**2 - 1), b_nm((nmax + 1)**2 - 1))
+
       a_nm = dcmplx(0d0)
       b_nm = dcmplx(0d0)
       truncation_angle = 90d0
@@ -58,8 +62,8 @@ contains
       end if
 
       paraxial_order = 2*p+abs(l)
-
-      w0 = 1d0
+      w0 = paraxial_beam_waist(paraxial_order)
+      write (*, '(2(A,F7.3))') '  Beam waist               = ', w0
 
       total_modes = nmax**2 + 2*nmax
       allocate (nn(total_modes), mm(total_modes), nn_old(total_modes))
@@ -78,13 +82,18 @@ contains
       allocate (e_field(2*tp), rw(tp), dr(tp), LL(tp), beam_envelope(tp), Ex(tp), &
                 Ey(tp), Etheta(tp), Ephi(tp))
 
-      beam_angle = dasin(NA)
+      if(NA/matrices%ref_med>1d0) then
+         print*, '   Problem: Numerical aperture too high, limiting it to', matrices%ref_med
+         NA = matrices%ref_med-1d-7
+      end if
+      beam_angle = dasin(NA/matrices%ref_med)
+      write (*, '(2(A,F7.3))') '  Beam angle (deg)         = ', beam_angle*180d0/pi
       wscaling=1.0d0/dtan(abs(beam_angle))
       mode_input_power = 0d0
       aperture_power_normalization = 0d0
       do iii = 1, tp
          rw(iii) = 2d0*(wscaling*w0)**2*(dtan(theta(iii)))**2
-         dr(iii) = (wscaling*w0)*dabs(dcos(theta(iii)))
+         dr(iii) = (wscaling*w0)/dcos(theta(iii))**2
       end do
 
       LL = laguerre(p, abs(l), rw)
@@ -162,11 +171,17 @@ contains
          end if
       end do
 
-      matrices%as(1:(nmax + 1)**2 - 1, i) = a_nm
-      matrices%bs(1:(nmax + 1)**2 - 1, i) = b_nm
+      allocate(rotD((nmax + 1)*(2*nmax + 1)*(2*nmax + 3)/3 - 1))
+      allocate(indD((nmax + 1)*(2*nmax + 1)*(2*nmax + 3)/3 - 1,2))
+      call sph_rotation_sparse_gen(mat2euler([1d0,0d0,0d0,0d0,0d0,&
+         1d0,0d0,-1d0,0d0]), nmax, rotD, indD)
+
+      matrices%as(1:(nmax + 1)**2 - 1, i) = a_nm &
+      + sparse_matmul(rotD, indD, a_nm, (nmax + 1)**2 - 1)
+      matrices%bs(1:(nmax + 1)**2 - 1, i) = b_nm &
+      + sparse_matmul(rotD, indD, b_nm, (nmax + 1)**2 - 1)
 
    end subroutine laguerre_gauss_farfield
-
 
 !****************************************************************************80
 
@@ -270,5 +285,28 @@ contains
       call write2file(matrices%E_field, scatfield)
 
    end subroutine write_fields
+
+!****************************************************************************80
+
+   function paraxial_beam_waist(paraxial_order) result(w)
+      real(dp) :: w, w0, invL, expw, zz
+      integer :: paraxial_order
+
+      w = 1d0
+      if(paraxial_order/=0)then
+         invL = 1d0/dble(abs(paraxial_order))
+         zz = exp(-(abs(paraxial_order)+2d0)*invL)
+         w = -(1d0+2d0*sqrt(invL)+invL)
+         w0 = -w
+
+         do while(dabs(w-w0)>1d-5)
+            w0 = w
+            expw = exp(w)
+            w = w0-(w0*expw+zz)/(expw+w0*expw)
+         end do
+
+         w = sqrt(-dble(abs(paraxial_order))/2d0*w)
+      end if
+   end function
 
 end module shapebeam

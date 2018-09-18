@@ -531,7 +531,7 @@ contains
       integer :: maxiter, i1, tested_gravity
       real(dp) :: Rn(3, 3), wnh(3), dt, I(3), Jw(3), Ff, FFD(3), NND(3), Fg, Fnorm
       real(dp) :: PxW(3), hel(3), Jac(3, 3), Jwn(3), iterstop, drag, rot_drag(3,3)
-      real(dp) :: N_drag(3)
+      real(dp) :: N_drag(3), test
 
       maxiter = 50
       tested_gravity = 0
@@ -552,8 +552,10 @@ contains
          Fg = (mesh%rho-1d3)*mesh%V*9.81d0
          do while (tested_gravity == 0)
             call get_forces()
-            Fnorm = vlen(matrices%F)
-            if (Fnorm/Fg > 0.8 .AND. Fnorm/Fg < 1.2) then
+            Fnorm = dabs(matrices%F(3))
+            test = dabs(dabs(Fg)-dabs(Fnorm))/Fg
+            if (test < 1d-6) then
+               matrices%E = 1.4145d0*matrices%E
                write(*,'(A,ES9.3,A)') '  E-field intensity adjusted to ', matrices%E, ' V/m'
                tested_gravity = 1
             else

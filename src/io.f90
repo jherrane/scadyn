@@ -270,6 +270,8 @@ contains
             case ('ref_med')
                read (buffer, *, iostat=ios) temp_med
                if(temp_med>1.0d0) matrices%ref_med = temp_med
+            case ('NA')
+               read (buffer, *, iostat=ios) matrices%NA
             case ('tol_m')
                read (buffer, *, iostat=ios) matrices%tol_m
             case ('rot_max')

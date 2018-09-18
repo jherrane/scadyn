@@ -14,7 +14,7 @@
     Number of nodes      =        4448
     Number of elements   =       25613
     Note: Geometry is inhomogeneous.
- Wavelengths in um:  0.320 0.500 0.680 0.860 1.040 1.220 1.400 1.580 1.760 1.940
+ Wavelengths in medium (um):  0.320 0.500 0.680 0.860 1.040 1.220 1.400 1.580 1.760 1.940
  
 Analytical VSWF coefficient integration of MST:
  F   = ( -1.030E-27 -2.666E-27  6.213E-26 ) N

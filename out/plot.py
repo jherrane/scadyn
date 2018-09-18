@@ -119,6 +119,7 @@ if __name__ == "__main__":
    inputf = codecs.open(inputfile, encoding='utf-8').read()
    inputf = inputf.replace('|','')
    lines = np.loadtxt(StringIO(inputf), skiprows=skip)
+   lines = lines[1::50]
       
    magtol = 1e-3
 
