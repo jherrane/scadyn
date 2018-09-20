@@ -115,7 +115,6 @@ if __name__ == "__main__":
    inputf = inputf.replace('|','')
    
    lines = np.loadtxt(StringIO(inputf), skiprows=skip)
-   lines = lines[1::50]
    
    string = log.readlines()[1]
    k = [float(s) for s in string.split()[2:5]]

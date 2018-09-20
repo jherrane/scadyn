@@ -51,7 +51,8 @@ def plot_orbit(orbit, title, figname):
    plt.locator_params(nbins=4)
    plt.savefig(figname)
 
-def plot_fig(x, y, markevery, title, xlabel, ylabel, figname):
+def plot_fig(x, y, markevery, title, xlabel, ylabel, figname, *args, **kwargs):
+   ylim = kwargs.get('ylim', None)
    font = {'weight' : 'bold',
 			   'size'   : 18}
    fig = plt.figure(figsize=(14,14))
@@ -67,6 +68,9 @@ def plot_fig(x, y, markevery, title, xlabel, ylabel, figname):
    plt.plot(x,y1,label=r'$'+ylabel+'_{1}$',lw=3.0,markevery=markevery)
    plt.plot(x,y2,label=r'$'+ylabel+'_{2}$',lw=3.0,markevery=markevery)
    plt.plot(x,y3,label=r'$'+ylabel+'_{3}$',lw=3.0,markevery=markevery)
+   axes = plt.gca()
+   if ylim is not None:
+      axes.set_ylim([-ylim,ylim])
    plt.legend()
    plt.xlabel(r'$'+xlabel+'$')
    plt.ylabel(r'$'+ylabel+'$')
@@ -119,7 +123,6 @@ if __name__ == "__main__":
    inputf = codecs.open(inputfile, encoding='utf-8').read()
    inputf = inputf.replace('|','')
    lines = np.loadtxt(StringIO(inputf), skiprows=skip)
-   lines = lines[1::50]
       
    magtol = 1e-3
 
@@ -160,6 +163,7 @@ if __name__ == "__main__":
    for i in range(0,w.shape[0]):
       J[i,:] = np.matmul(I,w[i,:])
       w[i,:] = np.matmul(Q,np.matmul(np.reshape(R[i,:],(3,3),order='F'),w[i,:]  ))
+      N[i,:] = np.matmul(Q,np.matmul(np.reshape(R[i,:],(3,3),order='F'),N[i,:]  ))
       J[i,:] = np.matmul(Q,np.matmul(np.reshape(R[i,:],(3,3),order='F'),J[i,:]  ))
 #      w[i,:] = 1.1*w[i,:]/np.sqrt(np.sum(np.power(w[i,:],2)))
 #      J[i,:] = 1.1*J[i,:]/np.sqrt(np.sum(np.power(J[i,:],2)))
@@ -168,14 +172,14 @@ if __name__ == "__main__":
    wb = np.zeros(w.shape)
 
    with cd(pth):
-      plot_fig(t,x,markevery,'Position of CM vs. Time','t (s)','x (\lambda)','x.png')
+      plot_fig(t,x,markevery,'Position of CM vs. Time','t (s)','x (\lambda)','x.png',ylim=0.5)
       plot_fig(t,w,markevery,'Angular velocity vs. Time','t (s)','\omega','w.png')
       plot_fig(t,v,markevery,'Velocity vs. Time','t (s)','v (\lambda/s)','v.png')
-      plot_fig(t,J,markevery,'Angular momentum vs. Time','t (s)','J (Nms)','J.png')
+#      plot_fig(t,J,markevery,'Angular momentum vs. Time','t (s)','J (Nms)','J.png')
       plot_fig(t,N,markevery,'Torque vs. Time','t (s)','N (Nm)','N.png')
       plot_fig(t,F,markevery,'Force vs. Time','t (s)','F (N)','F.png')
-      plot_orbit(w,'Spin of angular velocity','worbit.png')
-      plot_orbit(J,'Time evolution of angular momentum','Jorbit.png')
-      plot_mav(t,w,mav,'Running average of angular velocity vs. Time','t (s)','\omega (rad/s)','wav.png')
-      plot_mav(t,N,mav,'Running average of torque vs. Time','t (s)','N (Nm)','Nav.png')
+#      plot_orbit(w,'Spin of angular velocity','worbit.png')
+#      plot_orbit(J,'Time evolution of angular momentum','Jorbit.png')
+#      plot_mav(t,w,mav,'Running average of angular velocity vs. Time','t (s)','\omega (rad/s)','wav.png')
+#      plot_mav(t,N,mav,'Running average of torque vs. Time','t (s)','N (Nm)','Nav.png')
 

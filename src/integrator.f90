@@ -65,11 +65,14 @@ contains
 ! Calculates grain dynamics. All radiative torques are calculated in so
 ! called scattering frame, and all ! dynamics are integrated in principal frame.
    subroutine solve_eoms()
-      integer :: i
+      integer :: i, wi, writeless
       real(dp) :: J(3), E, F(3), N(3)
 
       call start_log()
 
+      writeless = 0
+      wi = 1
+      if(it_max>100000) writeless = 1
 ! Iteration of optical force calculation
       do i = 1, it_max
          if (i > it_stop) exit
@@ -90,8 +93,17 @@ contains
             matrices%q_param = 2d0*matrices%Ip(3)*E/dot_product(J,J)
          end if
          
-         call check_stability(i)
-         if(shortlog == 0) call append_log(i)
+         if(int_mode < 2) call check_stability(i)
+         if(shortlog == 0) then
+            if(writeless==0)then
+               call append_log(i)
+            else
+               if(mod(i,(it_max/100000))==0)then
+                  call append_log(wi)
+                  wi = wi +1
+               end if
+            end if
+         end if
          call print_bar(i+1, it_max)
          
       end do
@@ -529,18 +541,19 @@ contains
    subroutine ot_update(F, N)
       real(dp), dimension(3), intent(out) :: F, N
       integer :: maxiter, i1, tested_gravity
-      real(dp) :: Rn(3, 3), wnh(3), dt, I(3), Jw(3), Ff, FFD(3), NND(3), Fg, Fnorm
+      real(dp) :: Rn(3, 3), wnh(3), dt, I(3), Jw(3), Ff, FFD(3), FFD1(3), Fg, Fnorm
       real(dp) :: PxW(3), hel(3), Jac(3, 3), Jwn(3), iterstop, drag, rot_drag(3,3)
-      real(dp) :: N_drag(3), test
+      real(dp) :: N_drag(3), test, max_w
 
       maxiter = 50
       tested_gravity = 0
+      max_w = 1d4
 
       drag = 2d0
       rot_drag = eye(3)
-      rot_drag(1,1) = 5d0
-      rot_drag(2,2) = 5d1
-      rot_drag(3,3) = 5d0
+      rot_drag(1,1) = 1d0
+      rot_drag(2,2) = 5d0
+      rot_drag(3,3) = 1d0
 
       I = matrices%Ip
       Jac = 0.d0
@@ -550,6 +563,9 @@ contains
 ! First force calculation for getting a reasonable value for dt
       if (matrices%tt == 0d0) then
          Fg = (mesh%rho-1d3)*mesh%V*9.81d0
+! Adjust E-field at origin
+         FFD = matrices%x_CM
+         matrices%x_CM = [0d0, 0d0, 0d0]
          do while (tested_gravity == 0)
             call get_forces()
             Fnorm = dabs(matrices%F(3))
@@ -557,13 +573,16 @@ contains
             if (test < 1d-6) then
                matrices%E = 1.4145d0*matrices%E
                write(*,'(A,ES9.3,A)') '  E-field intensity adjusted to ', matrices%E, ' V/m'
+               call get_forces()
                tested_gravity = 1
             else
                matrices%E = sqrt(Fg/Fnorm)*matrices%E
             end if
          end do
+         matrices%x_CM = FFD
       end if
 
+      matrices%N = exp(-vlen(matrices%w)/max_w)*matrices%N
       N = matrices%N
       call adaptive_step()
       dt = matrices%dt
@@ -573,8 +592,8 @@ contains
       FFD = dble(matrices%F)/mesh%mass - &
          (mesh%rho-1d3)*mesh%V*9.81d0*[0d0,0d0,1d0]/mesh%mass - &
          drag*vlen(matrices%v_CM)*pi*mesh%a**2*matrices%v_CM/mesh%mass
-      matrices%vn = matrices%v_CM + euler_3D(FFD, dt)
-      matrices%xn = matrices%x_CM + euler_3D(matrices%vn, dt)
+      matrices%xn = matrices%x_CM + matrices%v_CM*dt + 0.5d0*FFD*dt**2
+      matrices%x_CM = matrices%xn
 
 ! Step 1) Newton solve
       wnh = matrices%w ! Body angular velocity
@@ -609,13 +628,22 @@ contains
 
       matrices%R = matrices%Rn
       call get_forces()
+      matrices%N = exp(-vlen(matrices%w)/max_w)*matrices%N
       N = matrices%N 
-      N_drag = 0.5d0*mesh%rho*(mesh%a/2d0)**5*vlen(wnh)*matmul(rot_drag,wnh)
+      
+      FFD1 = dble(matrices%F)/mesh%mass - &
+         (mesh%rho-1d3)*mesh%V*9.81d0*[0d0,0d0,1d0]/mesh%mass - &
+         drag*vlen(matrices%v_CM)*pi*mesh%a**2*matrices%v_CM/mesh%mass
+      matrices%vn = matrices%v_CM + 0.5d0*(FFD+FFD1)*dt
 
+      N_drag = 0.d0!0.5d0*mesh%rho*(mesh%a/2d0)**5*vlen(wnh)*matmul(rot_drag,wnh)
 ! Step 3) Explicit angular velocity update
       Jwn = Jw + PxW + 0.25d0*dt**2d0*dot_product(wnh, Jw)*wnh &
       + 0.5d0*dt*(N - N_drag)
       matrices%wn = matmul(matrices%I_inv, Jwn)
+      matrices%wn(1) = matrices%wn(1)*0.95d0
+      matrices%wn(2) = matrices%wn(2)*0.9d0
+      matrices%wn(3) = matrices%wn(3)*0.995d0
 
       F = matrices%F
    end subroutine ot_update
