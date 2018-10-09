@@ -78,12 +78,13 @@ if __name__ == "__main__":
    pth = 'figs'
    skip = 22
    last = 0 # Draw only last n lines, 0 if all
+   first = 0 # Draw only first n lines, 0 if all
    #plt.xkcd()
    #plt.rc('font',family='Times New Roman')
    
    argv = sys.argv[1:]
    try:
-      opts, args = getopt.getopt(argv,"hl:p:s:e:",["log=", "path=", "skip=","end="])
+      opts, args = getopt.getopt(argv,"hl:p:s:e:f:",["log=", "path=", "skip=","end=", "first="])
    except getopt.GetoptError:
       print 'test.py -log <inputfile>'
       sys.exit(2)
@@ -102,6 +103,8 @@ if __name__ == "__main__":
          skip = int(arg)
       elif opt in ("-e", "--end"):
          last = int(arg)
+      elif opt in ("-f", "--first"):
+         first = int(arg)
    
    splt = inputfile.split("log")
    fileQ = fileQ + splt[-1]
@@ -115,6 +118,9 @@ if __name__ == "__main__":
    inputf = inputf.replace('|','')
    
    lines = np.loadtxt(StringIO(inputf), skiprows=skip)
+   if first != 0:
+      lines = lines[0:first]
+      num_lines = 22+first
    
    string = log.readlines()[1]
    k = [float(s) for s in string.split()[2:5]]

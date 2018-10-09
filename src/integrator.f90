@@ -641,9 +641,9 @@ contains
       Jwn = Jw + PxW + 0.25d0*dt**2d0*dot_product(wnh, Jw)*wnh &
       + 0.5d0*dt*(N - N_drag)
       matrices%wn = matmul(matrices%I_inv, Jwn)
-      matrices%wn(1) = matrices%wn(1)*0.95d0
-      matrices%wn(2) = matrices%wn(2)*0.9d0
-      matrices%wn(3) = matrices%wn(3)*0.995d0
+      ! matrices%wn(1) = matrices%wn(1)*0.95d0
+      ! matrices%wn(2) = matrices%wn(2)*0.9d0
+      ! matrices%wn(3) = matrices%wn(3)*0.995d0
 
       F = matrices%F
    end subroutine ot_update

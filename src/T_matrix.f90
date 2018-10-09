@@ -343,53 +343,41 @@ contains
 
 !****************************************************************************80
 ! Vector spherical harmonics of degree l and order m in direction (theta,phi)
-   function vsh(n, m, thet, ph) result(BCP)
-      integer :: n, m, mm
+   function spharm(n, m, thet, ph) result(YY)
+      integer :: n, m, mm, i
       real(dp) :: thet, ph, theta, phi, q
-      complex(dp) :: BCP(9), P(3), B(3), C(3), Y, Y1, Y2
-      real(dp), dimension(:), allocatable :: L, L1, L2
+      complex(dp) :: BCP(9), P(3), B(3), C(3), Y, Y2, dtY, dpY, YY(3)
+      real(dp), dimension(:), allocatable :: L, L2
 
       theta = max(1d-7, thet)
       phi = max(1d-7, ph)
 
-      allocate (L(n + 1), L1(n + 2), L2(n))
+      allocate (L(n + 1), L2(n))
 
       call legendre2(n, cos(theta), L)
-      call legendre2(n + 1, cos(theta), L1)
       call legendre2(n - 1, cos(theta), L2)
+! This normalization is not necessary, just makes the OTT form of legendre2
+      do i = 0,n
+         q = sqrt((2d0*n+1d0)*factorial(n-i)/(4d0*pi*factorial(n+i)))
+         L(i+1) = L(i+1)*q
+         if(i<n) L2(i+1) = L2(i+1)*q 
+      end do
 
-      q = (sqrt(n*(n + 1.0d0)))/((n*2d0 + 1.0d0)*sin(theta)); 
       mm = abs(m)
 
-! Unnormalized complex scalar spherical harmonics
+! Complex scalar spherical harmonics
       Y = dcmplx(L(mm + 1))*exp(dcmplx(0.0, m*phi))
-      Y1 = dcmplx(L1(mm + 1))*exp(dcmplx(0.0, m*phi))
       if (mm == n) then
          Y2 = dcmplx(0.0, 0.0)
       else
          Y2 = dcmplx(L2(mm + 1))*exp(dcmplx(0.0, m*phi))
       end if
 
-! Vector spherical harmonics
-      P(:) = dcmplx(0.0, 0.0)
-      P(1) = Y
+      dtY = (n*cos(theta)*Y - (n+m)*Y2)/sin(theta)
+      dpY = dcmplx(0d0,m)*Y/sin(theta)
+      YY = [Y, dtY, dpY]
 
-      Y1 = Y1*((n - mm + 1.0d0)/(n + 1.0d0))
+   end function spharm
 
-      Y2 = Y2*(dcmplx(n + mm)/dcmplx(n))
-
-      B(:) = dcmplx(0.0, 0.0)
-      B(2) = Y1 - Y2
-      B(3) = ((dcmplx(0.0, m*(2*n + 1.0)))/dcmplx(n*(n + 1.0)))*Y
-
-      B = B*q
-
-      C(:) = dcmplx(0.0, 0.0)
-      C(2) = B(3)
-      C(3) = -B(2)
-
-      BCP = [B, C, P]
-
-   end function vsh
 
 end module T_matrix

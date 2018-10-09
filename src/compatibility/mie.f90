@@ -201,43 +201,25 @@ contains
    subroutine planewave(Nmax, k, a_nm, b_nm)
       integer :: Nmax
       complex(dp), dimension((Nmax + 1)**2 - 1) :: a_nm, b_nm
-      complex(dp) :: k
+      complex(dp) :: k, i1, C
 
-      integer :: ind, n, m, mm
-      real(dp) :: scale, C, E0, omega
-      complex(dp) :: q
+      integer :: ind, n, m
+      real(dp) :: E0
 
       E0 = 1d0
-      omega = k*299792458.0
-      ind = 0
+      i1 = dcmplx(0d0,1d0)
+      a_nm = dcmplx(0d0,0d0)
+      b_nm = dcmplx(0d0,0d0)
 
       do n = 1, Nmax
+         do m = -1, 1, 2
+            ind = n*(n+1)+m
 
-         scale = sqrt(dble(n*(n + 1)))
+            C = dcmplx(E0*sqrt(pi*(2*n + 1d0)))
 
-         do m = -n, n
-            ind = ind + 1
-            mm = abs(m)
-
-            C = scale*E0*sqrt(pi*(2*n + 1d0))/(n*(n + 1d0))*sqrt(factorial(n + 1)/factorial(n - 1))
-
-            q = -(dcmplx(0.0, 1.0)**n*k)/dcmplx(omega*mu)
-
-            if (mm == 1) then
-               a_nm(ind) = dcmplx(0.0, 1.0)**dcmplx(n - 1.0)*dcmplx(C)
-               b_nm(ind) = -dcmplx(0.0, 1.0)**dcmplx(n + 1.0)*dcmplx(C)
-
-               if (m == -1) then
-                  a_nm(ind) = -a_nm(ind)
-               end if
-            else
-               a_nm(ind) = dcmplx(0.0, 0.0)
-               b_nm(ind) = dcmplx(0.0, 0.0)
-            end if
-            a_nm(ind) = -a_nm(ind)
-            b_nm(ind) = -b_nm(ind)
+            a_nm(ind) = -sign(1,m)*C*i1**dcmplx(n - 1.0)
+            b_nm(ind) = C*i1**dcmplx(n + 1.0)
          end do
-
       end do
 
    end subroutine planewave
