@@ -1,7 +1,7 @@
 # Compiler options
 HOSTNAME = $(firstword $(subst -, ,$(shell hostname)))
 FC = gfortran
-FCFLAGS = -O3 -ffast-math -funroll-loops -march=native
+FCFLAGS = -O3 -ffast-math -funroll-loops -march=native 
 DEBUG = -O0 -ffast-math -funroll-loops -march=native -fcheck=bounds -g -fbacktrace
 DEBUGALL = -Wall -pedantic -fcheck=all -ffpe-trap=invalid,zero,overflow
 

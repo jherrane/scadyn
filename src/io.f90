@@ -620,7 +620,7 @@ contains
       character(len=120) :: fname, fmt
 
       fname = 'out/log'//trim(matrices%out)
-      fmt = '(I0, A, ES16.8, A, 5(3ES16.8, A), 9ES16.8)'
+      fmt = '(I0, A, ES17.8E3, A, 5(3ES17.8E3, A), 9ES17.8E3)'
       md = mod(n, 1000)
 
 ! If the modulo if zero, we are at the final place of the buffer. Otherwise, 

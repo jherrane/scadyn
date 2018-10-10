@@ -154,7 +154,7 @@ if __name__ == "__main__":
    t = lines[:,1]
    x = lines[:,2:5]/a
    w = lines[:,5:8]
-   v = lines[:,8:11]/a
+   v = lines[:,8:11]
    J = 0*w
    N = lines[:,11:14]
    F = lines[:,14:17]/mass
@@ -174,7 +174,7 @@ if __name__ == "__main__":
    with cd(pth):
       plot_fig(t,x,markevery,'Position of CM vs. Time','t (s)','x (\lambda)','x.png',ylim=2.0)
       plot_fig(t,w,markevery,'Angular velocity vs. Time','t (s)','\omega','w.png')
-      plot_fig(t,v,markevery,'Velocity vs. Time','t (s)','v (\lambda/s)','v.png')
+      plot_fig(t,v,markevery,'Velocity vs. Time','t (s)','v (m/s)','v.png')
 #      plot_fig(t,J,markevery,'Angular momentum vs. Time','t (s)','J (Nms)','J.png')
       plot_fig(t,N,markevery,'Torque vs. Time','t (s)','N (Nm)','N.png')
       plot_fig(t,F,markevery,'Force vs. Time','t (s)','F (N)','F.png')

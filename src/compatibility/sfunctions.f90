@@ -147,7 +147,7 @@ contains
 
 !******************************************************************************
 
-   subroutine sphj2(n, x, nm, sj, dj)
+   subroutine sphj2(n, x, nm, sj)
 !*****************************************************************************80
 !
 !  SPHJ computes spherical Bessel functions jn(x) and their derivatives.
@@ -191,7 +191,6 @@ contains
       integer :: n
 
       real(dp) :: cs
-      real(dp) ::  dj(0:n)
       real(dp) :: f
       real(dp) :: f0
       real(dp) :: f1
@@ -208,10 +207,8 @@ contains
       if (abs(x) <= 1.0D-100) then
          do k = 0, n
             sj(k) = 0.0D+00
-            dj(k) = 0.0D+00
          end do
          sj(0) = 1.0D+00
-         dj(1) = 0.3333333333333333D+00
          return
       end if
 
@@ -251,12 +248,7 @@ contains
          end do
 
       end if
-
-      dj(0) = (cos(x) - sin(x)/x)/x
-      do k = 1, nm
-         dj(k) = sj(k - 1) - (k + 1.0D+00)*sj(k)/x
-      end do
-
+      
       return
    end subroutine sphj2
 

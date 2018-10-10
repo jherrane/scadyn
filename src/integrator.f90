@@ -362,7 +362,8 @@ contains
       real(dp) :: max_w, test_dt, dw(3)
 
       dw = get_dotw(matrices%N, matrices%w, matrices%I, matrices%I_inv)
-      if(vlen(dw)<1d-7) dw = 1d-7
+
+      if(vlen(dw)<1d-4) return
 ! Use an adaptive time step, integrate over rotation <= rot_max
       max_w = vlen(matrices%w + dw*matrices%dt)
       if(max_w>1d-8) then
@@ -543,13 +544,13 @@ contains
       integer :: maxiter, i1, tested_gravity
       real(dp) :: Rn(3, 3), wnh(3), dt, I(3), Jw(3), Ff, FFD(3), FFD1(3), Fg, Fnorm
       real(dp) :: PxW(3), hel(3), Jac(3, 3), Jwn(3), iterstop, drag, rot_drag(3,3)
-      real(dp) :: N_drag(3), test, max_w
+      real(dp) :: N_drag(3), test, max_w, rvec(3)
 
       maxiter = 50
       tested_gravity = 0
       max_w = 1d4
 
-      drag = 2d0
+      drag = 2d3
       rot_drag = eye(3)
       rot_drag(1,1) = 1d0
       rot_drag(2,2) = 5d0
@@ -562,16 +563,16 @@ contains
 
 ! First force calculation for getting a reasonable value for dt
       if (matrices%tt == 0d0) then
-         Fg = (mesh%rho-1d3)*mesh%V*9.81d0
+         if(seedling /= 0) brownian = .TRUE.
+         Fg = (mesh%rho)*mesh%V*9.81d0
 ! Adjust E-field at origin
          FFD = matrices%x_CM
          matrices%x_CM = [0d0, 0d0, 0d0]
          do while (tested_gravity == 0)
             call get_forces()
-            Fnorm = dabs(matrices%F(3))
-            test = dabs(dabs(Fg)-dabs(Fnorm))/Fg
+            Fnorm = vlen(matrices%F)
+            test = abs(abs(Fg)-abs(Fnorm))/Fg
             if (test < 1d-6) then
-               matrices%E = 1.4145d0*matrices%E
                write(*,'(A,ES9.3,A)') '  E-field intensity adjusted to ', matrices%E, ' V/m'
                call get_forces()
                tested_gravity = 1
@@ -582,15 +583,20 @@ contains
          matrices%x_CM = FFD
       end if
 
-      matrices%N = exp(-vlen(matrices%w)/max_w)*matrices%N
+      ! matrices%N = exp(-vlen(matrices%w)/max_w)*matrices%N
       N = matrices%N
       call adaptive_step()
       dt = matrices%dt
 
+      if(brownian) then
+         rvec = rand_vec()*matrices%lambda2*0.1d0
+         matrices%x_CM = matrices%x_CM + rvec
+      end if
+
 ! Calculate total force, or really its acceleration, including gravity, 
 ! bouyancy, drag
       FFD = dble(matrices%F)/mesh%mass - &
-         (mesh%rho-1d3)*mesh%V*9.81d0*[0d0,0d0,1d0]/mesh%mass - &
+         ! (mesh%rho-1d3)*mesh%V*9.81d0*[0d0,0d0,1d0]/mesh%mass - &
          drag*vlen(matrices%v_CM)*pi*mesh%a**2*matrices%v_CM/mesh%mass
       matrices%xn = matrices%x_CM + matrices%v_CM*dt + 0.5d0*FFD*dt**2
       matrices%x_CM = matrices%xn
@@ -632,8 +638,8 @@ contains
       N = matrices%N 
       
       FFD1 = dble(matrices%F)/mesh%mass - &
-         (mesh%rho-1d3)*mesh%V*9.81d0*[0d0,0d0,1d0]/mesh%mass - &
-         drag*vlen(matrices%v_CM)*pi*mesh%a**2*matrices%v_CM/mesh%mass
+         ! (mesh%rho-1d3)*mesh%V*9.81d0*[0d0,0d0,1d0]/mesh%mass - &
+          drag*vlen(matrices%v_CM)*pi*mesh%a**2*matrices%v_CM/mesh%mass
       matrices%vn = matrices%v_CM + 0.5d0*(FFD+FFD1)*dt
 
       N_drag = 0.d0!0.5d0*mesh%rho*(mesh%a/2d0)**5*vlen(wnh)*matmul(rot_drag,wnh)

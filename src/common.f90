@@ -46,6 +46,8 @@ module common
    integer :: relax = 0
    integer :: shortlog = 0
 
+   logical :: brownian = .FALSE.
+
 ! TYPES ***********************************************************************
 !****************************************************************************80
 
@@ -912,6 +914,34 @@ contains
       R = R_aa(vec, 2d0*phi*u(3))
 
    end function rand_rot
+
+!****************************************************************************80
+! Random unit vector
+   function rand_vec() result(vec)
+      real(dp) :: theta, phi, vec(3), u(3)
+      integer :: i, size
+      integer, allocatable :: seed(:)
+
+! Overly complicated random number hassle... Something may be awry somewhere.
+      if (seedling == 0) then
+         call system_clock(i)
+      else
+         i = seedling
+         seedling = seedling + 1
+      end if
+      call random_seed(size=size)
+      allocate (seed(size))
+      seed = i + 37*[(i, i=0, size - 1)]
+      call random_seed(put=seed)
+      call random_number(u)
+      deallocate (seed)
+
+! After this everything is nice and clean
+      theta = dacos(2d0*u(1) - 1)
+      phi = 2d0*pi*u(2)
+      vec = sph2cart(1d0, theta, phi)
+
+   end function rand_vec
 
 !****************************************************************************80
 ! Dericative of the Rodrigues' rotation formula
