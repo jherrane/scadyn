@@ -1,4 +1,7 @@
 module setup
+! Copyright (c) 2018 Joonas Herranen and University of Helsinki
+! All rights reserved.
+! The MIT License is applied to this software, see LICENSE
    use common
    use io
    use mie
@@ -34,7 +37,7 @@ contains
 
          if (matrices%Tmat == 0) print *, 'Initializing FFT... '
          if (allocated(mesh%nodes)) deallocate (mesh%nodes, mesh%etopol_box, mesh%tetras)
-         call build_grid2(mesh) ! geometry
+         call build_grid(mesh) ! geometry
          call build_box(mesh) ! geometry
          call tetras_in_cubes(mesh) ! geometry
 

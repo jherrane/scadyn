@@ -9,12 +9,7 @@ DEBUGALL = -Wall -pedantic -fcheck=all -ffpe-trap=invalid,zero,overflow
 LIBS = -lm -L/usr/local/lib -L/usr/lib -L/usr/lib/x86_64-linux-gnu/hdf5/serial -lfftw3 -llapack -lhdf5_fortran -lhdf5 -lhdf5_hl -lblas
 
 # Source tree definitions
-SRC = src
-COMP = src/compatibility
-EXT = ext
-EXT1 = ext/jvie_t_matrix/src
-EXT2 = ext/fastmm_v1.0/src
-VPATH 	= $(SRC) $(COMP) $(EXT) $(EXT1) $(EXT2)
+VPATH = src
 BINDIR = bin
 EXEC = scadyn
 
@@ -32,7 +27,6 @@ OBJECTS = ${BINDIR}/common.o \
 ${BINDIR}/sfunctions.o \
 ${BINDIR}/h5io.o \
 ${BINDIR}/io.o \
-${BINDIR}/gaussquad.o \
 ${BINDIR}/integration_points.o \
 ${BINDIR}/translations.o \
 ${BINDIR}/mie.o \
@@ -40,19 +34,12 @@ ${BINDIR}/possu.o \
 ${BINDIR}/sparse.o \
 ${BINDIR}/singularity_subtraction.o \
 ${BINDIR}/singularity_subtraction_N.o \
-${BINDIR}/integrals.o \
 ${BINDIR}/geometry.o \
 ${BINDIR}/sparse_mat.o \
 ${BINDIR}/precorrection.o \
 ${BINDIR}/projection.o \
 ${BINDIR}/build_G.o \
 ${BINDIR}/gmres_module.o \
-${BINDIR}/rhs.o \
-${BINDIR}/field.o \
-${BINDIR}/solver.o \
-${BINDIR}/transformation_matrices.o \
-${BINDIR}/clustermie.o \
-${BINDIR}/miecoat.o \
 ${BINDIR}/setup.o \
 ${BINDIR}/T_matrix.o \
 ${BINDIR}/forces.o \
@@ -70,7 +57,7 @@ INCSTAITO = -I/usr/include -I/usr/local/include/ -I${FFTW_ROOT}/include/ -I${H5R
 LIBSTAITO = -L${FFTW_ROOT}/lib -lfftw3 -lfftw3_mpi -L${H5ROOT}/lib -lhdf5_fortran -lhdf5 -Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_gf_lp64.a $(MKLROOT)/lib/intel64/libmkl_core.a $(MKLROOT)/lib/intel64/libmkl_sequential.a -Wl,--end-group -lpthread -lm -ldl
 
 ifeq ($(HOSTNAME),taito)
-	yell = "Starting Make... When in taito, remember to run 'module load gcc mkl fftw hdf5-serial' or Make will fail. Upon failure, load modules, clean and run Make again."
+	yell = "Starting Make... When in Taito, remember to run 'module load gcc mkl fftw hdf5-serial' or Make will fail. Upon failure, load modules, clean and run Make again."
 	FC := $(FCTAITO)
 	INCS := $(INCSTAITO)
 	LIBS := $(LIBSTAITO)

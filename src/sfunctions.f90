@@ -1,21 +1,22 @@
 module sfunctions
+! Copyright (c) 2018 Johannes and University of Helsinki
+! All rights reserved.
+! The MIT License is applied to this software, see LICENSE
    use common
    implicit none
 contains
-!******************************************************************************
-!## SFUNCTIONS ##
-!     ==========================================================
-!     Purpose: Compute spherical Bessel functions jn(z) & yn(z)
-!              for a complex argument
-!     Input :  z --- Complex argument
-!              n --- Order of jn(z) & yn(z) ( n = 0,1,2,... )
-!     Output:  CSJ(n) --- jn(z)
-!              CSY(n) --- yn(z)
-!              NM --- Highest order computed
-!     Routines called:
-!              MSTA1 and MSTA2 for computing the starting
-!              point for backward recurrence
-!     ==========================================================
+
+!****************************************************************************80
+!   Purpose: Compute spherical Bessel functions jn(z) & yn(z)
+!           for a complex argument
+!   Input :  z --- Complex argument
+!           n --- Order of jn(z) & yn(z) ( n = 0,1,2,... )
+!   Output:  CSJ(n) --- jn(z)
+!           CSY(n) --- yn(z)
+!           NM --- Highest order computed
+!   Routines called:
+!           MSTA1 and MSTA2 for computing the starting
+!           point for backward recurrence
    subroutine cspherebessel(n, z, csj, csy)
       implicit none
       integer :: n, nm, k, m
@@ -96,8 +97,7 @@ contains
       msta1 = nn
    end function msta1
 
-!******************************************************************************
-!     ===================================================
+!****************************************************************************80
 !     Purpose: Determine the starting point for backward
 !              recurrence such that all Jn(x) has MP
 !              significant digits
@@ -105,7 +105,6 @@ contains
 !              n  --- Order of Jn(x)
 !              MP --- Significant digit
 !     Output:  MSTA2 --- Starting point
-!     ===================================================
    integer function msta2(x, n, mp)
       implicit none
       integer :: n, mp, n0, n1, it, nn
@@ -135,7 +134,7 @@ contains
       msta2 = nn + 10
    end function msta2
 
-!******************************************************************************
+!****************************************************************************80
 
    real(8) function envj(n, x)
       implicit none
@@ -145,10 +144,10 @@ contains
       envj = 0.5d0*dlog10(6.28d0*n) - dble(n)*dlog10(1.36d0*x/n)
    end function envj
 
-!******************************************************************************
+!****************************************************************************80
 
    subroutine sphj2(n, x, nm, sj)
-!*****************************************************************************80
+!****************************************************************************80
 !
 !  SPHJ computes spherical Bessel functions jn(x) and their derivatives.
 !
@@ -227,7 +226,7 @@ contains
          end if
 
          f0 = 0.0D+00
-         f1 = 1.0D+00-100
+         f1 = 1.0D+00 - 100
          do k = m, 0, -1
             f = (2.0D+00*k + 3.0D+00)*f1/x - f0
             if (k <= nm) then
@@ -248,13 +247,15 @@ contains
          end do
 
       end if
-      
+
       return
    end subroutine sphj2
 
+!****************************************************************************80
+
    subroutine sphy(n, x, nm, sy, dy)
 
-!*****************************************************************************80
+!****************************************************************************80
 !
 !! SPHY computes spherical Bessel functions yn(x) and their derivatives.
 !
@@ -336,8 +337,10 @@ contains
       return
    end subroutine sphy
 
+!****************************************************************************80
+
    subroutine csphjy(n, z, nm, csj, cdj, csy, cdy)
-!*****************************************************************************80
+!****************************************************************************80
 !
 !! CSPHJY: spherical Bessel functions jn(z) and yn(z) for complex argument.
 !
@@ -427,7 +430,7 @@ contains
             m = msta2(a0, n, 15)
          end if
          cf0 = dcmplx(0.0D+00)
-         cf1 = dcmplx(1.0D+00-100)
+         cf1 = dcmplx(1.0D+00 - 100)
          do k = m, 0, -1
             cf = (2.0D+00*k + 3.0D+00)*cf1/z - cf0
             if (k <= nm) then
@@ -474,7 +477,7 @@ contains
       return
    end subroutine csphjy
 
-!******************************************************************************
+!****************************************************************************80
 
    subroutine cspherebessel2(n, z, csj, csy)
       implicit none
@@ -485,7 +488,7 @@ contains
 
    end subroutine cspherebessel2
 
-!******************************************************************************
+!****************************************************************************80
 ! Returns Spherical Hankel functions of the 1st kind
 ! of orders 0:N at x
 ! H = sqrt(pi/2/x)* besselh(n+1/2,x)
@@ -508,7 +511,7 @@ contains
 
    end function sphankel
 
-!******************************************************************************
+!****************************************************************************80
 
    function spbessel(N, x) result(H)
       integer :: N
@@ -530,7 +533,7 @@ contains
 
    end function spbessel
 
-!******************************************************************************
+!****************************************************************************80
 
    subroutine sbesseljd(n, z, j, dj)
       implicit none
@@ -545,7 +548,7 @@ contains
 
    end subroutine sbesseljd
 
-!******************************************************************************
+!****************************************************************************80
 
    subroutine shankeljd(n, z, h, dh)
       implicit none
@@ -561,7 +564,7 @@ contains
 
    end subroutine shankeljd
 
-!******************************************************************************
+!****************************************************************************80
 ! Riccati-Bessselh up to order N
    function riccati_besselh(N, x) result(zeta)
       integer :: N
@@ -580,7 +583,7 @@ contains
 
    end function riccati_besselh
 
-!******************************************************************************
+!****************************************************************************80
 
    subroutine riccati_bessel(N, x, zeta, d_zeta, psi, d_psi)
       integer :: N, i1
@@ -591,7 +594,6 @@ contains
       call cspherebessel(N + 1, x, sphj, sphy)
 
 ! spherical hankel of the 2nd kind
-!sphh = sphj + dcmplx(0.0, 1.0) * sphy
       sphh = sphankel(N + 1, x)
 
       do i1 = 1, N + 1
@@ -608,7 +610,7 @@ contains
 
    end subroutine riccati_bessel
 
-!******************************************************************************
+!****************************************************************************80
 
    subroutine legendre2(N, x, P_nm)
       integer :: N
@@ -679,13 +681,11 @@ contains
          end do
       end do
 
-!print*, size(PM,1), size(PM,2)!, size(P_nm)
       P_nm = PM(1:N + 1, N + 1)
 
-!do i1 = 1, N+1
-!   print*, PM(i1,N+1)
-!end do
    end subroutine legendre2
+
+!****************************************************************************80
 
    function sphankel_a(N, x) result(H)
       integer :: N, nn
@@ -699,6 +699,8 @@ contains
       end do
 
    end function sphankel_a
+
+!****************************************************************************80
 
    function laguerre(p, l, x) result(Lpl)
       real(dp), dimension(:), allocatable :: x, Lpl
@@ -716,10 +718,11 @@ contains
 
    end function laguerre
 
+!****************************************************************************80
+
    subroutine jyna(n, x, nm, bj, dj, by, dy)
 
-!*****************************************************************************80
-!
+!****************************************************************************80
 !! JYNA computes Bessel functions Jn(x) and Yn(x) and derivatives.
 !
 !  Licensing:
@@ -874,10 +877,11 @@ contains
       return
    end
 
+!****************************************************************************80
+
    subroutine jy01b(x, bj0, dj0, bj1, dj1, by0, dy0, by1, dy1)
 
-!*****************************************************************************80
-!
+!****************************************************************************80
 !! JY01B computes Bessel functions J0(x), J1(x), Y0(x), Y1(x) and derivatives.
 !
 !  Licensing:
@@ -1052,8 +1056,10 @@ contains
       return
    end
 
+!****************************************************************************80
+
    subroutine lpmn(mm, m, n, x, pm, pd)
-!*****************************************************************************80
+!****************************************************************************80
 !
 !! LPMN computes associated Legendre functions Pmn(X) and derivatives P'mn(x).
 !
@@ -1139,8 +1145,8 @@ contains
          ls = +1
       end if
 
-      xq = sqrt(ls*(1.0D+00-x*x))
-      xs = ls*(1.0D+00-x*x)
+      xq = sqrt(ls*(1.0D+00 - x*x))
+      xs = ls*(1.0D+00 - x*x)
       do i = 1, m
          pm(i, i) = -ls*(2.0D+00*i - 1.0D+00)*xq*pm(i - 1, i - 1)
       end do
@@ -1171,15 +1177,15 @@ contains
       return
    end
 
-!*****************************************************************************80
-   
-   subroutine elit ( hk, phi, fe, ee )
+!****************************************************************************80
+
+   subroutine elit(hk, phi, fe, ee)
 !! ELIT: complete and incomplete elliptic integrals F(k,phi) and E(k,phi).
 !
 !  Licensing:
 !
-!    This routine is copyrighted by Shanjie Zhang and Jianming Jin.  However, 
-!    they give permission to incorporate this routine into a user program 
+!    This routine is copyrighted by Shanjie Zhang and Jianming Jin.  However,
+!    they give permission to incorporate this routine into a user program
 !    provided that the copyright is acknowledged.
 !
 !  Modified:
@@ -1208,87 +1214,87 @@ contains
 !
       implicit none
 
-      real ( kind = 8 ) a
-      real ( kind = 8 ) a0
-      real ( kind = 8 ) b
-      real ( kind = 8 ) b0
-      real ( kind = 8 ) c
-      real ( kind = 8 ) ce
-      real ( kind = 8 ) ck
-      real ( kind = 8 ) d
-      real ( kind = 8 ) d0
-      real ( kind = 8 ) ee
-      real ( kind = 8 ) fac
-      real ( kind = 8 ) fe
-      real ( kind = 8 ) g
-      real ( kind = 8 ) hk
-      integer ( kind = 4 ) n
-      real ( kind = 8 ) phi
-      real ( kind = 8 ) pi
-      real ( kind = 8 ) r
+      real(kind=8) a
+      real(kind=8) a0
+      real(kind=8) b
+      real(kind=8) b0
+      real(kind=8) c
+      real(kind=8) ce
+      real(kind=8) ck
+      real(kind=8) d
+      real(kind=8) d0
+      real(kind=8) ee
+      real(kind=8) fac
+      real(kind=8) fe
+      real(kind=8) g
+      real(kind=8) hk
+      integer(kind=4) n
+      real(kind=8) phi
+      real(kind=8) pi
+      real(kind=8) r
 
       g = 0.0D+00
       pi = 3.14159265358979D+00
       a0 = 1.0D+00
-      b0 = sqrt ( 1.0D+00 - hk * hk )
-      d0 = ( pi / 180.0D+00 ) * phi
-      r = hk * hk
+      b0 = sqrt(1.0D+00 - hk*hk)
+      d0 = (pi/180.0D+00)*phi
+      r = hk*hk
 
-      if ( hk == 1.0D+00 .and. phi == 90.0D+00 ) then
+      if (hk == 1.0D+00 .and. phi == 90.0D+00) then
 
-       fe = 1.0D+300
-       ee = 1.0D+00
+         fe = 1.0D+300
+         ee = 1.0D+00
 
-      else if ( hk == 1.0D+00 ) then
+      else if (hk == 1.0D+00) then
 
-       fe = log ( ( 1.0D+00 + sin ( d0 ) ) / cos ( d0 ) )
-       ee = sin ( d0 )
+         fe = log((1.0D+00 + sin(d0))/cos(d0))
+         ee = sin(d0)
 
       else
 
-       fac = 1.0D+00
-       do n = 1, 40
-         a = ( a0 + b0 ) /2.0D+00
-         b = sqrt ( a0 * b0 )
-         c = ( a0 - b0 ) / 2.0D+00
-         fac = 2.0D+00 * fac
-         r = r + fac * c * c
-         if ( phi /= 90.0D+00 ) then
-           d = d0 + atan ( ( b0 / a0 ) * tan ( d0 ) )
-           g = g + c * sin( d )
-           d0 = d + pi * int ( d / pi + 0.5D+00 )
-         end if
-         a0 = a
-         b0 = b
-         if ( c < 1.0D-07 ) then
-           exit
-         end if
-       end do
+         fac = 1.0D+00
+         do n = 1, 40
+            a = (a0 + b0)/2.0D+00
+            b = sqrt(a0*b0)
+            c = (a0 - b0)/2.0D+00
+            fac = 2.0D+00*fac
+            r = r + fac*c*c
+            if (phi /= 90.0D+00) then
+               d = d0 + atan((b0/a0)*tan(d0))
+               g = g + c*sin(d)
+               d0 = d + pi*int(d/pi + 0.5D+00)
+            end if
+            a0 = a
+            b0 = b
+            if (c < 1.0D-07) then
+               exit
+            end if
+         end do
 
-       ck = pi / ( 2.0D+00 * a )
-       ce = pi * ( 2.0D+00 - r ) / ( 4.0D+00 * a )
-       if ( phi == 90.0D+00 ) then
-         fe = ck
-         ee = ce
-       else
-         fe = d / ( fac * a )
-         ee = fe * ce / ck + g
-       end if
+         ck = pi/(2.0D+00*a)
+         ce = pi*(2.0D+00 - r)/(4.0D+00*a)
+         if (phi == 90.0D+00) then
+            fe = ck
+            ee = ce
+         else
+            fe = d/(fac*a)
+            ee = fe*ce/ck + g
+         end if
 
       end if
 
       return
    end subroutine elit
 
-!*****************************************************************************80
+!****************************************************************************80
 
-   subroutine jelp ( u, hk, esn, ecn, edn, eph )
+   subroutine jelp(u, hk, esn, ecn, edn, eph)
 !! JELP computes Jacobian elliptic functions SN(u), CN(u), DN(u).
 !
 !  Licensing:
 !
-!    This routine is copyrighted by Shanjie Zhang and Jianming Jin.  However, 
-!    they give permission to incorporate this routine into a user program 
+!    This routine is copyrighted by Shanjie Zhang and Jianming Jin.  However,
+!    they give permission to incorporate this routine into a user program
 !    provided that the copyright is acknowledged.
 !
 !  Modified:
@@ -1318,59 +1324,59 @@ contains
 !
       implicit none
 
-      real ( kind = 8 ) a
-      real ( kind = 8 ) a0
-      real ( kind = 8 ) b
-      real ( kind = 8 ) b0
-      real ( kind = 8 ) c
-      real ( kind = 8 ) d
-      real ( kind = 8 ) dn
-      real ( kind = 8 ) ecn
-      real ( kind = 8 ) edn
-      real ( kind = 8 ) eph
-      real ( kind = 8 ) esn
-      real ( kind = 8 ) hk
-      integer ( kind = 4 ) j
-      integer ( kind = 4 ) n 
-      real ( kind = 8 ) pi
-      real ( kind = 8 ) r(40)
-      real ( kind = 8 ) sa
-      real ( kind = 8 ) t
-      real ( kind = 8 ) u
+      real(kind=8) a
+      real(kind=8) a0
+      real(kind=8) b
+      real(kind=8) b0
+      real(kind=8) c
+      real(kind=8) d
+      real(kind=8) dn
+      real(kind=8) ecn
+      real(kind=8) edn
+      real(kind=8) eph
+      real(kind=8) esn
+      real(kind=8) hk
+      integer(kind=4) j
+      integer(kind=4) n
+      real(kind=8) pi
+      real(kind=8) r(40)
+      real(kind=8) sa
+      real(kind=8) t
+      real(kind=8) u
 
       pi = 3.14159265358979D+00
       a0 = 1.0D+00
-      b0 = sqrt ( 1.0D+00 - hk * hk )
+      b0 = sqrt(1.0D+00 - hk*hk)
 
       do n = 1, 40
 
-       a = ( a0 + b0 ) / 2.0D+00
-       b = sqrt ( a0 * b0 )
-       c = ( a0 - b0 ) / 2.0D+00
-       r(n) = c / a
+         a = (a0 + b0)/2.0D+00
+         b = sqrt(a0*b0)
+         c = (a0 - b0)/2.0D+00
+         r(n) = c/a
 
-       if ( c < 1.0D-07 ) then
-         exit
-       end if
+         if (c < 1.0D-07) then
+            exit
+         end if
 
-       a0 = a
-       b0 = b
+         a0 = a
+         b0 = b
 
       end do
 
-      dn = 2.0D+00 ** n * a * u
+      dn = 2.0D+00**n*a*u
 
       do j = n, 1, -1
-       t = r(j) * sin ( dn )
-       sa = atan ( t / sqrt ( abs ( 1.0D+00 - t * t )))
-       d = 0.5D+00 * ( dn + sa )
-       dn = d
+         t = r(j)*sin(dn)
+         sa = atan(t/sqrt(abs(1.0D+00 - t*t)))
+         d = 0.5D+00*(dn + sa)
+         dn = d
       end do
 
-      eph = d * 180.0D+00 / pi
-      esn = sin ( d )
-      ecn = cos ( d )
-      edn = sqrt ( 1.0D+00 - hk * hk * esn * esn )
+      eph = d*180.0D+00/pi
+      esn = sin(d)
+      ecn = cos(d)
+      edn = sqrt(1.0D+00 - hk*hk*esn*esn)
 
       return
    end

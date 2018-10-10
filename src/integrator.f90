@@ -1,4 +1,7 @@
 module integrator
+! Copyright (c) 2018 Joonas Herranen and University of Helsinki
+! All rights reserved.
+! The MIT License is applied to this software, see LICENSE
    use forces
    use shapebeam
    use setup 

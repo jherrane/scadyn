@@ -1,7 +1,9 @@
 module shapebeam
+! Copyright (c) 2018 Joonas Herranen and University of Helsinki
+! All rights reserved.
+! The MIT License is applied to this software, see LICENSE
    use T_matrix
    use bessel
-   use gaussquad
 
    implicit none
 contains
@@ -156,8 +158,6 @@ contains
 ! Get the spherical harmonics, only the derivative theta and phi components of the
 ! gradient are needed.
             YY = spharm(n, m, theta(jjj), phi(jjj))
-            ! write(*, '(6F8.4,2I3)') YY
-            ! if(iii == 3) write(*, '(3I3,6F8.4)') n, m, jjj, YY(1)
 ! Coefficient matrix A is the solution to A*e_field(=B) = expansion_coefficients (=x)
             coefficient_matrix(jjj, iii) = &
             YY(3)*dcmplx(0d0, 1d0)**(nn(iii) + 1)/dsqrt(dble(nn(iii))*(nn(iii) + 1))
@@ -172,10 +172,6 @@ contains
             YY(3)*dcmplx(0d0, 1d0)**(nn(iii))/dsqrt(dble(nn(iii))*(nn(iii) + 1))
          end do
       end do
-      do iii = 1, 2*size(nn, 1)
-          ! write(*, '(2F8.4,2I3)') coefficient_matrix(1, iii)
-      end do
-
 
 ! Solve the linear problem, same as x = A\B in matlab
       allocate (work(1))
@@ -191,10 +187,7 @@ contains
       allocate (a(size(nn, 1)), b(size(nn, 1)))
       a = e_field(1:size(nn, 1))
       b = e_field(size(nn, 1) + 1:2*size(nn, 1))
-      ! do iii = 1, 2*size(nn, 1)
-      !     write(*, '(2F8.4,2I3)') e_field(iii)
-      ! end do
-
+      
       do iii = 1, size(nn, 1)
          ind = nn(iii)*(nn(iii) + 1) + mm(iii)
          a_nm(ind) = a(iii)
@@ -203,9 +196,6 @@ contains
             a_nm(ind) = 0d0
             b_nm(ind) = 0d0
          end if
-         ! print*, a(iii)
-         ! write(*, '(2F8.4,2I3)') a_nm(ind), nn(iii), ind
-         ! write(*, '(2F8.4,2I3)') b_nm(ind), nn(iii), ind
       end do
 
       matrices%as(1:(nmax + 1)**2 - 1, i) = a_nm 
@@ -286,10 +276,6 @@ contains
             grid(2, ind) = y(j)
          end do
       end do
-
-      ! do i = 1,size(grid,2)
-      !   write(*, '(3ES11.3)') grid(:,i)
-      ! end do
 
    end function field_grid
 

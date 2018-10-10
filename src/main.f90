@@ -1,4 +1,7 @@
 program main
+! Copyright (c) 2018 Joonas Herranen and University of Helsinki
+! All rights reserved.
+! The MIT License is applied to this software, see LICENSE
    use common
    use io
    use integrator
@@ -6,7 +9,7 @@ program main
 
    implicit none
 
-   call splash('v0.5')
+   call splash('v0.7')
 
    call check_paramsfile()
    call read_params()

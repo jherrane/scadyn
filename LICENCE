@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2018 Joonas Herranen, University of Helsinki
+Copyright (c) 2018 Joonas Herranen, Johannes Markkanen, University of Helsinki
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,3 +19,9 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+Above text does not apply to codes mentioned below
+*src/sfunctions.f90
+some of the parts are by Shanjie Zhang and Jianming Jin 
+
+These codes are modified to suit the needs of this program.

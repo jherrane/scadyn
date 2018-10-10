@@ -1,4 +1,7 @@
 module mie
+! Copyright (c) 2018 Johannes and University of Helsinki
+! All rights reserved.
+! The MIT License is applied to this software, see LICENSE
    use sfunctions
    use common
    use io
@@ -33,7 +36,7 @@ contains
             dn = -dcmplx(1.0d0/b_n(las) + 1.0d0)
 
             int = int + 1/k**2d0*(dble(dn)*abs(a_in(las))**2d0 + &
-               dble(cn)*abs(b_in(las))**2d0)
+                                  dble(cn)*abs(b_in(las))**2d0)
 
             las = las + 1
          end do
@@ -100,7 +103,7 @@ contains
       complex(dp) :: REFREL
 ! Local variables:
       integer :: N, NSTOP, NMX, NN
-      real(dp) :: CHI, CHI0, CHI1, DX, EN, FN, P, PII, PSI, PSI0, PSI1,YMOD
+      real(dp) :: CHI, CHI0, CHI1, DX, EN, FN, P, PII, PSI, PSI0, PSI1, YMOD
 
       complex(dp) :: AN, AN1, BN, BN1, DREFRL, XI, XI1, Y
       complex(dp) :: D(NSTOP + 1), a_n(NSTOP), b_n(NSTOP)
@@ -207,17 +210,17 @@ contains
       real(dp) :: E0
 
       E0 = 1d0
-      i1 = dcmplx(0d0,1d0)
-      a_nm = dcmplx(0d0,0d0)
-      b_nm = dcmplx(0d0,0d0)
+      i1 = dcmplx(0d0, 1d0)
+      a_nm = dcmplx(0d0, 0d0)
+      b_nm = dcmplx(0d0, 0d0)
 
       do n = 1, Nmax
          do m = -1, 1, 2
-            ind = n*(n+1)+m
+            ind = n*(n + 1) + m
 
             C = dcmplx(E0*sqrt(pi*(2*n + 1d0)))
 
-            a_nm(ind) = -sign(1,m)*C*i1**dcmplx(n - 1.0)
+            a_nm(ind) = -sign(1, m)*C*i1**dcmplx(n - 1.0)
             b_nm(ind) = C*i1**dcmplx(n + 1.0)
          end do
       end do
@@ -354,7 +357,7 @@ contains
 
             ! Unnormalized complex scalar spherical harmonics
             Y = dcmplx(L(mm + 1)*exp(dcmplx(0.0, m*phi)))
-            Y1 = dcmplx(L1(mm + 1)*exp(dcmplx(0.0, m*phi))) 
+            Y1 = dcmplx(L1(mm + 1)*exp(dcmplx(0.0, m*phi)))
             if (mm == n) then
                Y2 = dcmplx(0.0, 0.0)
             else
@@ -453,7 +456,7 @@ contains
             cc = dcmplx(sqrt((2d0*n + 1.0d0)*factorial(n - mm)/factorial(n + mm)/(4d0*pi)))
             ! Unnormalized complex scalar spherical harmonics
             Y = dcmplx(L(mm + 1)*exp(dcmplx(0.0, m*phi)))
-            Y1 = dcmplx(L1(mm + 1)*exp(dcmplx(0.0, m*phi))) 
+            Y1 = dcmplx(L1(mm + 1)*exp(dcmplx(0.0, m*phi)))
             if (mm == n) then
                Y2 = dcmplx(0.0, 0.0)
             else
@@ -670,9 +673,9 @@ contains
       unit_th = [cos(theta)*cos(phi), sin(phi)*cos(theta), -sin(theta)]
       unit_phi = [-sin(phi), cos(phi), 0.0d0]; 
       f11 = k*RR/exp(i*k*(RR))*dot_product(E_out, dcmplx(unit_th))
-      f21 = k*RR/exp(i*k*(RR))*dot_product(E_out, dcmplx(unit_phi)) 
+      f21 = k*RR/exp(i*k*(RR))*dot_product(E_out, dcmplx(unit_phi))
       f12 = k*RR/exp(i*k*(RR))*dot_product(E_out2, dcmplx(unit_th))
-      f22 = k*RR/exp(i*k*(RR))*dot_product(E_out2, dcmplx(unit_phi)) 
+      f22 = k*RR/exp(i*k*(RR))*dot_product(E_out2, dcmplx(unit_phi))
       S22 = -i*(f21*abcd(1, 2) + f22*abcd(2, 2))
       S11 = -i*(f11*abcd(1, 1) + f12*abcd(2, 1))
       S12 = i*(f11*abcd(1, 2) + f12*abcd(2, 2))
@@ -682,22 +685,22 @@ contains
       S_out(1, 2) = theta*dble(k)/(2d0*pi)
 
 ! Mueller matrix
-      S_out(1, 3) = imag(S11+S22) !K11
-      S_out(1, 4) = imag(S11-S22) !K12
-      S_out(1, 5) = -imag(S12+S21) !K13
-      S_out(1, 6) = real(S21-S12) !K14
-      S_out(1, 7) = imag(S11-S22) !K21
-      S_out(1, 8) = imag(S11+S22) !K22
-      S_out(1, 9) = imag(S21-S12) !K23
-      S_out(1, 10) = -real(S12+S21) !K24
-      S_out(1, 11) = -imag(S12+S21) !K31
-      S_out(1, 12) = -imag(S21-S12) !K32
-      S_out(1, 13) = imag(S11+S22) !K33
-      S_out(1, 14) = real(S22-S11) ! K34
-      S_out(1, 15) = real(S21-S12) ! K41
-      S_out(1, 16) = real(S12+S21) ! K42
-      S_out(1, 17) = -real(S22-S11) ! K43
-      S_out(1, 18) = imag(S11+S22) ! K44
+      S_out(1, 3) = imag(S11 + S22) !K11
+      S_out(1, 4) = imag(S11 - S22) !K12
+      S_out(1, 5) = -imag(S12 + S21) !K13
+      S_out(1, 6) = real(S21 - S12) !K14
+      S_out(1, 7) = imag(S11 - S22) !K21
+      S_out(1, 8) = imag(S11 + S22) !K22
+      S_out(1, 9) = imag(S21 - S12) !K23
+      S_out(1, 10) = -real(S12 + S21) !K24
+      S_out(1, 11) = -imag(S12 + S21) !K31
+      S_out(1, 12) = -imag(S21 - S12) !K32
+      S_out(1, 13) = imag(S11 + S22) !K33
+      S_out(1, 14) = real(S22 - S11) ! K34
+      S_out(1, 15) = real(S21 - S12) ! K41
+      S_out(1, 16) = real(S12 + S21) ! K42
+      S_out(1, 17) = -real(S22 - S11) ! K43
+      S_out(1, 18) = imag(S11 + S22) ! K44
 
       S_out = S_out*2d0*pi/dble(k)
 

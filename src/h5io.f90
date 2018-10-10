@@ -1,4 +1,7 @@
 module h5io
+! Copyright (c) 2018 Joonas Herranen, Johannes Markkanen and University of Helsinki
+! All rights reserved.
+! The MIT License is applied to this software, see LICENSE
    use common
    use hdf5
 

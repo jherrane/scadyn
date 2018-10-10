@@ -2,7 +2,7 @@
 # correctly.
  ******************************************************************************
  **                                                                          **
- **                         JVIE T-Matrix Dynamics vX.X                      **
+ **                         JVIE T-Matrix Dynamics v0.5                      **
  **                                                                          **
  ******************************************************************************
  
@@ -11,8 +11,8 @@
  Mesh: examples/GRE-1.h5
  T-matrix: examples/T-GRE-1.h5
  Reading mesh...
-    Number of nodes      =        4448
-    Number of elements   =       25613
+    Number of nodes                =        4448
+    Number of elements             =       25613
     Refractive index of medium     =   1.000
     Note: Geometry is inhomogeneous.
  Wavelengths in medium (um):  0.320 0.500 0.680 0.860 1.040 1.220 1.400 1.580 1.760 1.940
@@ -31,3 +31,4 @@ Analytical VSWF coefficient integration of MST:
    Qtx:  0.164  0.114  0.070  0.040  0.016  0.004 -0.002 -0.005 -0.006 -0.006
    Qty: -0.890 -0.420 -0.261 -0.196 -0.132 -0.088 -0.060 -0.043 -0.032 -0.025
    Qtz: -0.030 -0.020 -0.015 -0.006 -0.002 -0.001 -0.001 -0.000 -0.000 -0.000
+
