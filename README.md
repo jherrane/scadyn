@@ -15,6 +15,7 @@ Library locations and compiler probably need changing. Never tried, so good luck
 
 ## Run
 Easiest way is to run `install`. The basic command is:
-```./scadyn --mesh shape.h5 -T T.h5 --paramsfile params.in
+```
+./scadyn --mesh shape.h5 -T T.h5 --paramsfile params.in
 ```
 The geometry meshes are to be `tetgen`-compatible.
