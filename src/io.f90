@@ -80,7 +80,7 @@ contains
       write (*, '(2A)') trim(matname), ' = '
       m = size(mat, 1)
       do i = 1, m
-         write (*, '(10F8.4)') mat(i, :)
+         write (*, '(100F8.4)') mat(i, :)
       end do
 
    end subroutine print_mat

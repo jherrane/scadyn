@@ -170,6 +170,9 @@ contains
       if(matrices%polarization > 1) then
          matrices%force = dble([fx, fy, fz]/cc/2d0)
          matrices%torque = dble([tx, ty, tz]/(cc*mesh%k)/2d0)
+      else
+         matrices%force = dble([fx, fy, fz]/cc)
+         matrices%torque = dble([tx, ty, tz]/(cc*mesh%k))
       end if
    end subroutine forcetorque
 

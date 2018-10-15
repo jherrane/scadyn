@@ -271,16 +271,17 @@ module h5io
          call h5dclose_f(dataset10_id, error)
 
          mesh%ki = 2d0*pi/wls
-         do i = 1, size(wls, 1)
-            ! num = 0
-            ! do j = 1,size(Taai,1)
-            !    if(real(Taai(j,1,i))/=0d0) num = num + 1
-            ! end do
-            ! matrices%Nmaxs(i) = int(dsqrt(real(num)+1d0)-1d0)
-            matrices%Nmaxs(i) = truncation_order(mesh%ki(i)*&
-               (dble(maxval([mesh%Nx, mesh%Ny, mesh%Nz]))* &
-                             mesh%delta)/2.0d0)
-         end do
+         if (use_mie == 1) then
+            do i = 1, size(wls, 1)
+               matrices%Nmaxs(i) = truncation_order(mesh%ki(i)*mesh%a)
+            end do
+         else
+            do i = 1, size(wls, 1)
+               matrices%Nmaxs(i) = truncation_order(mesh%ki(i)*&
+                  (dble(maxval([mesh%Nx, mesh%Ny, mesh%Nz]))* &
+                                mesh%delta)/2.0d0)
+            end do
+         end if
 
 !****************************************************************************80
       end if
@@ -302,7 +303,6 @@ module h5io
          matrices%Tbbi(1:nm,1:nm,i) = reshape(Tbbi(ind:(ind-1)+nm**2), [nm,nm])
          ind = ind + nm**2
       end do
-
    end subroutine read_T
 
 ! HDF5 WRITE ******************************************************************

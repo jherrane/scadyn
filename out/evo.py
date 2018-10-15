@@ -84,26 +84,26 @@ if __name__ == "__main__":
    
    argv = sys.argv[1:]
    try:
-      opts, args = getopt.getopt(argv,"hl:p:s:e:f:",["log=", "path=", "skip=","end=", "first="])
+      opts, args = getopt.getopt(argv,"hl:p:s:e:f:",["help=", "log=", "path=", "skip=","end=", "first="])
    except getopt.GetoptError:
-      print 'test.py -log <inputfile>'
+      print 'python evo.py -h'
       sys.exit(2)
    for opt, arg in opts:
-      if opt == '-h' or opt == '--help':
-         print 'evo.py -l --log <inputfile>'
-         print '       -p --path <path>'
-         print '       -s --skip n'
-         print '       -e --end n'
+      if opt == '-h' or opt == '-help':
+         print 'evo.py -l <inputfile>'
+         print '       -p <path>'
+         print '       -s n'
+         print '       -e n'
          sys.exit()
-      elif opt in ("-l", "--log"):
+      elif opt in ("-l"):
          inputfile = arg
-      elif opt in ("-p", "--path"):
+      elif opt in ("-p"):
          pth = arg
-      elif opt in ("-s", "--skip"):
+      elif opt in ("-s"):
          skip = int(arg)
-      elif opt in ("-e", "--end"):
+      elif opt in ("-e"):
          last = int(arg)
-      elif opt in ("-f", "--first"):
+      elif opt in ("-f"):
          first = int(arg)
    
    splt = inputfile.split("log")

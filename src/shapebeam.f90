@@ -32,11 +32,11 @@ contains
       integer, dimension(:), allocatable :: nn, mm, i1_out, i2_out, miv
       complex(dp) :: x, y, YY(3), BCP(9)
       real(dp) :: k, w0, truncation_angle, beam_angle, wscaling, mode_input_power, &
-      aperture_power_normalization, NA, invL, zz, w, c
+      aperture_power_normalization, NA, invL, zz, w, c, norm_paraxial
       real(dp), dimension(:), allocatable :: theta, phi, rw, LL, work, dr
       complex(dp), dimension(:), allocatable :: beam_envelope, Ex, Ey, &
                                                 Etheta, Ephi, e_field, &
-                                                a, b, a_nm, b_nm, a_nm2, b_nm2
+                                                a, b, a_nm, b_nm, a_nm2, b_nm2, fab
       complex(dp), dimension(:, :), allocatable :: coefficient_matrix
       real(dp), dimension(:,:), allocatable :: modeweights
       complex(8), dimension(:), allocatable :: rotD
@@ -74,6 +74,7 @@ contains
       p2 = i1_out(row)
       l2 = i2_out(row)
       w0 = paraxial_beam_waist(paraxial_order)
+      beam_w0 = w0
       write (*, '(2(A,F7.3))') '  Beam waist               = ', w0
 
       total_modes = nmax**2 + 2*nmax
@@ -120,8 +121,9 @@ contains
 
       LL = laguerre(p2, abs(l2), rw)
 
+      norm_paraxial = sqrt(2d0*factorial(p2)/(pi*factorial(p2+abs(l2))))
       do iii = 1, tp
-         beam_envelope(iii) = dcmplx(rw(iii)**(abs(l2/2))*LL(iii)* &
+         beam_envelope(iii) = norm_paraxial*dcmplx(rw(iii)**(abs(l2/2))*LL(iii)* &
                               zexp(dcmplx(-rw(iii)/2, l2*phi(iii) + &
                               pi/2d0*(p2*2+abs(l2)+1))))
          mode_input_power = mode_input_power + &
@@ -150,6 +152,7 @@ contains
       e_field = [Etheta, Ephi]
 
       allocate(coefficient_matrix(2*tp, 2*size(nn, 1)))
+      allocate(fab(2*size(nn,1)))
 
       do iii = 1, size(nn, 1)
          do jjj = 1, tp
@@ -174,20 +177,13 @@ contains
       end do
 
 ! Solve the linear problem, same as x = A\B in matlab
-      allocate (work(1))
-      call zgels('N', 2*tp, 2*size(nn, 1), 1, coefficient_matrix, 2*tp, e_field, &
-                 2*tp, work, -1, info)
-      lwork = work(1)
-      deallocate(work)
-      allocate(work(lwork))
-      call zgels('N', 2*tp, 2*size(nn, 1), 1, coefficient_matrix, 2*tp, e_field, &
-                 2*tp, work, lwork, info)
+      fab = matmul(pinv(coefficient_matrix),e_field)
 
 ! Solution is written in the e_field variable in zgels, then some book keeping
       allocate (a(size(nn, 1)), b(size(nn, 1)))
-      a = e_field(1:size(nn, 1))
-      b = e_field(size(nn, 1) + 1:2*size(nn, 1))
-      
+      a = fab(1:size(nn, 1))
+      b = fab(size(nn, 1) + 1:2*size(nn, 1))
+
       do iii = 1, size(nn, 1)
          ind = nn(iii)*(nn(iii) + 1) + mm(iii)
          a_nm(ind) = a(iii)

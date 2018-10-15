@@ -404,7 +404,7 @@ contains
          Y2 = dcmplx(L2(mm + 1))*exp(dcmplx(0.0, m*phi))
       end if
 
-      dtY = (n*cos(theta)*Y - (n+m)*Y2)/sin(theta)
+      dtY = (n*cos(theta)*Y - (n+mm)*Y2)/sin(theta)
       dpY = dcmplx(0d0,m)*Y/sin(theta)
       YY = [Y, dtY, dpY]
 

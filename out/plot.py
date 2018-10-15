@@ -3,6 +3,7 @@
 from __future__ import unicode_literals
 from cd import *
 from arrow import *
+import sys, getopt
 import StringIO
 import matplotlib as mpl
 mpl.use('Agg')
@@ -117,7 +118,34 @@ if __name__ == "__main__":
    inputfile = 'log'
    pth = 'figs'
    skip = 22
+   last = 0 # Draw only last n lines, 0 if all
+   first = 0 # Draw only first n lines, 0 if all
    #plt.xkcd()
+   #plt.rc('font',family='Times New Roman')
+   
+   argv = sys.argv[1:]
+   try:
+      opts, args = getopt.getopt(argv,"hl:p:s:e:f:",["help=", "log=", "path=", "skip=","end=", "first="])
+   except getopt.GetoptError:
+      print 'python plot.py -h'
+      sys.exit(2)
+   for opt, arg in opts:
+      if opt == '-h' or opt == '--help':
+         print 'plot.py -l --log <inputfile>'
+         print '       -p --path <path>'
+         print '       -s --skip n'
+         print '       -e --end n'
+         sys.exit()
+      elif opt in ("-l", "--log"):
+         inputfile = arg
+      elif opt in ("-p", "--path"):
+         pth = arg
+      elif opt in ("-s", "--skip"):
+         skip = int(arg)
+      elif opt in ("-e", "--end"):
+         last = int(arg)
+      elif opt in ("-f", "--first"):
+         first = int(arg)
    
    log = open(inputfile,'r')
    inputf = codecs.open(inputfile, encoding='utf-8').read()
@@ -157,7 +185,7 @@ if __name__ == "__main__":
    v = lines[:,8:11]
    J = 0*w
    N = lines[:,11:14]
-   F = lines[:,14:17]/mass
+   F = lines[:,14:17]
    R = lines[:,17:27]
       
    for i in range(0,w.shape[0]):

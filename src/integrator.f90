@@ -81,13 +81,10 @@ contains
          if (i > it_stop) exit
 
          if(beam_shape == 0) then
-            call vlv_update(F, N)
+            call vlv_update()
          else
-            call ot_update(F,N)
+            call ot_update()
          end if
-
-         matrices%N = N
-         matrices%F = F
 
          call update_values()
          J = matmul(matrices%I,matrices%w)
@@ -207,10 +204,7 @@ contains
       do i = 0, window-1
          if (i>20 .AND. near_identity(matmul(transpose(R0),matrices%R),6d-2)) exit
 
-         call vlv_update(F, N, 0)
-
-         matrices%N = N
-         matrices%F = F
+         call vlv_update(0)
 
          call update_values()
          xp = get_xiphi()
@@ -448,8 +442,8 @@ contains
 
 !****************************************************************************80
 ! Variational Lie-Verlet method for rotational integration
-   subroutine vlv_update(F, N, mode)
-      real(dp), dimension(3), intent(out) :: F, N
+   subroutine vlv_update(mode)
+      real(dp), dimension(3) :: F, N
       integer, optional :: mode
       integer :: maxiter, i1
       real(dp) :: Rn(3, 3), wnh(3), dt, I(3), Jw(3), Ff, FFD(3)
@@ -498,8 +492,6 @@ contains
 
          if (vlen(hel) < iterstop) then
             exit
-            ! else if(i1==maxiter) then
-            !    print*, ' Maximum number of VLV Newton iterations exceeded...'
          end if
 
          Jac = -matrices%I + 0.5d0*dt*(reshape( &
@@ -533,8 +525,6 @@ contains
       Jwn = Jw + PxW + 0.25d0*dt**2d0*dot_product(wnh, Jw)*wnh + 0.5d0*dt*N
       matrices%wn = matmul(matrices%I_inv, Jwn)
 
-      F = matrices%F
-
    end subroutine vlv_update
 
 !****************************************************************************80
@@ -542,18 +532,18 @@ contains
 ! take into account drag, gravity and some other more realistic effects. 
 ! Especially the rotational rates are heavily capped, as they would not be 
 ! expected.
-   subroutine ot_update(F, N)
-      real(dp), dimension(3), intent(out) :: F, N
+   subroutine ot_update()
+      real(dp), dimension(3) :: F, N
       integer :: maxiter, i1, tested_gravity
-      real(dp) :: Rn(3, 3), wnh(3), dt, I(3), Jw(3), Ff, FFD(3), FFD1(3), Fg, Fnorm
+      real(dp) :: Rn(3, 3), wnh(3), dt, I(3), Jw(3), Ff, Fg, Fnorm
       real(dp) :: PxW(3), hel(3), Jac(3, 3), Jwn(3), iterstop, drag, rot_drag(3,3)
-      real(dp) :: N_drag(3), test, max_w, rvec(3)
+      real(dp) :: N_drag(3), test, max_w, rvec(3), D
 
       maxiter = 50
       tested_gravity = 0
       max_w = 1d4
 
-      drag = 2d3
+      drag = 1d3 ! 0.5*density of medium*drag coefficient
       rot_drag = eye(3)
       rot_drag(1,1) = 1d0
       rot_drag(2,2) = 5d0
@@ -568,9 +558,13 @@ contains
       if (matrices%tt == 0d0) then
          if(seedling /= 0) brownian = .TRUE.
          Fg = (mesh%rho)*mesh%V*9.81d0
+
 ! Adjust E-field at origin
-         FFD = matrices%x_CM
+         F = matrices%x_CM
          matrices%x_CM = [0d0, 0d0, 0d0]
+         if(l>0 .AND. p == 0)then
+            matrices%x_CM(1) = sqrt(l*beam_w0**2/2)/mesh%ki(1)
+         end if
          do while (tested_gravity == 0)
             call get_forces()
             Fnorm = vlen(matrices%F)
@@ -583,26 +577,19 @@ contains
                matrices%E = sqrt(Fg/Fnorm)*matrices%E
             end if
          end do
-         matrices%x_CM = FFD
+         matrices%x_CM = F
       end if
 
-      ! matrices%N = exp(-vlen(matrices%w)/max_w)*matrices%N
       N = matrices%N
       call adaptive_step()
       dt = matrices%dt
 
+! For brownian motion, we approximate viscocity with water's
       if(brownian) then
-         rvec = rand_vec()*matrices%lambda2*0.1d0
+         D = k_b*matrices%Tgas/(3d0*pi*1d-3*mesh%a)
+         rvec = rand_vec()*sqrt(6d0*D*dt)
          matrices%x_CM = matrices%x_CM + rvec
       end if
-
-! Calculate total force, or really its acceleration, including gravity, 
-! bouyancy, drag
-      FFD = dble(matrices%F)/mesh%mass - &
-         ! (mesh%rho-1d3)*mesh%V*9.81d0*[0d0,0d0,1d0]/mesh%mass - &
-         drag*vlen(matrices%v_CM)*pi*mesh%a**2*matrices%v_CM/mesh%mass
-      matrices%xn = matrices%x_CM + matrices%v_CM*dt + 0.5d0*FFD*dt**2
-      matrices%x_CM = matrices%xn
 
 ! Step 1) Newton solve
       wnh = matrices%w ! Body angular velocity
@@ -640,21 +627,19 @@ contains
       matrices%N = exp(-vlen(matrices%w)/max_w)*matrices%N
       N = matrices%N 
       
-      FFD1 = dble(matrices%F)/mesh%mass - &
-         ! (mesh%rho-1d3)*mesh%V*9.81d0*[0d0,0d0,1d0]/mesh%mass - &
+      F = dble(matrices%F)/mesh%mass - &
+         (mesh%rho-1d3)*mesh%V*9.81d0*[0d0,0d0,1d0]/mesh%mass - &
           drag*vlen(matrices%v_CM)*pi*mesh%a**2*matrices%v_CM/mesh%mass
-      matrices%vn = matrices%v_CM + 0.5d0*(FFD+FFD1)*dt
+      matrices%vn = matrices%v_CM + F*dt
+      matrices%xn = matrices%x_CM + matrices%vn*dt + 0.5d0*F*dt**2
 
-      N_drag = 0.d0!0.5d0*mesh%rho*(mesh%a/2d0)**5*vlen(wnh)*matmul(rot_drag,wnh)
+      N_drag = 0d0!0.5d0*mesh%rho*(mesh%a/2d0)**5*vlen(wnh)*matmul(rot_drag,wnh)
+
 ! Step 3) Explicit angular velocity update
       Jwn = Jw + PxW + 0.25d0*dt**2d0*dot_product(wnh, Jw)*wnh &
       + 0.5d0*dt*(N - N_drag)
       matrices%wn = matmul(matrices%I_inv, Jwn)
-      ! matrices%wn(1) = matrices%wn(1)*0.95d0
-      ! matrices%wn(2) = matrices%wn(2)*0.9d0
-      ! matrices%wn(3) = matrices%wn(3)*0.995d0
 
-      F = matrices%F
    end subroutine ot_update
 
 !****************************************************************************80
