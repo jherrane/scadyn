@@ -279,7 +279,7 @@ contains
          do j = 1, n
             ind = n*(j - 1) + i
             grid(1, ind) = z(i)
-            grid(3, ind) = y(j)
+            grid(2, ind) = y(j)
          end do
       end do
 
