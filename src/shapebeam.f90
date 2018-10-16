@@ -9,6 +9,7 @@ module shapebeam
 contains
 
 !****************************************************************************80
+
    subroutine rotate_beam(i, axis, angle)
       integer :: i, nmax
       real(dp) :: axis(3), angle
@@ -187,7 +188,7 @@ contains
             m = mm(iii)
 ! Get the spherical harmonics, only the derivative theta and phi components of the
 ! gradient are needed.
-            YY = (-1d0)**(l+1)*(sign(1,m))*spharm(n, m, theta(jjj), phi(jjj))
+            YY = spharm(n, m, theta(jjj), phi(jjj))
 ! Coefficient matrix A is the solution to A*e_field(=B) = expansion_coefficients (=x)
             coefficient_matrix(jjj, iii) = &
             YY(3)*dcmplx(0d0, 1d0)**(nn(iii) + 1)/dsqrt(dble(nn(iii))*(nn(iii) + 1))
