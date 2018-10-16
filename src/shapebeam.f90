@@ -9,16 +9,43 @@ module shapebeam
 contains
 
 !****************************************************************************80
+   subroutine rotate_beam(i, axis, angle)
+      integer :: i, nmax
+      real(dp) :: axis(3), angle
+      complex(dp), dimension(:), allocatable :: a_nm, b_nm
+      complex(8), dimension(:), allocatable :: rotD
+      integer, dimension(:, :), allocatable :: indD
+
+      nmax = matrices%Nmaxs(i)
+      allocate(rotD((nmax + 1)*(2*nmax + 1)*(2*nmax + 3)/3 - 1))
+      allocate(indD((nmax + 1)*(2*nmax + 1)*(2*nmax + 3)/3 - 1,2))
+      call sph_rotation_sparse_gen(mat2euler(R_aa(axis,angle)), nmax, rotD, indD)
+
+      allocate(a_nm((nmax + 1)**2 - 1), b_nm((nmax + 1)**2 - 1))
+      a_nm = matrices%as(1:(nmax + 1)**2 - 1, i)
+      b_nm = matrices%bs(1:(nmax + 1)**2 - 1, i)
+
+      matrices%as(1:(nmax + 1)**2 - 1, i) =  &
+       sparse_matmul(rotD, indD, a_nm, (nmax + 1)**2 - 1)
+      matrices%bs(1:(nmax + 1)**2 - 1, i) =  &
+       sparse_matmul(rotD, indD, b_nm, (nmax + 1)**2 - 1)
+   end subroutine rotate_beam
+
+!****************************************************************************80
 
    subroutine laguerre_gaussian_beams(p, l)
       integer :: i, p, l
+      real(dp) :: angle
 
+      angle = 0d0
       matrices%width = 2d0*pi/(minval(mesh%ki))
       if(matrices%whichbar /= 0)then
          call laguerre_gauss_farfield(matrices%whichbar, p, l)
+         call rotate_beam(matrices%whichbar,[1d0,0d0,0d0],angle)
       else
          do i = 1, matrices%bars
             call laguerre_gauss_farfield(i, p, l)
+            call rotate_beam(i,[1d0,0d0,0d0],angle)
          end do
       end if
 
@@ -177,7 +204,6 @@ contains
       end do
 
 ! Solve the linear problem, same as x = A\B in matlab
-      ! call print_mat(imag(coefficient_matrix),'rcm')
       fab = matmul(pinv(coefficient_matrix),e_field)
 
 ! Solution is written in the e_field variable in zgels, then some book keeping
@@ -197,15 +223,6 @@ contains
 
       matrices%as(1:(nmax + 1)**2 - 1, i) = a_nm 
       matrices%bs(1:(nmax + 1)**2 - 1, i) = b_nm 
-
-      allocate(rotD((nmax + 1)*(2*nmax + 1)*(2*nmax + 3)/3 - 1))
-      allocate(indD((nmax + 1)*(2*nmax + 1)*(2*nmax + 3)/3 - 1,2))
-      call sph_rotation_sparse_gen(mat2euler(R_aa([1d0,0d0,0d0], -0d0)), nmax, rotD, indD)
-
-      matrices%as(1:(nmax + 1)**2 - 1, i) =  &
-       sparse_matmul(rotD, indD, a_nm, (nmax + 1)**2 - 1)
-      matrices%bs(1:(nmax + 1)**2 - 1, i) =  &
-       sparse_matmul(rotD, indD, b_nm, (nmax + 1)**2 - 1)
 
    end subroutine laguerre_gauss_farfield
 
