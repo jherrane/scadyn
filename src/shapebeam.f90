@@ -160,7 +160,7 @@ contains
             m = mm(iii)
 ! Get the spherical harmonics, only the derivative theta and phi components of the
 ! gradient are needed.
-            YY = spharm(n, m, theta(jjj), phi(jjj))
+            YY = (-1d0)**(l+1)*(sign(1,m))*spharm(n, m, theta(jjj), phi(jjj))
 ! Coefficient matrix A is the solution to A*e_field(=B) = expansion_coefficients (=x)
             coefficient_matrix(jjj, iii) = &
             YY(3)*dcmplx(0d0, 1d0)**(nn(iii) + 1)/dsqrt(dble(nn(iii))*(nn(iii) + 1))
@@ -177,6 +177,7 @@ contains
       end do
 
 ! Solve the linear problem, same as x = A\B in matlab
+      ! call print_mat(imag(coefficient_matrix),'rcm')
       fab = matmul(pinv(coefficient_matrix),e_field)
 
 ! Solution is written in the e_field variable in zgels, then some book keeping
@@ -196,6 +197,15 @@ contains
 
       matrices%as(1:(nmax + 1)**2 - 1, i) = a_nm 
       matrices%bs(1:(nmax + 1)**2 - 1, i) = b_nm 
+
+      allocate(rotD((nmax + 1)*(2*nmax + 1)*(2*nmax + 3)/3 - 1))
+      allocate(indD((nmax + 1)*(2*nmax + 1)*(2*nmax + 3)/3 - 1,2))
+      call sph_rotation_sparse_gen(mat2euler(R_aa([1d0,0d0,0d0], -0d0)), nmax, rotD, indD)
+
+      matrices%as(1:(nmax + 1)**2 - 1, i) =  &
+       sparse_matmul(rotD, indD, a_nm, (nmax + 1)**2 - 1)
+      matrices%bs(1:(nmax + 1)**2 - 1, i) =  &
+       sparse_matmul(rotD, indD, b_nm, (nmax + 1)**2 - 1)
 
    end subroutine laguerre_gauss_farfield
 
@@ -269,7 +279,7 @@ contains
          do j = 1, n
             ind = n*(j - 1) + i
             grid(1, ind) = z(i)
-            grid(2, ind) = y(j)
+            grid(3, ind) = y(j)
          end do
       end do
 

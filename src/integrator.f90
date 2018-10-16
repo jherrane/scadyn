@@ -578,6 +578,7 @@ contains
             end if
          end do
          matrices%x_CM = F
+         matrices%E = 3d0*matrices%E
       end if
 
       N = matrices%N
