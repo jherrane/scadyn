@@ -200,7 +200,7 @@ if __name__ == "__main__":
    wb = np.zeros(w.shape)
 
    with cd(pth):
-      plot_fig(t,x,markevery,'Position of CM vs. Time','t (s)','x (\lambda)','x.png',ylim=2.0)
+      plot_fig(t,x,markevery,'Position of CM vs. Time','t (s)','x (\lambda)','x.png',ylim=1.0)
       plot_fig(t,w,markevery,'Angular velocity vs. Time','t (s)','\omega','w.png')
       plot_fig(t,v,markevery,'Velocity vs. Time','t (s)','v (m/s)','v.png')
 #      plot_fig(t,J,markevery,'Angular momentum vs. Time','t (s)','J (Nms)','J.png')
