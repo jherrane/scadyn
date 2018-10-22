@@ -21,7 +21,7 @@ for p in psi_unique:
  plt.xlabel(r'$\cos \xi$')
  plt.ylabel(r'$F$', fontsize = 16)
 
-ax = fig.add_subplot(111)
+ax = plt.gca()
 ax.set_xlim((-1, 1))
 plt.legend()
 plt.show()
