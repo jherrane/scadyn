@@ -2,6 +2,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import sys, getopt
 from matplotlib.patches import Rectangle
+from matplotlib import rc
+import codecs
+from matplotlib import rcParams
+rcParams.update({'figure.autolayout': True})
 
 def add_arrow(line, position=None, direction='right', size=15, color=None):
    """
@@ -55,6 +59,8 @@ if __name__ == "__main__":
       elif opt in ("-i", "--in"):
          fin = arg
          
+   
+   font = {'weight' : 'bold', 'size' : 40}
    plt.rc('text', usetex=True)
    plt.rc('font', family='serif')
 
@@ -76,23 +82,29 @@ if __name__ == "__main__":
    path_w = path_w.reshape((Nxi, Nw, Npoints))
 
    fig = plt.figure(figsize=(10,10))
-
-   for i in range(0,Nxi-1):
-      line1 = plt.plot(path_xi[i,0,:],path_w[i,0,:],lw=2)[0]
-      add_arrow(line1,size=24)
-      line2 = plt.plot(path_xi[i,Nw-1,:],path_w[i,Nw-1,:],lw=2)[0]
-      add_arrow(line2,size=24)
+   xis = []
+   for i in range(0,Nxi):
+      for j in range(0,Nw):
+         line1 = plt.plot(path_xi[i,j,:],path_w[i,j,:],lw=2)[0]
+         add_arrow(line1,size=24)
+         xis = np.append(xis,[np.round(path_xi[i,j,Npoints-1],2)])
+   
+   unique, counts = np.unique(xis,return_counts=True)
+   unique = unique[counts>2]
+   counts = counts[counts>2]
+   counts = 1.0*counts/sum(counts)
 
    someX, someY = 0,0
    currentAxis = plt.gca()
    currentAxis.add_patch(Rectangle((someX - 1, someY - 1.5), 2, 3, edgecolor="grey", facecolor="grey", zorder=4))
 
-   plt.xlabel(r'\cos \xi', fontsize = 40)
-   plt.ylabel(r'\omega/\omega_{T}', fontsize = 40)
+   plt.xlabel(r'$\cos \xi$', fontsize = 40)
+   plt.ylabel(r'$\omega/\omega_{T}$', fontsize = 40)
    plt.yticks(fontsize=32)
    plt.xticks(fontsize=32)
-   ax = fig.add_subplot(111)
+   ax = plt.gca()
    ax.set_xlim((-1, 1))
+#   plt.show()
    plt.savefig(filename+'.png')
 
 

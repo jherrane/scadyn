@@ -18,8 +18,8 @@ for p in psi_unique:
  label = r'$\psi = ' + angle + '^{\circ}$'
  
  plt.plot(xi[psi == p], F[psi == p], '-', label = label)
- plt.xlabel(r'\cos \xi')
- plt.ylabel(r'F', fontsize = 16)
+ plt.xlabel(r'$\cos \xi$')
+ plt.ylabel(r'$F$', fontsize = 16)
 
 ax = fig.add_subplot(111)
 ax.set_xlim((-1, 1))

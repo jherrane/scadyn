@@ -143,11 +143,13 @@ if __name__ == "__main__":
    N = lines[:,11:14]
    F = lines[:,14:17]
    R = lines[:,17:27]
+   q = 0*t
       
    for i in range(0,w.shape[0]):
       J[i,:] = np.matmul(I,w[i,:])
       w[i,:] = np.matmul(Q,np.matmul(np.reshape(R[i,:],(3,3),order='F'),w[i,:]  ))
       J[i,:] = np.matmul(Q,np.matmul(np.reshape(R[i,:],(3,3),order='F'),J[i,:]  ))
+      q[i] = I[2,2]*np.matmul(J[i,:],w[i,:])/np.matmul(J[i,:],J[i,:])
       w[i,:] = 1.1*w[i,:]/np.sqrt(np.sum(np.power(w[i,:],2)))
       J[i,:] = 1.1*J[i,:]/np.sqrt(np.sum(np.power(J[i,:],2)))
    

@@ -286,7 +286,6 @@ contains
       real(dp), allocatable :: z(:), y(:), grid(:, :)
 
       lim = 2d0*matrices%width
-      n = 100
       nn = n*n
       allocate (z(n), y(n), grid(3, nn))
 
@@ -310,7 +309,7 @@ contains
       character(LEN=80) :: gridname, fieldname, scatfield
       i = 1
       if(matrices%whichbar /= 0) i = matrices%whichbar
-      n = 80
+      n = 300
       gridname = 'grid_xyz.h5'
       fieldname = 'E_field.h5'
       scatfield = 'E_scat.h5'

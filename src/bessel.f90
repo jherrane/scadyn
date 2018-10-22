@@ -29,7 +29,7 @@ contains
    end subroutine bessel_beams
 
 !****************************************************************************80
-! The routine computes the SVWF expansion coefficients
+! The routine computes the VSWF expansion coefficients
 ! for a time harmonic x-polarized Bessel beams
 ! propagating +z-direction  with the wave number k
    subroutine bessel_z(Nmax, k, a_nm, b_nm)

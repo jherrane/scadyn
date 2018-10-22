@@ -510,27 +510,18 @@ contains
 
 ! Calculate lambda_max of distribution and width of bars
       lmax = b/matrices%temp
-! dlmbda = (matrices%lambda2-matrices%lambda1)/n
 
       if (matrices%waves == 'inv') then
-         ! print*, 'inv = ', matrices%waves
          call linspace(1d0/(matrices%lambda1), 1d0/(matrices%lambda2), n, c)
          do i = 1, n
             c(i) = 1d0/c(i)
          end do
       else if (matrices%waves == 'log') then
-         ! print*, 'log = ', matrices%waves
          call linspace(dlog10(matrices%lambda1), dlog10(matrices%lambda2), n, c)
          do i = 1, n
             c(i) = 10**c(i)
          end do
-      else if(matrices%waves == 'isrf') then
-         call linspace(1d0/(matrices%lambda1), 1d0/(matrices%lambda2), n, c)
-         do i = 1, n
-            c(i) = 1d0/c(i)
-         end do
-      else
-         ! print*, matrices%waves
+      else 
          call linspace(matrices%lambda1, matrices%lambda2, n, c)
       end if
 
@@ -542,7 +533,7 @@ contains
 
       if(matrices%waves == 'isrf') then
          call calc_E_rel()
-         if (2*pi/mesh%ki(1)/1d-6 < 0.2d0) matrices%E_rel(1) = maxval(matrices%E_rel)*2d0
+         if (2*pi/mesh%ki(1)/1d-6 < 0.2d0) matrices%E_rel(1) = maxval(matrices%E_rel)*2d0 
       end if 
 
    end subroutine band_no_blackbody

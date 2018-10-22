@@ -187,20 +187,24 @@ if __name__ == "__main__":
    N = lines[:,11:14]
    F = lines[:,14:17]
    R = lines[:,17:27]
+   q = 0*t
       
    for i in range(0,w.shape[0]):
       J[i,:] = np.matmul(I,w[i,:])
       w[i,:] = np.matmul(Q,np.matmul(np.reshape(R[i,:],(3,3),order='F'),w[i,:]  ))
       N[i,:] = np.matmul(Q,np.matmul(np.reshape(R[i,:],(3,3),order='F'),N[i,:]  ))
       J[i,:] = np.matmul(Q,np.matmul(np.reshape(R[i,:],(3,3),order='F'),J[i,:]  ))
+      q[i] = I[2,2]*np.matmul(J[i,:],w[i,:])/np.matmul(J[i,:],J[i,:])
 #      w[i,:] = 1.1*w[i,:]/np.sqrt(np.sum(np.power(w[i,:],2)))
 #      J[i,:] = 1.1*J[i,:]/np.sqrt(np.sum(np.power(J[i,:],2)))
-
+   
+   q = np.array([q,]*3).transpose()
    Jb = np.zeros(J.shape)
    wb = np.zeros(w.shape)
 
    with cd(pth):
       plot_fig(t,x,markevery,'Position of CM vs. Time','t (s)','x (\lambda)','x.png',ylim=1.0)
+      plot_fig(t,q,markevery,'Parameter q vs. Time','t (s)','q','q.png')
       plot_fig(t,w,markevery,'Angular velocity vs. Time','t (s)','\omega','w.png')
       plot_fig(t,v,markevery,'Velocity vs. Time','t (s)','v (m/s)','v.png')
 #      plot_fig(t,J,markevery,'Angular momentum vs. Time','t (s)','J (Nms)','J.png')

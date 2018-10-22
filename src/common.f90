@@ -128,8 +128,8 @@ module common
 
 ! Initial values set up at the very beginning, changable by input arguments or files
       real(dp)                :: E = 1d0
-      real(dp)                :: refr = 0d0
-      real(dp)                :: refi = 0d0
+      real(dp)                :: refr = 1.33d0
+      real(dp)                :: refi = 1d-4
       real(dp)                :: ref_med = 1d0
       real(dp)                :: NA = 0.8d0
       real(dp)                :: tol_m = 3d-3
