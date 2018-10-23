@@ -18,39 +18,7 @@ import codecs
 from matplotlib import rcParams
 rcParams.update({'figure.autolayout': True})
 
-def Round_To_n(x, n):
-   return round(x, -int(np.floor(np.sign(x) * np.log10(abs(x)))) + n)
-
-def plot_orbit(orbit, title, figname):
-   MAP = 'winter'
-   COLOR = 'blue'
-   x1, x2, x3 = zip(*orbit)
-   max_range = np.array([max(x1)-min(x1), max(x2)-min(x2), max(x3)-min(x3)]).max() / 2.0
-
-   mid_x = (max(x1)+min(x1)) * 0.5
-   mid_y = (max(x2)+min(x2)) * 0.5
-   mid_z = (max(x3)+min(x3)) * 0.5
-   NPOINTS = len(x1)
-   fig = plt.figure(figsize=(12,12))
-   ax = fig.add_subplot(111, projection='3d')
-   
-   font = {'weight' : 'bold', 'size' : 40}
-   plt.rc('text', usetex=True)
-   plt.rc('font', family='serif')
-   
-   ax.set_aspect('equal')
-   ax.plot(x1,x2,x3)
-   ax.plot(x1,x2,(mid_z - max_range)*np.ones(len(x3)),alpha=0.1,lw=3,color='k')
-   ax.plot(x1,np.ones(len(x2))*(mid_y + max_range),x3,alpha=0.1,lw=3,color='k')
-   ax.plot((mid_x - max_range)*np.ones(len(x1)),x2,x3,alpha=0.1,lw=3,color='k')
-
-   ax.set_xlim(mid_x - max_range, mid_x + max_range)
-   ax.set_ylim(mid_y - max_range, mid_y + max_range)
-   ax.set_zlim(mid_z - max_range, mid_z + max_range)
-
-   ax.set_title(title,fontweight='bold')
-   plt.locator_params(nbins=4)
-   plt.savefig(figname)
+file_suffix = ""
 
 def plot_fig(x, y, markevery, title, xlabel, ylabel, figname, *args, **kwargs):
    ylim = kwargs.get('ylim', None)
@@ -76,40 +44,7 @@ def plot_fig(x, y, markevery, title, xlabel, ylabel, figname, *args, **kwargs):
    plt.xlabel(r'$'+xlabel+'$')
    plt.ylabel(r'$'+ylabel+'$')
    plt.title(title,fontweight='bold')
-   plt.savefig(figname)
-   plt.close(fig)
-
-def runningMean(x, N):
-   cumsum = np.cumsum(np.insert(x, 0, 0)) 
-   return (cumsum[N:] - cumsum[:-N]) / N
-
-def plot_mav(x,y,n,title,xlabel,ylabel,figname):
-   font = {'weight' : 'bold',
-			   'size'   : 18}
-   fig = plt.figure(figsize=(12,12))
-   plt.autoscale(enable=True, axis='x', tight=True)
-   plt.tight_layout()
-   
-   font = {'weight' : 'bold', 'size' : 40}
-   plt.rc('text', usetex=True)
-   plt.rc('font', family='serif')
-   
-   miny = min(np.ndarray.flatten(np.asarray(y)))
-   maxy = max(np.ndarray.flatten(np.asarray(y)))
-   plt.ylim(1.3*miny,1.3*maxy)
-   mpl.rc('font',**font)
-   ym1,ym2,ym3 = zip(*y)
-   y1 = runningMean(ym1,n)
-   y2 = runningMean(ym2,n)
-   y3 = runningMean(ym3,n)
-   plt.plot(x[0:-n+1],y1,label=r'$'+ylabel+'_{1}$',lw=3.0)
-   plt.plot(x[0:-n+1],y2,label=r'$'+ylabel+'_{2}$',lw=3.0)
-   plt.plot(x[0:-n+1],y3,label=r'$'+ylabel+'_{3}$',lw=3.0)
-   plt.legend()
-   plt.xlabel(r'$'+xlabel+'$')
-   plt.ylabel(r'$'+ylabel+'$')
-   plt.title(title,fontweight='bold')
-   plt.savefig(figname)
+   plt.savefig(figname+file_suffix+'.png')
    plt.close(fig)
 
 if __name__ == "__main__":
@@ -147,6 +82,8 @@ if __name__ == "__main__":
       elif opt in ("-f", "--first"):
          first = int(arg)
    
+   splt = inputfile.split("log")
+   file_suffix = file_suffix + splt[-1]
    log = open(inputfile,'r')
    inputf = codecs.open(inputfile, encoding='utf-8').read()
    inputf = inputf.replace('|','')
@@ -203,15 +140,10 @@ if __name__ == "__main__":
    wb = np.zeros(w.shape)
 
    with cd(pth):
-      plot_fig(t,x,markevery,'Position of CM vs. Time','t (s)','x (\lambda)','x.png',ylim=1.0)
-      plot_fig(t,q,markevery,'Parameter q vs. Time','t (s)','q','q.png')
-      plot_fig(t,w,markevery,'Angular velocity vs. Time','t (s)','\omega','w.png')
-      plot_fig(t,v,markevery,'Velocity vs. Time','t (s)','v (m/s)','v.png')
-#      plot_fig(t,J,markevery,'Angular momentum vs. Time','t (s)','J (Nms)','J.png')
-      plot_fig(t,N,markevery,'Torque vs. Time','t (s)','N (Nm)','N.png')
-      plot_fig(t,F,markevery,'Force vs. Time','t (s)','F (N)','F.png')
-#      plot_orbit(w,'Spin of angular velocity','worbit.png')
-#      plot_orbit(J,'Time evolution of angular momentum','Jorbit.png')
-#      plot_mav(t,w,mav,'Running average of angular velocity vs. Time','t (s)','\omega (rad/s)','wav.png')
-#      plot_mav(t,N,mav,'Running average of torque vs. Time','t (s)','N (Nm)','Nav.png')
+      plot_fig(t,x,markevery,'Position of CM vs. Time','t (s)','x (\lambda)','x',ylim=1.0)
+      plot_fig(t,q,markevery,'Parameter q vs. Time','t (s)','q','q')
+      plot_fig(t,w,markevery,'Angular velocity vs. Time','t (s)','\omega','w')
+      plot_fig(t,v,markevery,'Velocity vs. Time','t (s)','v (m/s)','v')
+      plot_fig(t,N,markevery,'Torque vs. Time','t (s)','N (Nm)','N')
+      plot_fig(t,F,markevery,'Force vs. Time','t (s)','F (N)','F')
 

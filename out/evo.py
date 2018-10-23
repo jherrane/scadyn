@@ -113,7 +113,7 @@ if __name__ == "__main__":
    num_lines = sum(1 for line in log)
    log.seek(0)
    if last != 0:
-      skip = -skip+num_lines-last
+      skip = num_lines-last
    inputf = codecs.open(inputfile, encoding='utf-8').read()
    inputf = inputf.replace('|','')
    

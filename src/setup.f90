@@ -533,7 +533,7 @@ contains
 
       if(matrices%waves == 'isrf') then
          call calc_E_rel()
-         if (2*pi/mesh%ki(1)/1d-6 < 0.2d0) matrices%E_rel(1) = maxval(matrices%E_rel)*2d0 
+         if (2*pi/mesh%ki(1)/1d-6 < 0.2d0) matrices%E_rel(1) = maxval(matrices%E_rel)*0.5d0 
       end if 
 
    end subroutine band_no_blackbody
