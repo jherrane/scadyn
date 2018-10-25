@@ -1239,7 +1239,9 @@ contains
       matrices%q_list(1:window-1) = matrices%q_list(2:window)
       matrices%q_list(window) = matrices%q_param
 
-      if (sqrt(matrices%q_var) < matrices%tol_m) ans = 1
+      if (sqrt(matrices%q_var) < matrices%tol_m) then
+         if(matrices%q_mean-1 < matrices%Ip(3)/matrices%Ip(1) -matrices%q_mean) ans = 1
+      end if
 
    end function alignment_state
 

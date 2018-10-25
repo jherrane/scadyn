@@ -137,7 +137,7 @@ contains
                matrices%q_param0 = matrices%q_mean
             end if 
          else if (alignment_found == 0 .AND. int_mode < 2) then
-            write(*,'(A)') "  Found nearly stable q-parameter, stopping..."
+            write(*,'(A)') "  Found nearly stable q-parameter closer to unity, stopping..."
             write(*,'(A,F11.5)') "   q = ", matrices%q_mean
             it_stop = n + it_log + 1
             alignment_found = 1
@@ -169,6 +169,10 @@ contains
 
       open(unit=1, file='out/q'//trim(matrices%out), action='write', status='replace')
       write(1,'(A)') 'q, J, t'
+      if(q-1d0<1d-3) then 
+         q = matrices%Ip(2)/matrices%Ip(1)
+         i_h = int((q-1d0)/dq_max)
+      end if
       write(1,'(3(ES11.3))') q, JJ, t
       do i = 0, i_h
          call relax_step(q, t, dq_max, JJ)
