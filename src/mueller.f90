@@ -68,6 +68,7 @@ contains
          vec(1) = 1d0
          vec(2) = acos(2d0*halton_seq(halton_init + i, 2) - 1d0)
          vec(3) = halton_seq(halton_init + i, 3)*2d0*pi
+
          matrices%khat = [dsin(vec(2))*dcos(vec(3)), dsin(vec(2))*dsin(vec(3)), dcos(vec(2))]
 
          matrices%khat = -matrices%khat/vlen(matrices%khat)

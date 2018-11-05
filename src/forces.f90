@@ -27,9 +27,10 @@ contains
          u = 0d0
          wl = 0d0
          do i = 1, matrices%bars
-            u = u + (matrices%E*matrices%E_rel(i))**2
+            u = u + epsilon*(matrices%E*matrices%E_rel(i))**2
             wl = wl + 2d0*pi/mesh%ki(i)
          end do
+         wl = wl/matrices%bars
       end if
 
 ! Iteration of a single wavelength
@@ -39,18 +40,20 @@ contains
             F = F + matrices%force
             N = N + matrices%torque
             if(present(mode))then
-               Q_t = Q_t + matrices%torque/epsilon/mesh%a**2/(wl*u)/matrices%bars
+               Q_t = Q_t + matrices%torque/mesh%a**2/(wl*u)/matrices%bars
             else
-               Q_t = Q_t + matrices%torque/((matrices%E*matrices%E_rel(i))**2*2d0*pi/mesh%ki(i)*epsilon*mesh%a**2)/matrices%bars
+               Q_t = Q_t + matrices%torque/&
+               (epsilon*(matrices%E*matrices%E_rel(i))**2)/&
+                  (0.5d0*pi/mesh%ki(i))/mesh%a**2/matrices%bars
             end if
          end do
       else
          call forcetorque(matrices%whichbar)
          F = F + matrices%force
          N = N + matrices%torque
-         Q_t = Q_t + matrices%torque*(mesh%ki(matrices%whichbar))/&
-               (epsilon*(matrices%E_rel(matrices%whichbar)*matrices%E)**2/2d0)/&
-               pi/mesh%a**2/matrices%bars
+         Q_t = Q_t + matrices%torque/(0.5d0*pi/mesh%ki(matrices%whichbar))/&
+               (epsilon*(matrices%E_rel(matrices%whichbar)*matrices%E)**2)/&
+               mesh%a**2/matrices%bars
          Q_f = Q_f + matrices%force/&
                (epsilon*(matrices%E_rel(matrices%whichbar)*matrices%E)**2/2d0)/&
                pi/mesh%a**2/matrices%bars

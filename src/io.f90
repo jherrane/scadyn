@@ -378,7 +378,7 @@ contains
       integer :: ios = 0
       integer :: nbline = 0
 
-      open (11, file=trim(fle))
+      open (11, file='out/log'//trim(fle))
       do while (.true.)
          read (11, *, iostat=ios) ! ios should have been declared as an integer
          if (ios > 0) then
@@ -404,6 +404,9 @@ contains
       real(dp) :: wlast(3), t_tresh, t1, t2, tf, w_av(3), Rab(3, 3)
       integer :: firstlineno, lastlineno, no, numlines, i, n1, n2
       real(dp) :: x(3), v(3), w(3), J(3), F(3), N(3), t, R(9)
+      character(len=1) :: dum
+      character(len=120) :: fmt
+      character(len=550) :: wholeline
 
       numlines = no
       lastlineno = get_last_line_no(matrices%out)
@@ -414,7 +417,7 @@ contains
          read (fh, *)
       end do
 
-      read (fh, *) line, x, v, w, J, N, F, t, R
+      fmt = '(I1, A, ES17.8E3, A, 5(3ES17.8E3, A), 9ES17.8E3)'
 
       wlast = w/dsqrt(w(1)**2 + w(2)**2 + w(3)**2)
 
@@ -426,10 +429,11 @@ contains
       t2 = t - 10*t_tresh
 
       w_av = 0d0
-      open (fh, file=trim(matrices%out))
+      open (fh, file='out/log'//trim(matrices%out))
       do i = 1, lastlineno
          if (i >= firstlineno) then
-            read (fh, *) line, x, v, w, J, N, F, t, R
+            read(fh,'(A)') wholeline
+            call read_line(wholeline,line,t,x,w,v,N,F,R)
             w_av = w_av + w
             if (t > t2) then
                ! print*, line
@@ -457,10 +461,11 @@ contains
       allocate (matrices%RRR(3, 3, n2 - n1 + 1))
       allocate (matrices%www(3, n2 - n1 + 1))
 
-      open (fh, file=trim(matrices%out))
+      open (fh, file='out/log'//trim(matrices%out))
       do i = 1, lastlineno
          if (i > firstlineno) then
-            read (fh, *) line, x, v, w, J, N, F, t, R
+            read(fh,'(A)') wholeline
+            call read_line(wholeline,line,t,x,w,v,N,F,R)
             matrices%RRR(:, :, i - firstlineno) = reshape(R, [3, 3])
             matrices%www(:, i - firstlineno) = w
          else
@@ -470,6 +475,49 @@ contains
       close (fh)
 
    end subroutine read_log
+
+!****************************************************************************80
+
+   subroutine read_line(wholeline, line, t, x, w, v, N, F, R)
+      integer :: line,idx,idx2
+! Control file variables
+      real(dp) :: wlast(3), t_tresh, t1, t2, tf, w_av(3), Rab(3, 3)
+      integer :: firstlineno, lastlineno, no, numlines, i, n1, n2
+      real(dp) :: x(3), v(3), w(3), J(3), F(3), N(3), t, R(9)
+      character(len=120) :: fmt
+      character(len=550) :: wholeline
+      
+      idx = index(wholeline,'|')
+      read(wholeline(1:idx-1),'(I20)') line
+      idx = idx + 1
+
+      idx2 = index(wholeline(idx+1:len(wholeline)),'|') + idx
+      read(wholeline(idx:idx2-2),*) t
+      idx2 = idx2 +1 
+
+      idx = index(wholeline(idx2+2:len(wholeline)),'|') + idx2 +1
+      read(wholeline(idx2+2:idx-1),*) x
+      idx = idx + 1
+
+      idx2 = index(wholeline(idx+2:len(wholeline)),'|') + idx + 1
+      read(wholeline(idx+2:idx2-1),*) w
+      idx2 = idx2 + 1
+
+      idx = index(wholeline(idx2+2:len(wholeline)),'|') + idx2 +1
+      read(wholeline(idx2+2:idx-1), *) v
+      idx = idx + 1
+
+      idx2 = index(wholeline(idx+2:len(wholeline)),'|') + idx + 1
+      read(wholeline(idx+2:idx2-1), *) N 
+      idx2 = idx2 + 1
+
+      idx = index(wholeline(idx2+2:len(wholeline)),'|') + idx2 +1
+      read(wholeline(idx2+2:idx-1), *) F 
+      idx = idx + 1
+
+      read(wholeline(idx+2:idx+152),*) R
+
+   end subroutine read_line
 
 !****************************************************************************80
 

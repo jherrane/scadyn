@@ -116,9 +116,9 @@ contains
          Q_coll(:, i) = [Q_t(3),Q_t(1),Q_t(2)]
          call print_bar(i, Ntheta)
       end do
-      q_factor = maxval(abs(Q_coll(1,:)))/maxval(abs(Q_coll(2,:)))
       open (unit=1, file="out/Q"//trim(matrices%out), ACTION="write", STATUS="replace")
       if(present(q_factor)) then
+         q_factor = maxval(abs(Q_coll(1,:)))/maxval(abs(Q_coll(2,:)))
          write (1, '(1E12.3)') q_factor
       else
          write (1, '(A)') 'cos(theta)  Q_{t,1} Q_{t,2} Q_{t,3}'
