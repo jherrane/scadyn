@@ -28,7 +28,6 @@ program main
       if (matrices%singleT == 1) then
          call T_empty()
       end if
-      call T_empty()
       write (*, '(A, 20F6.3)') ' Wavelengths in medium (um): ', 2d6*pi/mesh%ki
       call calc_T()
       call write_T()
