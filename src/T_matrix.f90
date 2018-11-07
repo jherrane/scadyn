@@ -33,6 +33,12 @@ contains
       if (use_mie == 1) then
          call mie_T_matrix()
       else
+         open (unit=1, file='test'//trim(matrices%out), action="write", STATUS="replace")
+         do i = 1,size(mesh%params,1)
+            write(1,'(3ES16.8)') real(mesh%params(i,1)), imag(mesh%params(i,1))
+         end do
+
+         close (1)
          do i = 1, sz
             if (size(mesh%params, 2) > 1) mesh%param = mesh%params(:, matrices%whichbar)
             ii = i
