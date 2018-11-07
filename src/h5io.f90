@@ -27,7 +27,7 @@ module h5io
       integer(HID_T) :: coord_dataspace_id, etopol_dataspace_id, param_r_dataspace_id, param_i_dataspace_id
       integer(HSIZE_T), dimension(2) :: dims_out, coord_dims, etopol_dims, param_r_dims, param_i_dims
 
-      integer :: error
+      integer :: error, i
 
       real(dp), dimension(:, :), allocatable :: coord
       integer, dimension(:, :), allocatable :: etopol
@@ -110,6 +110,9 @@ module h5io
          write (*, '(2(A,F5.3))') '    Dielectric constant            =   '&
          , matrices%refr**2 - matrices%refi**2, &
             ' + i', 2d0*matrices%refr*matrices%refi
+         do i = 1,matrices%bars
+            mesh%params(:,i) = mesh%param
+         end do
       else
          mesh%param = dcmplx(param_r(:, 1), param_i(:, 1))
          if (maxval(param_r(:, 1)) - minval(param_r(:, 1)) > 1d-7 &
