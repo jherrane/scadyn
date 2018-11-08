@@ -34,7 +34,13 @@ contains
          call mie_T_matrix()
       else
          do i = 1, sz
-            if (size(mesh%params, 2) > 1) mesh%param = mesh%params(:, matrices%whichbar)
+            if (size(mesh%params, 2) > 1 .AND. matrices%refr < 1d-7)then
+               if(matrices%whichbar > 0) then
+                  mesh%param = mesh%params(:, matrices%whichbar)
+               else
+                  mesh%param = mesh%params(:,1)
+               end if
+            end if
             ii = i
             if (matrices%singleT == 1) then
                ii = matrices%whichbar
