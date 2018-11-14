@@ -33,7 +33,8 @@ contains
          wl = wl/matrices%bars
       end if
 
-! Iteration of a single wavelength
+! Iteration of a single wavelength, if multiple wavelengths are calculated, scale
+! the efficiency sum to take account the relative intensities i.e. omit E_rel(i)
       if (matrices%whichbar == 0) then
          do i = 1, matrices%bars
             call forcetorque(i)
@@ -43,7 +44,7 @@ contains
                Q_t = Q_t + matrices%torque/mesh%a**2/(wl*u)/matrices%bars
             else
                Q_t = Q_t + matrices%torque/&
-               (epsilon*(matrices%E*matrices%E_rel(i))**2)/&
+               (epsilon*(matrices%E)**2)/&
                   (0.5d0*pi/mesh%ki(i))/mesh%a**2/matrices%bars
             end if
          end do
