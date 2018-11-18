@@ -367,7 +367,7 @@ contains
       if(vlen(dw)<1d-4) return
 ! Use an adaptive time step, integrate over rotation <= rot_max
       max_w = vlen(matrices%w + dw*matrices%dt)
-      if(max_w>1d-8) then
+      if(max_w>matrices%rot_max) then
          test_dt = matrices%rot_max/max_w
       else
          test_dt = matrices%dt
@@ -376,8 +376,9 @@ contains
       if(vlen(matrices%w)/vlen(dw*matrices%dt) < 0.2d0) then
          matrices%dt = test_dt
       else
-         matrices%dt = 0.9d0*matrices%dt*min(max(test_dt/matrices%dt,0.3d0),2d0)
+         ! matrices%dt = 0.9d0*matrices%dt*min(max(test_dt/matrices%dt,0.3d0),2d0)
       end if
+
    end subroutine adaptive_step
 
 !****************************************************************************80
@@ -547,7 +548,7 @@ contains
       tested_gravity = 0
       max_w = 1d4
 
-      drag = 1d3 ! 0.5*density of medium*drag coefficient
+      drag = 1d0 ! 0.5*density of medium*drag coefficient
       rot_drag = eye(3)
       rot_drag(1,1) = 1d0
       rot_drag(2,2) = 5d0

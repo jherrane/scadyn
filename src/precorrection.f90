@@ -4,6 +4,7 @@ module precorrection
 ! The MIT License is applied to this software, see LICENSE
    use common
    use integration_points
+   use io
    use possu
    use geometry
    use sparse !lin
@@ -257,6 +258,7 @@ contains
                end do
             end do
          end do
+         call print_bar(t_cube, mesh%N_cubes)
       end do
 
    end subroutine compute_near_zone_interactions_const

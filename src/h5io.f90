@@ -103,6 +103,8 @@ module h5io
       mesh%params = dcmplx(param_r, param_i)
       write (*, '(2(A,F5.3))') '    Refractive index of medium     =   ', matrices%ref_med
       if (matrices%refr > 1d-7) then
+         deallocate(mesh%params)
+         allocate(mesh%params(size(param_r,1), matrices%bars))
          mesh%param = dcmplx(matrices%refr**2 - matrices%refi**2, &
                              2d0*matrices%refr*matrices%refi)
          write (*, '(2(A,F5.3))') '    Refractive index               =   '&
