@@ -11,8 +11,8 @@ module postprocessing
 contains
 
 !****************************************************************************80
-! Test the numerical and analytical methods of calculating scattering forces. 
-! When incident field is planewave, the results should match always. Numerical
+! Test the  methods of calculating scattering forces. When incident field is 
+! a planewave, the results should match always with the example. Numerical
 ! shenanigans seem to occur with other beams. PSA: Fixing it can be a hassle.
    subroutine test_methods()
       integer :: i, j, ii, range(2)
@@ -49,7 +49,7 @@ contains
          Q_fcoll(:, ii) = matmul(matrices%R, &
             matrices%force/urad/pi/mesh%a**2)
          Q_tcoll(:, ii) = matmul(matrices%R, &
-            matrices%torque*(mesh%ki(ii))/urad/pi/mesh%a**2)
+            matrices%torque)*(mesh%ki(ii))/urad/pi/mesh%a**2
       end do
 
       NN = matmul(matrices%R, N)
