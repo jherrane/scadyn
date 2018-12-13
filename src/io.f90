@@ -273,6 +273,8 @@ contains
             case ('ref_med')
                read (buffer, *, iostat=ios) temp_med
                if(temp_med>1.0d0) matrices%ref_med = temp_med
+            case ('rho_med')
+               read (buffer, *, iostat=ios) matrices%rho_med
             case ('NA')
                read (buffer, *, iostat=ios) matrices%NA
             case ('tol_m')
@@ -358,6 +360,7 @@ contains
       end if
 
       matrices%x_CM = matrices%x_CM*matrices%lambda2
+      epsilon = epsilon*matrices%ref_med**2
 
       if (temp > 1d-7) matrices%refi = tempii
       it_stop = it_max

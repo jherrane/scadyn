@@ -17,7 +17,7 @@ module common
    integer, parameter   :: nthreads = 24
 
    real(dp), parameter  :: pi = 3.141592653589793d0
-   real(dp), parameter  :: epsilon = 8.854187817d-12
+   real(dp), parameter  :: epsilon_0 = 8.854187817d-12
    real(dp), parameter  :: mu = pi*4d-7
    real(dp), parameter  :: mu_B = 9.2700968d-24
    real(dp), parameter  :: hbar = 1.054572d-34
@@ -30,7 +30,8 @@ module common
    real(dp), dimension(3), parameter   :: e_2 = [0d0, 1d0, 0d0]
    real(dp), dimension(3), parameter   :: e_3 = [0d0, 0d0, 1d0]
 
-   real    :: beam_w0 = 1d0 
+   real(dp):: epsilon = 8.854187817d-12
+   real(dp):: beam_w0 = 1d0 
    integer :: window = 0
    integer :: it_log = 0
    integer :: it_stop = 0
@@ -131,6 +132,7 @@ module common
       real(dp)                :: refr = 0d0
       real(dp)                :: refi = 0d0
       real(dp)                :: ref_med = 1d0
+      real(dp)                :: rho_med = 0d0
       real(dp)                :: NA = 0.8d0
       real(dp)                :: tol_m = 3d-3
       real(dp)                :: lambda1 = 2d-7

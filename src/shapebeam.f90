@@ -137,6 +137,7 @@ contains
          print*, '   Problem: Numerical aperture too high, limiting it to', matrices%ref_med
          NA = matrices%ref_med-1d-7
       end if
+      matrices%NA = NA
       beam_angle = dasin(NA/matrices%ref_med)
       write (*, '(2(A,F7.3))') '  Beam angle (deg)         = ', beam_angle*180d0/pi
       wscaling=1.0d0/dtan(abs(beam_angle))

@@ -129,4 +129,71 @@ contains
       close (1)
    end subroutine torque_efficiency
 
+!****************************************************************************80
+! Calculate force efficiency as a function of displacement in optical tweezers. 
+! The particle is considered to be in a constant orientation.
+   subroutine force_map()
+      integer :: i, j, k, Nxyz, ind, axis, Nav, iii
+      real(dp) :: limit
+      real(dp), dimension(3,3) :: R, R_beta
+      real(dp), dimension(3) :: Q, a
+      real(dp), dimension(:), allocatable :: x, beta
+      real(dp), dimension(:, :), allocatable :: Q_coll
+      character(1) :: out1
+
+      Nxyz = 100
+      Nav = 180
+      limit = 4d0*pi/mesh%ki(1)
+      
+      allocate (x(Nxyz), Q_coll(3, Nxyz**3))
+      allocate(beta(Nav))
+      call linspace(0d0, 2d0*pi, Nav, beta)
+      call linspace(-limit, limit, Nxyz, x)
+
+      do iii = 1,3
+         ind = 1
+         axis = iii
+         a = matrices%P(1:3, axis)
+         write(out1,'(I1)') axis
+         R = rotate_a_to_b(a,[0d0,0d0,1d0])
+
+         Q_coll(:,:) = 0d0
+         write (*, '(A)') '  Calculating force efficiency '//out1//' around beam focus:'
+         do j = 1,3
+            do i = 1, Nxyz
+               matrices%x_CM = [0d0, 0d0, 0d0]
+               matrices%x_CM(j) = x(i)
+               do k = 1,Nav
+                  R_beta = R_aa([0d0,0d0,1d0], beta(k))
+
+   ! The ultimate rotation matrices for scattering event
+                  matrices%R = matmul(R_beta, R)
+
+                  call get_forces()
+                  Q = matmul(matrices%R,matrices%Q_f)
+                  Q_coll(:,ind) = Q_coll(:,ind) + Q
+               end do
+               call print_bar(ind, 3*Nxyz)
+               ind = ind + 1 
+            end do 
+         end do
+         Q_coll = Q_coll/Nav
+
+         
+         open (unit=1, file="out/Qf"//out1//trim(matrices%out), ACTION="write", STATUS="replace")
+         ind = 1
+         write (1, '(A)') 'x  y  z  Q_{f,1} Q_{f,2} Q_{f,3}'
+         do j = 1,3
+            do i = 1, Nxyz
+               matrices%x_CM = [0d0, 0d0, 0d0]
+               matrices%x_CM(j) = x(i)
+               write (1, '(6E12.3)') matrices%x_CM, Q_coll(:, ind)
+               ind = ind + 1
+            end do 
+         end do
+
+         close (1)
+      end do
+   end subroutine force_map
+
 end module postprocessing

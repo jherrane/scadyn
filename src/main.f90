@@ -71,6 +71,7 @@ contains
          ! call RAT_alignment()
       end if 
       if (run_test == 3) call write_fields()
+      if (run_test == 4) call force_map()
 
    end subroutine tests
 
