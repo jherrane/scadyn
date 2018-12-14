@@ -593,7 +593,7 @@ contains
       call adaptive_step()
       dt = matrices%dt
 
-! For brownian motion, we approximate viscocity with water's
+! For brownian motion, we approximate viscosity with water's
       if(brownian) then
          D = k_b*matrices%Tgas/(3d0*pi*1d-3*mesh%a)
          rvec = rand_vec()*sqrt(6d0*D*dt)
@@ -640,20 +640,30 @@ contains
       ! matrices%N = exp(-vlen(matrices%w)/max_w)*matrices%N
       N = matrices%N 
       
+! Solve the total force taking gravity, drag, added mass and Magnus
+! forces into account
       F = dble(matrices%F)/mesh%mass - &
          (mesh%rho-matrices%rho_med)*mesh%V*9.81d0*[0d0,0d0,1d0]/mesh%mass - &
-          drag*vlen(matrices%v_CM)*pi*mesh%a**2*matrices%v_CM/mesh%mass
+          drag*matrices%rho_med*vlen(matrices%v_CM)*pi*mesh%a**2*matrices%v_CM/mesh%mass +&
+          0.5d0*matrices%rho_med*mesh%V*dble(matrices%F)/mesh%mass +&
+          matrices%rho_med*mesh%V*crossRR(matrices%w,matrices%v_CM)
       matrices%vn = matrices%v_CM + F*dt
       matrices%xn = matrices%x_CM + matrices%vn*dt + 0.5d0*F*dt**2
 
-! Use the formula for torque on a slowly spinning sphere when Reynolds 
-! number is low. When Re>>1, dissipations are probably very different.
-      N_drag = -8d0*pi*1d-6*mesh%a**3*matrices%w
+! Use the Faxen's law for torque on a slowly spinning sphere when Reynolds 
+! number is low. When Re>>1, drags are newtonian.
+! Dynamical viscosity 1d-3 is approximately waters.
+      if(matrices%rho_med>9d2)then
+         N_drag = -8d0*pi*1d-3*mesh%a**3*matrices%w
+      else
+         N_drag = -0.5d0*matrices%rho_med*mesh%a**5*matrices%w*vlen(matrices%w)
+      end if
 ! Step 3) Explicit angular velocity update
       Jwn = Jw + PxW + 0.25d0*dt**2d0*dot_product(wnh, Jw)*wnh &
       + 0.5d0*dt*(N + N_drag)
       matrices%wn = matmul(matrices%I_inv, Jwn)
       matrices%N = N + N_drag
+      matrices%F = F*mesh%mass
    end subroutine ot_update
 
 !****************************************************************************80
