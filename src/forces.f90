@@ -111,7 +111,7 @@ contains
       a_temp = E*matrices%as(1:nm, i)/sqrt(2d0*sqrt(mu/epsilon)*mesh%k**2)/2d0
       b_temp = E*matrices%bs(1:nm, i)/sqrt(2d0*sqrt(mu/epsilon)*mesh%k**2)/2d0
 
-      if(beam_shape /= 0 .AND. vlen(matrices%x_CM) > 1d-8) then
+      if(beam_shape /= 0 .AND. vlen(matrices%x_CM) > 1d-10) then
          call translate(matrices%x_CM, Nmax, Nmax, dcmplx(mesh%k), &
             a_temp, b_temp, a_in, b_in, 0)
       else

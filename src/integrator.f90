@@ -84,6 +84,9 @@ contains
             call vlv_update()
          else
             call ot_update()
+            if(abs(matrices%x_CM(3)) > 4d0*2d0*pi/mesh%ki(1)) then
+               stop 'Particle flew out of the tweezers'
+            end if
          end if
 
          call update_values()
@@ -542,7 +545,7 @@ contains
       integer :: maxiter, i1, tested_gravity
       real(dp) :: Rn(3, 3), wnh(3), dt, I(3), Jw(3), Ff, Fg, Fnorm
       real(dp) :: PxW(3), hel(3), Jac(3, 3), Jwn(3), iterstop, drag, rot_drag(3,3)
-      real(dp) :: N_drag(3), max_w, rvec(3), D
+      real(dp) :: N_drag(3), F_drag(3), max_w, rvec(3), D, Re_w, Re
 
       maxiter = 50
       tested_gravity = 0
@@ -640,24 +643,34 @@ contains
       ! matrices%N = exp(-vlen(matrices%w)/max_w)*matrices%N
       N = matrices%N 
       
+! Use the Faxen's law for torque on a slowly spinning sphere when Reynolds 
+! number is low. When Re>>1, drags are newtonian.
+! Dynamical viscosity 1d-3 is approximately waters.
+      Re_w = matrices%rho_med*vlen(matrices%w)*mesh%a**2/matrices%mu
+      Re = matrices%rho_med*vlen(matrices%v_CM)*mesh%a/matrices%mu
+
+      if(Re_w < 1d0)then
+         N_drag = -8d0*pi*matrices%mu*mesh%a**3*matrices%w
+      else
+         N_drag = -0.5d0*matrices%rho_med*mesh%a**5*matrices%w*vlen(matrices%w)
+      end if
+
+      if(Re < 1d0)then
+         F_drag = -6d0*pi*matrices%mu*mesh%a*matrices%v_CM
+      else
+         F_drag = -0.5d0*pi*mesh%a**2*matrices%rho_med*vlen(matrices%v_CM)*matrices%v_CM/mesh%mass
+      end if
+
 ! Solve the total force taking gravity, drag, added mass and Magnus
 ! forces into account
       F = dble(matrices%F)/mesh%mass - &
          (mesh%rho-matrices%rho_med)*mesh%V*9.81d0*[0d0,0d0,1d0]/mesh%mass - &
-          drag*matrices%rho_med*vlen(matrices%v_CM)*pi*mesh%a**2*matrices%v_CM/mesh%mass +&
-          0.5d0*matrices%rho_med*mesh%V*dble(matrices%F)/mesh%mass +&
-          matrices%rho_med*mesh%V*crossRR(matrices%w,matrices%v_CM)
+          F_drag + &
+          0.5d0*matrices%rho_med*mesh%V*dble(matrices%F)/mesh%mass + &
+          matrices%rho_med*mesh%V*crossRR(matrices%w,matrices%v_CM)/mesh%mass
       matrices%vn = matrices%v_CM + F*dt
       matrices%xn = matrices%x_CM + matrices%vn*dt + 0.5d0*F*dt**2
 
-! Use the Faxen's law for torque on a slowly spinning sphere when Reynolds 
-! number is low. When Re>>1, drags are newtonian.
-! Dynamical viscosity 1d-3 is approximately waters.
-      if(matrices%rho_med>9d2)then
-         N_drag = -8d0*pi*1d-3*mesh%a**3*matrices%w
-      else
-         N_drag = -0.5d0*matrices%rho_med*mesh%a**5*matrices%w*vlen(matrices%w)
-      end if
 ! Step 3) Explicit angular velocity update
       Jwn = Jw + PxW + 0.25d0*dt**2d0*dot_product(wnh, Jw)*wnh &
       + 0.5d0*dt*(N + N_drag)

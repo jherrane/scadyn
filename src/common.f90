@@ -133,6 +133,7 @@ module common
       real(dp)                :: refi = 0d0
       real(dp)                :: ref_med = 1d0
       real(dp)                :: rho_med = 0d0
+      real(dp)                :: mu = 0d0
       real(dp)                :: NA = 0.8d0
       real(dp)                :: tol_m = 3d-3
       real(dp)                :: lambda1 = 2d-7
