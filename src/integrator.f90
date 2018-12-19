@@ -66,7 +66,7 @@ contains
 
 !****************************************************************************80
 ! Calculates grain dynamics. All radiative torques are calculated in so
-! called scattering frame, and all ! dynamics are integrated in principal frame.
+! called scattering frame, and all dynamics are integrated in principal frame.
    subroutine solve_eoms()
       integer :: i, wi, writeless
       real(dp) :: J(3), E, F(3), N(3)
@@ -83,6 +83,7 @@ contains
          if(beam_shape == 0) then
             call vlv_update()
          else
+            if(i==1) call ot_calibrate()
             call ot_update()
             if(abs(matrices%x_CM(3)) > 4d0*2d0*pi/mesh%ki(1)) then
                stop 'Particle flew out of the tweezers'
@@ -362,24 +363,18 @@ contains
 !****************************************************************************80
 ! Calculates adaptive time step over a maximum angle the particle
 ! can rotate during a step
-   subroutine adaptive_step()
-      real(dp) :: max_w, test_dt, dw(3)
+   subroutine adaptive_step(N, Fin)
+      real(dp), dimension(3), optional :: Fin
+      real(dp) :: dw(3), N(3), F(3), dx(3), lambda
 
-      dw = get_dotw(matrices%N, matrices%w, matrices%I, matrices%I_inv)
+      dw = get_dotw(N, matrices%w, matrices%I, matrices%I_inv)
+      matrices%dt = matrices%rot_max/max(vlen(matrices%w), vlen(dw))
 
-      if(vlen(dw)<1d-4) return
-! Use an adaptive time step, integrate over rotation <= rot_max
-      max_w = vlen(matrices%w + dw*matrices%dt)
-      if(max_w>matrices%rot_max) then
-         test_dt = matrices%rot_max/max_w
-      else
-         test_dt = matrices%dt
-      end if 
-
-      if(vlen(matrices%w)/vlen(dw*matrices%dt) < 0.2d0) then
-         matrices%dt = test_dt
-      else
-         ! matrices%dt = 0.9d0*matrices%dt*min(max(test_dt/matrices%dt,0.3d0),2d0)
+      if(present(Fin))then
+         F = Fin
+         lambda = 2d0*pi/minval(mesh%ki)
+         dx = matrices%v_CM*matrices%dt + 0.5d0*F*matrices%dt**2
+         matrices%dt = matrices%dt*min(max(vlen(dx)/(lambda)/matrices%dt,0.5d0),2d0)
       end if
 
    end subroutine adaptive_step
@@ -470,7 +465,7 @@ contains
       end if
 
       N = matrices%N
-      call adaptive_step()
+      call adaptive_step(N)
       dt = matrices%dt
 
       if (matrices%E < 1d-7) then 
@@ -541,59 +536,55 @@ contains
 ! Especially the rotational rates are heavily capped, as they would not be 
 ! expected.
    subroutine ot_update()
-      real(dp), dimension(3) :: F, N
-      integer :: maxiter, i1, tested_gravity
-      real(dp) :: Rn(3, 3), wnh(3), dt, I(3), Jw(3), Ff, Fg, Fnorm
-      real(dp) :: PxW(3), hel(3), Jac(3, 3), Jwn(3), iterstop, drag, rot_drag(3,3)
-      real(dp) :: N_drag(3), F_drag(3), max_w, rvec(3), D, Re_w, Re
+      real(dp), dimension(3) :: F, N, F_drag, N_drag, F_G, F_m, F_mag
+      integer :: maxiter, i1
+      real(dp) :: Rn(3, 3), wnh(3), dt, I(3), Jw(3), Ff
+      real(dp) :: PxW(3), hel(3), Jac(3, 3), Jwn(3), iterstop
+      real(dp) :: rvec(3), D, Re_w, Re
 
       maxiter = 50
-      tested_gravity = 0
-      max_w = 1d4
-
-      drag = 0.5d0*matrices%rho_med*1d0 ! 0.5*density of medium*drag coefficient
-      rot_drag = eye(3)
-      rot_drag(1,1) = 1d0
-      rot_drag(2,2) = 5d0
-      rot_drag(3,3) = 1d0
 
       I = matrices%Ip
       Jac = 0.d0
       PxW = 0.d0
       Jw = 0.d0
 
-! First force calculation for getting a reasonable value for dt
-      if (matrices%tt == 0d0) then
-         if(seedling /= 0) brownian = .TRUE.
-         Fg = (mesh%rho)*mesh%V*9.81d0
+! Calculate Reynolds numbers for rotation (_w) and translation
+      Re_w = matrices%rho_med*vlen(matrices%w)*mesh%a**2/matrices%mu
+      Re = matrices%rho_med*vlen(matrices%v_CM)*mesh%a/matrices%mu
 
-! Adjust E-field at intensity maximum (of origin-centered (incl.LG0l) beams)
-         F = matrices%x_CM
-         matrices%x_CM = [0d0, 0d0, 0d0]
-         if(l>0 .AND. p == 0)then
-            matrices%x_CM(1) = sqrt(l*beam_w0**2/2)/mesh%ki(1)
-         end if
-         do while (tested_gravity == 0)
-            call get_forces()
-            Fnorm = vlen(matrices%F)
-            if (abs(Fg)>1.01*abs(Fnorm) )  then
-               matrices%E = sqrt(Fg/Fnorm)*matrices%E
-            else
-               write(*,'(A,ES9.3,A)') '  E-field maximum adjusted to ', matrices%E, ' V/m'
-               write(*,'(A,ES9.3,A)') '  Intensity at maximum is then ', matrices%E**2/(2d0*377d0), ' W/m^2'
-               if(l==0 .AND. p == 0. .AND. beam_shape == 1) then
-                  write(*,'(A,ES9.3,A)') '  Corresponding LG00 beam power ', &
-                  matrices%E**2/(2d0*377d0)*(pi/2d0)*(2d0/matrices%NA/mesh%ki(1))**2, ' W'
-               end if
-               call get_forces()
-               tested_gravity = 1
-            end if
-         end do
-         matrices%x_CM = F
+! Use the Faxen's law for torque on a slowly spinning sphere when Reynolds 
+! number is low. When Re_w>>1, drags are newtonian. 
+      if(Re_w < 1d0)then
+         N_drag = -8d0*pi*matrices%mu*mesh%a**3*matrices%w
+      else
+         N_drag = -0.5d0*matrices%rho_med*mesh%a**5*matrices%w*vlen(matrices%w)
+      end if    
+
+! Use Stokes drag (Re low) or Newton drag (Re large). Re is not probably 
+! very large.
+      if(Re < 1d0)then
+         F_drag = -6d0*pi*matrices%mu*mesh%a*matrices%v_CM  
+      else
+         F_drag = -0.5d0*pi*mesh%a**2*matrices%rho_med*vlen(matrices%v_CM)*matrices%v_CM
       end if
 
-      N = matrices%N
-      call adaptive_step()
+! At really low pressures, the continuum assumption may not be valid.
+! Disregard viscosity and thus drag.
+      if(matrices%rho_med<1d-1) then
+         F_drag = 0d0
+         N_drag = 0d0
+      end if
+
+      F_G = -(mesh%rho-matrices%rho_med)*mesh%V*9.81d0*[0d0,0d0,1d0]
+      F_m = 0.5d0*matrices%rho_med*mesh%V*dble(matrices%F)/mesh%mass
+      F_mag = matrices%rho_med*mesh%V*crossRR(matrices%w,matrices%v_CM)*mesh%mass
+
+      ! print*, vlen(N), vlen(N_drag), vlen(matrices%w)
+      ! print*, vlen(matrices%F), vlen(F_drag), vlen(F_G), vlen(F_m), vlen(F_mag)
+      N = matrices%N + N_drag
+      F = (matrices%F + F_drag + F_G + F_m + F_mag)/mesh%mass
+      call adaptive_step( N, F )
       dt = matrices%dt
 
 ! For brownian motion, we approximate viscosity with water's
@@ -603,7 +594,12 @@ contains
          matrices%x_CM = matrices%x_CM + rvec
       end if
 
-! Step 1) Newton solve
+! Step update taking gravity, drag, added mass and Magnus
+! forces into account
+      matrices%vn = matrices%v_CM + F*dt
+      matrices%xn = matrices%x_CM + matrices%v_CM*dt + 0.5d0*F*dt**2 
+
+! Rotation step 1) Newton solve
       wnh = matrices%w ! Body angular velocity
       Jw = matmul(matrices%I, wnh)
       iterstop = maxval(matrices%I)*1.d-12
@@ -628,7 +624,7 @@ contains
          Jw = matmul(matrices%I, wnh)
       end do
 
-! Step 2) Explicit configuration update
+! Rotation step 2) Explicit configuration update
       Rn = matmul(matrices%R, cay(dt*wnh))
       matrices%qn = mat2quat(Rn)
       matrices%qn = normalize_quat(matrices%qn)
@@ -636,48 +632,51 @@ contains
 
       matrices%R = matrices%Rn
       call get_forces()
+      N = matrices%N + N_drag
 
-! Heuristically limit the torque to not spin particles much faster than
-! max_w. Formally similar to laminar drag dw/dt = aw^1. Compare with 
-! drag by turbulent flow on spheres, where dw/dt ~w^2. 
-      ! matrices%N = exp(-vlen(matrices%w)/max_w)*matrices%N
-      N = matrices%N 
-      
-! Use the Faxen's law for torque on a slowly spinning sphere when Reynolds 
-! number is low. When Re>>1, drags are newtonian.
-! Dynamical viscosity 1d-3 is approximately waters.
-      Re_w = matrices%rho_med*vlen(matrices%w)*mesh%a**2/matrices%mu
-      Re = matrices%rho_med*vlen(matrices%v_CM)*mesh%a/matrices%mu
-
-      if(Re_w < 1d0)then
-         N_drag = -8d0*pi*matrices%mu*mesh%a**3*matrices%w
-      else
-         N_drag = -0.5d0*matrices%rho_med*mesh%a**5*matrices%w*vlen(matrices%w)
-      end if
-
-      if(Re < 1d0)then
-         F_drag = -6d0*pi*matrices%mu*mesh%a*matrices%v_CM
-      else
-         F_drag = -0.5d0*pi*mesh%a**2*matrices%rho_med*vlen(matrices%v_CM)*matrices%v_CM/mesh%mass
-      end if
-
-! Solve the total force taking gravity, drag, added mass and Magnus
-! forces into account
-      F = dble(matrices%F)/mesh%mass - &
-         (mesh%rho-matrices%rho_med)*mesh%V*9.81d0*[0d0,0d0,1d0]/mesh%mass - &
-          F_drag + &
-          0.5d0*matrices%rho_med*mesh%V*dble(matrices%F)/mesh%mass + &
-          matrices%rho_med*mesh%V*crossRR(matrices%w,matrices%v_CM)/mesh%mass
-      matrices%vn = matrices%v_CM + F*dt
-      matrices%xn = matrices%x_CM + matrices%vn*dt + 0.5d0*F*dt**2
-
-! Step 3) Explicit angular velocity update
+! Rotation step 3) Explicit angular velocity update
       Jwn = Jw + PxW + 0.25d0*dt**2d0*dot_product(wnh, Jw)*wnh &
-      + 0.5d0*dt*(N + N_drag)
+      + 0.5d0*dt*N
       matrices%wn = matmul(matrices%I_inv, Jwn)
-      matrices%N = N + N_drag
-      matrices%F = F*mesh%mass
+
    end subroutine ot_update
+
+!****************************************************************************
+! Adjust E-field at intensity maximum (of origin-centered (incl.LG0l) beams)
+   subroutine ot_calibrate
+      real(dp), dimension(3) :: F
+      real(dp) :: Fnorm, Fg
+      logical :: tested_gravity
+
+      tested_gravity = .FALSE.
+
+      if(seedling /= 0) brownian = .TRUE.
+      Fg = (mesh%rho)*mesh%V*9.81d0
+
+      F = matrices%x_CM
+      matrices%x_CM = [0d0, 0d0, 0d0]
+      if(l>0 .AND. p == 0)then
+         matrices%x_CM(1) = sqrt(l*beam_w0**2/2)/mesh%ki(1)
+      end if
+      do while (.NOT. tested_gravity)
+         call get_forces()
+         Fnorm = vlen(matrices%F)
+         if (abs(Fg)>1.01*abs(Fnorm) )  then
+            matrices%E = sqrt(Fg/Fnorm)*matrices%E
+         else
+            write(*,'(A,ES9.3,A)') '  E-field maximum adjusted to ', matrices%E, ' V/m'
+            write(*,'(A,ES9.3,A)') '  Intensity at maximum is then ', matrices%E**2/(2d0*377d0), ' W/m^2'
+            if(l==0 .AND. p == 0. .AND. beam_shape == 1) then
+               write(*,'(A,ES9.3,A)') '  Corresponding LG00 beam power ', &
+               matrices%E**2/(2d0*377d0)*(pi/2d0)*(2d0/matrices%NA/mesh%ki(1))**2, ' W'
+            end if
+            call get_forces()
+            tested_gravity = .TRUE.
+         end if
+      end do
+      matrices%x_CM = F
+
+   end subroutine ot_calibrate
 
 !****************************************************************************80
 ! Runge-Kutta 4 update for the alignment differential equation (ADE) pair
