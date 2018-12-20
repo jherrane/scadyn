@@ -549,6 +549,8 @@ contains
       PxW = 0.d0
       Jw = 0.d0
 
+      call get_forces()
+
 ! Calculate Reynolds numbers for rotation (_w) and translation
       Re_w = matrices%rho_med*vlen(matrices%w)*mesh%a**2/matrices%mu
       Re = matrices%rho_med*vlen(matrices%v_CM)*mesh%a/matrices%mu
@@ -583,7 +585,7 @@ contains
       ! print*, vlen(N), vlen(N_drag), vlen(matrices%w)
       ! print*, vlen(matrices%F), vlen(F_drag), vlen(F_G), vlen(F_m), vlen(F_mag)
       N = matrices%N + N_drag
-      F = (matrices%F + F_drag + F_G + F_m + F_mag)/mesh%mass
+      F = (matrices%F + F_G + F_drag + F_m + F_mag)
       call adaptive_step( N, F )
       dt = matrices%dt
 
@@ -596,8 +598,8 @@ contains
 
 ! Step update taking gravity, drag, added mass and Magnus
 ! forces into account
-      matrices%vn = matrices%v_CM + F*dt
-      matrices%xn = matrices%x_CM + matrices%v_CM*dt + 0.5d0*F*dt**2 
+      matrices%vn = matrices%v_CM + F/mesh%mass*dt
+      matrices%xn = matrices%x_CM + matrices%v_CM*dt + 0.5d0*(F/mesh%mass)*dt**2 
 
 ! Rotation step 1) Newton solve
       wnh = matrices%w ! Body angular velocity
@@ -630,14 +632,12 @@ contains
       matrices%qn = normalize_quat(matrices%qn)
       matrices%Rn = quat2mat(matrices%qn)
 
-      matrices%R = matrices%Rn
-      call get_forces()
-      N = matrices%N + N_drag
-
 ! Rotation step 3) Explicit angular velocity update
       Jwn = Jw + PxW + 0.25d0*dt**2d0*dot_product(wnh, Jw)*wnh &
       + 0.5d0*dt*N
       matrices%wn = matmul(matrices%I_inv, Jwn)
+      matrices%F = F
+      matrices%N = N
 
    end subroutine ot_update
 
