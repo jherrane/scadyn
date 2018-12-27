@@ -657,6 +657,7 @@ contains
       matrices%x_CM = [0d0, 0d0, 0d0]
       if(l>0 .AND. p == 0)then
          matrices%x_CM(1) = sqrt(l*beam_w0**2/2)/mesh%ki(1)
+         write(*,'(A,ES9.3,A)') '  LG0l-maximum at x = ', matrices%x_CM(1)
       end if
       do while (.NOT. tested_gravity)
          call get_forces()
