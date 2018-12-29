@@ -35,11 +35,13 @@ contains
 !****************************************************************************80
 
    subroutine laguerre_gaussian_beams(p, l)
-      integer :: i, p, l
+      integer :: i, p, l, j
       real(dp) :: angle
 
       angle = 0d0
-      matrices%width = 2d0*pi/(minval(mesh%ki))
+      j = 1
+      if(matrices%whichbar/=0) j = matrices%whichbar
+      matrices%width = 2d0*pi/(mesh%ki(j))
       if(matrices%whichbar /= 0)then
          call laguerre_gauss_farfield(matrices%whichbar, p, l)
          call rotate_beam(matrices%whichbar,[1d0,0d0,0d0],angle)
@@ -304,7 +306,7 @@ contains
    end function field_grid
 
 !****************************************************************************80
-
+! Write fields to file. Normalize grid back to units of wavelength.
    subroutine write_fields()
       integer :: i, n
       character(LEN=80) :: gridname, fieldname, scatfield
@@ -318,11 +320,13 @@ contains
       matrices%field_points = field_grid(n)
 
       call fields_out(i, n)
-      call write2file(dcmplx(matrices%field_points), gridname)
-      call write2file(matrices%E_field, fieldname)
+      call write2file(matrices%E_field, 'out/'//fieldname)
 
       call scat_fields_out(i, n)
-      call write2file(matrices%E_field, scatfield)
+      call write2file(matrices%E_field, 'out/'//scatfield)
+
+      matrices%field_points = matrices%field_points/(2d0*pi/(mesh%ki(i)))
+      call write2file(dcmplx(matrices%field_points), 'out/'//gridname)
 
    end subroutine write_fields
 
