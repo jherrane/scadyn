@@ -57,7 +57,7 @@ if __name__ == "__main__":
    
    plt.rc('text', usetex=True)
    plt.rc('font', family='serif')
-   font = {'weight' : 'bold', 'size' : 36}
+   font = {'weight' : 'bold', 'size' : 48}
    
    mpl.rc('font',**font)
 
@@ -72,7 +72,7 @@ if __name__ == "__main__":
    im = ax.pcolormesh(x, y, Ez, cmap=cmap, shading='gouraud')
    fig.colorbar(im, ax=ax)
    
-   ax.set_title(r'Intensity of $E_{\mathrm{inc, '+labels[i_label[2]]+'}}$')
+   ax.set_title(r'Intensity')
    ax.set_xlabel(r'$'+labels[i_label[0]]+' (\lambda)$',labelpad=5) 
    ax.set_ylabel(r'$'+labels[i_label[1]]+' (\lambda)$',labelpad=5) 
    
@@ -90,10 +90,10 @@ if __name__ == "__main__":
       cbar.ax.set_yticklabels([r'$-\pi/2$', r'$0$', r'$\pi/2$'])
    else:
       im = ax.pcolormesh(x, y, Ephase, cmap=cmap, shading='gouraud')
-      cbar = fig.colorbar(im, ax=ax,ticks=[-np.pi, -np.pi/2, 0, np.pi/2, np.pi])
+      cbar = fig.colorbar(im, ax=ax,ticks=[-np.pi+0.01, -np.pi/2, 0, np.pi/2, np.pi-0.01])
       cbar.ax.set_yticklabels([r'$-\pi$', r'$-\pi/2$', r'$0$', r'$\pi/2$', r'$\pi$'])
    
-   ax.set_title(r'Phase of $E_{\mathrm{inc, '+labels[i_label[2]]+'}}$')
+   ax.set_title(r'Phase')
    ax.set_xlabel(r'$'+labels[i_label[0]]+' (\lambda)$',labelpad=5) 
    ax.set_ylabel(r'$'+labels[i_label[1]]+' (\lambda)$',labelpad=5) 
    
