@@ -209,7 +209,7 @@ contains
 ! Input related variables
       character(len=150) :: buffer, label
       real(dp) :: temp, tempii, temp_med
-      integer :: pos
+      integer :: pos, tempint
       integer, parameter :: fh = 15
       integer :: ios = 0
       integer :: line = 0
@@ -254,6 +254,9 @@ contains
                read (buffer, *, iostat=ios) window
             case ('it_log')
                read (buffer, *, iostat=ios) it_log
+            case ('autoterminate')
+               read (buffer, *, iostat=ios) tempint
+               if(tempint == 1) autoterminate = .TRUE.
 ! Matrices
             case ('E')
                read (buffer, *, iostat=ios) matrices%E

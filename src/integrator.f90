@@ -85,7 +85,7 @@ contains
          else
             if(i==1) call ot_calibrate()
             call ot_update()
-            if(abs(matrices%x_CM(3)) > 4d0*2d0*pi/mesh%ki(1)) then
+            if(autoterminate .AND. abs(matrices%x_CM(3)) > 4d0*2d0*pi/mesh%ki(1)) then
                stop 'Particle flew out of the tweezers'
             end if
          end if
