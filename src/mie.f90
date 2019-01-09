@@ -502,18 +502,13 @@ contains
       complex(dp), dimension(:) :: a_nm, b_nm, a_nm2, b_nm2
       complex(dp) :: k
       real(dp), dimension(:, :), allocatable :: S_out
-      integer :: N_phi, N_theta
-      complex(dp), dimension(3) :: E_out, E_out2, H_out, H_out2
 
+      integer :: N_phi, N_theta, NN
       integer :: i1, i2, las
-      real(dp) :: theta, phi, abcd(2, 2), r(3), RR, unit_th(3), unit_phi(3)
-      complex(dp), dimension(N_phi*N_theta) :: f11, f12, f21, f22
-      complex(dp) ::S1, S2, S3, S4
-      complex(dp) :: i
+      real(dp) :: theta, phi, S(18)
 
-      i = dcmplx(0.0, 1.0)
-      RR = 1.0d6
       allocate (S_out(N_phi*N_theta, 18))
+      NN = N_phi*N_theta
 
       las = 0
       do i1 = 1, N_phi
@@ -522,53 +517,75 @@ contains
             theta = pi*(i2 - 1)/(N_theta) + pi/N_theta/2.0
             phi = 2*pi*(i1 - 1)/N_phi
 
-            abcd(1, :) = [cos(phi), sin(phi)]
-            abcd(2, :) = [sin(phi), -cos(phi)]
-
-            r(1) = RR*sin(theta)*cos(phi)
-            r(2) = RR*sin(theta)*sin(phi)
-            r(3) = RR*cos(theta)
-
-            call calc_fields(a_nm, b_nm, k, r, E_out, H_out, 1)
-            call calc_fields(a_nm2, b_nm2, k, r, E_out2, H_out2, 1)
-
-            unit_th = [cos(theta)*cos(phi), sin(phi)*cos(theta), -sin(theta)]
-            unit_phi = [-sin(phi), cos(phi), 0.0d0]; 
-            f11(las + 1) = k*RR/exp(i*k*(RR))*dot_product(E_out, dcmplx(unit_th))
-            f21(las + 1) = k*RR/exp(i*k*(RR))*dot_product(E_out, dcmplx(unit_phi))
-            f12(las + 1) = k*RR/exp(i*k*(RR))*dot_product(E_out2, dcmplx(unit_th))
-            f22(las + 1) = k*RR/exp(i*k*(RR))*dot_product(E_out2, dcmplx(unit_phi))
-            S1 = -i*(f21(las + 1)*abcd(1, 2) + f22(las + 1)*abcd(2, 2))
-            S2 = -i*(f11(las + 1)*abcd(1, 1) + f12(las + 1)*abcd(2, 1))
-            S3 = i*(f11(las + 1)*abcd(1, 2) + f12(las + 1)*abcd(2, 2))
-            S4 = i*(f21(las + 1)*abcd(1, 1) + f22(las + 1)*abcd(2, 1))
-
-            S_out(las + 1, 1) = phi
-            S_out(las + 1, 2) = theta
-
-            ! Mueller matrix
-            S_out(las + 1, 3) = (abs(S1)**2 + abs(S2)**2 + abs(S3)**2 + abs(S4)**2)/2.0 !S11
-            S_out(las + 1, 4) = (abs(S2)**2 - abs(S1)**2 + abs(S4)**2 - abs(S3)**2)/2.0 !S12
-            S_out(las + 1, 5) = -real(S2*conjg(S3) + S1*conjg(S4)) !S13
-            S_out(las + 1, 6) = -imag(S2*conjg(S3) - S1*conjg(S4)) !S14
-            S_out(las + 1, 7) = (abs(S2)**2 - abs(S1)**2 + abs(S3)**2 - abs(S4)**2)/2.0 !S21
-            S_out(las + 1, 8) = (abs(S1)**2 - abs(S3)**2 - abs(S4)**2 + abs(S2)**2)/2.0 !S22
-            S_out(las + 1, 9) = real(S2*conjg(S3) - S1*conjg(S4)) !S23
-            S_out(las + 1, 10) = -imag(S2*conjg(S3) + S1*conjg(S4)) !S24
-            S_out(las + 1, 11) = real(S2*conjg(S4) + S1*conjg(S3)) !S31
-            S_out(las + 1, 12) = -real(S2*conjg(S4) - S1*conjg(S3)) !S32
-            S_out(las + 1, 13) = -real(S1*conjg(S2) + S3*conjg(S4)) !S33
-            S_out(las + 1, 14) = imag(S2*conjg(S1) + S4*conjg(S3)) ! S34
-            S_out(las + 1, 15) = imag(S4*conjg(S2) + S1*conjg(S3)) ! S41
-            S_out(las + 1, 16) = imag(S4*conjg(S2) - S1*conjg(S3)) ! S42
-            S_out(las + 1, 17) = imag(S1*conjg(S2) - S3*conjg(S4)) ! S43
-            S_out(las + 1, 18) = -real(S1*conjg(S2) - S3*conjg(S4)) ! S44
+            call single_mueller(a_nm, b_nm, a_nm2, b_nm2, k, NN, theta, phi, S)
+            S_out(las,:) = S
 
             las = las + 1
          end do
       end do
 
    end subroutine mueller_matrix_coeff
+
+!******************************************************************************
+! Calculate a single Mueller matrix in the theta, phi direction
+   subroutine single_mueller(a_nm, b_nm, a_nm2, b_nm2, k, NN, theta, phi, S_out)
+      complex(dp), dimension(:) :: a_nm, b_nm, a_nm2, b_nm2
+      complex(dp) :: k
+      real(dp), dimension(18) :: S_out
+      complex(dp), dimension(3) :: E_out, E_out2, H_out, H_out2
+
+      integer :: i1, i2, las, NN
+      real(dp) :: theta, phi, abcd(2, 2), r(3), RR, unit_th(3), unit_phi(3)
+      complex(dp), dimension(NN) :: f11, f12, f21, f22
+      complex(dp) ::S1, S2, S3, S4
+      complex(dp) :: i
+
+      i = dcmplx(0.0, 1.0)
+      RR = 1.0d6
+
+      abcd(1, :) = [cos(phi), sin(phi)]
+      abcd(2, :) = [sin(phi), -cos(phi)]
+
+      r(1) = RR*sin(theta)*cos(phi)
+      r(2) = RR*sin(theta)*sin(phi)
+      r(3) = RR*cos(theta)
+
+      call calc_fields(a_nm, b_nm, k, r, E_out, H_out, 1)
+      call calc_fields(a_nm2, b_nm2, k, r, E_out2, H_out2, 1)
+
+      unit_th = [cos(theta)*cos(phi), sin(phi)*cos(theta), -sin(theta)]
+      unit_phi = [-sin(phi), cos(phi), 0.0d0]; 
+      f11(las + 1) = k*RR/exp(i*k*(RR))*dot_product(E_out, dcmplx(unit_th))
+      f21(las + 1) = k*RR/exp(i*k*(RR))*dot_product(E_out, dcmplx(unit_phi))
+      f12(las + 1) = k*RR/exp(i*k*(RR))*dot_product(E_out2, dcmplx(unit_th))
+      f22(las + 1) = k*RR/exp(i*k*(RR))*dot_product(E_out2, dcmplx(unit_phi))
+      S1 = -i*(f21(las + 1)*abcd(1, 2) + f22(las + 1)*abcd(2, 2))
+      S2 = -i*(f11(las + 1)*abcd(1, 1) + f12(las + 1)*abcd(2, 1))
+      S3 = i*(f11(las + 1)*abcd(1, 2) + f12(las + 1)*abcd(2, 2))
+      S4 = i*(f21(las + 1)*abcd(1, 1) + f22(las + 1)*abcd(2, 1))
+
+      S_out(1) = phi
+      S_out(2) = theta
+
+      ! Mueller matrix
+      S_out(3) = (abs(S1)**2 + abs(S2)**2 + abs(S3)**2 + abs(S4)**2)/2.0 !S11
+      S_out(4) = (abs(S2)**2 - abs(S1)**2 + abs(S4)**2 - abs(S3)**2)/2.0 !S12
+      S_out(5) = -real(S2*conjg(S3) + S1*conjg(S4)) !S13
+      S_out(6) = -imag(S2*conjg(S3) - S1*conjg(S4)) !S14
+      S_out(7) = (abs(S2)**2 - abs(S1)**2 + abs(S3)**2 - abs(S4)**2)/2.0 !S21
+      S_out(8) = (abs(S1)**2 - abs(S3)**2 - abs(S4)**2 + abs(S2)**2)/2.0 !S22
+      S_out(9) = real(S2*conjg(S3) - S1*conjg(S4)) !S23
+      S_out(10) = -imag(S2*conjg(S3) + S1*conjg(S4)) !S24
+      S_out(11) = real(S2*conjg(S4) + S1*conjg(S3)) !S31
+      S_out(12) = -real(S2*conjg(S4) - S1*conjg(S3)) !S32
+      S_out(13) = -real(S1*conjg(S2) + S3*conjg(S4)) !S33
+      S_out(14) = imag(S2*conjg(S1) + S4*conjg(S3)) ! S34
+      S_out(15) = imag(S4*conjg(S2) + S1*conjg(S3)) ! S41
+      S_out(16) = imag(S4*conjg(S2) - S1*conjg(S3)) ! S42
+      S_out(17) = imag(S1*conjg(S2) - S3*conjg(S4)) ! S43
+      S_out(18) = -real(S1*conjg(S2) - S3*conjg(S4)) ! S44
+
+   end subroutine single_mueller
 
 !******************************************************************************
 

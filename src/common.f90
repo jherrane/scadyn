@@ -32,6 +32,7 @@ module common
 
    real(dp):: epsilon = 8.854187817d-12
    real(dp):: beam_w0 = 1d0 
+   real(dp):: detect_theta = 0d0
    integer :: window = 0
    integer :: it_log = 0
    integer :: it_stop = 0
@@ -53,6 +54,7 @@ module common
 
    logical :: brownian = .FALSE.
    logical :: autoterminate = .FALSE.
+   logical :: photodetector = .FALSE.
 
 ! TYPES ***********************************************************************
 !****************************************************************************80
@@ -103,15 +105,17 @@ module common
       complex(8), dimension(:, :), allocatable :: rotDs, rotD90s, rotYs, rotXs
 ! Collection of normal rotation matrices, other collections
       real(dp), dimension(:, :, :), allocatable :: RRR
-      real(dp), dimension(:, :), allocatable :: field_points, T, www, FGH
+      real(dp), dimension(:, :), allocatable :: field_points, T, www, FGH, photodetector
 ! The incident field spectrum
       real(dp), dimension(:), allocatable :: E_rel
 ! Buffers for I/O
+      real(dp), dimension(18, 1000) :: mueller_buf
       real(dp), dimension(3, 1000) :: x_buf, v_buf, w_buf, J_buf, N_buf, F_buf
       real(dp), dimension(3, 3, 1000) :: R_buf
       real(dp), dimension(1, 1000) :: t_buf
       real(dp), dimension(:), allocatable :: q_list
 ! All physical quantities in human-readable form (more or less)
+      real(dp), dimension(18) :: single_mueller
       real(dp), dimension(4) :: q, qn
       real(dp), dimension(3, 3) :: R, Rn, Rk, P, I, I_inv, R_al, R90_init
       real(dp), dimension(3) :: force, torque, khat, v_CM, N, wn, xn, vn, J, F, Ip, &

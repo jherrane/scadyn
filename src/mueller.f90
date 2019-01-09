@@ -44,8 +44,29 @@ contains
          end if
       end select
 
-      call write_mueller( S)
+      call write_mueller(S)
    end subroutine compute_mueller
+
+!****************************************************************************80
+! Compute a single mueller matrix according to the mode chosen.
+   subroutine compute_single_mueller(theta, phi, S)
+      integer :: ii
+      real(dp) :: E, theta, phi
+      real(dp), dimension(18) :: S
+      complex(dp), dimension(:), allocatable :: p, q, p90, q90
+
+
+! Choose wavelength
+      ii = matrices%whichbar
+      if (ii == 0) ii = 1
+
+      E = matrices%E_rel(ii)*matrices%E
+      mesh%k = mesh%ki(ii)
+
+      call scattered_fields(E, p, q, p90, q90, ii)
+      call single_mueller(p, q, p90, q90, dcmplx(mesh%k), 1, theta, phi, S)
+
+   end subroutine compute_single_mueller
 
 !****************************************************************************80
 ! Compute orientation averaged Mueller matrices for given number of theta, phi.

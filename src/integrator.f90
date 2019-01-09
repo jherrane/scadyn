@@ -5,6 +5,7 @@ module integrator
    use forces
    use shapebeam
    use setup 
+   use mueller
 
    implicit none
 
@@ -69,7 +70,7 @@ contains
 ! called scattering frame, and all dynamics are integrated in principal frame.
    subroutine solve_eoms()
       integer :: i, wi, writeless
-      real(dp) :: J(3), E, F(3), N(3)
+      real(dp) :: J(3), E, F(3), N(3), S(18)
 
       call start_log()
 
@@ -88,6 +89,10 @@ contains
             if(autoterminate .AND. abs(matrices%x_CM(3)) > 4d0*2d0*pi/mesh%ki(1)) then
                stop 'Particle flew out of the tweezers'
             end if
+            if(photodetector) then
+               call compute_single_mueller(detect_theta, 0d0, S)
+               matrices%single_mueller = S
+            end if
          end if
 
          call update_values()
@@ -98,7 +103,11 @@ contains
          end if
          
          if(int_mode < 2) call check_stability(i)
+
+! If logging of everything is enabled, then proceed.
          if(shortlog == 0) then
+! If simulation has less than 100 000 steps, then write every update to file.
+! Otherwise, max. 100 000 steps are logged (intervalled through the whole run).
             if(writeless==0)then
                call append_log(i)
             else

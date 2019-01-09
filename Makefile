@@ -45,8 +45,8 @@ ${BINDIR}/T_matrix.o \
 ${BINDIR}/forces.o \
 ${BINDIR}/bessel.o \
 ${BINDIR}/shapebeam.o \
-${BINDIR}/integrator.o \
 ${BINDIR}/mueller.o \
+${BINDIR}/integrator.o \
 ${BINDIR}/postprocessing.o \
 ${BINDIR}/main.o
 

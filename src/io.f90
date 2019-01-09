@@ -240,6 +240,9 @@ contains
 ! Parameters
             case ('beam_shape')
                read (buffer, *, iostat=ios) beam_shape
+            case ('theta')
+               read (buffer, *, iostat=ios) detect_theta
+               detect_theta = detect_theta*pi/180d0
             case ('pl')
                read (buffer, *, iostat=ios) p, l
             case ('int_mode')
@@ -257,6 +260,9 @@ contains
             case ('autoterminate')
                read (buffer, *, iostat=ios) tempint
                if(tempint == 1) autoterminate = .TRUE.
+            case ('photodetector')
+               read (buffer, *, iostat=ios) tempint
+               if(tempint == 1) photodetector = .TRUE.
 ! Matrices
             case ('E')
                read (buffer, *, iostat=ios) matrices%E
@@ -670,6 +676,18 @@ contains
 
       close (1)
 
+      if(photodetector) then
+         if(it_max>100000) then
+            allocate(matrices%photodetector(100000,18))
+         else
+            allocate(matrices%photodetector(it_max,18))
+         end if
+         fname = 'out/detector' // trim(matrices%out)
+         open (unit=1, file=fname, ACTION="write", STATUS="replace")
+          write (1, '(A)') ' Log: n | t | phi, theta, mueller(1:16)'
+         close (1)
+      end if
+
    end subroutine start_log
 
 !****************************************************************************80
@@ -693,6 +711,7 @@ contains
       matrices%F_buf(:, ind) = matrices%F
       matrices%t_buf(:, ind) = matrices%tt
       matrices%R_buf(:, :, ind) = matrices%R
+      if(photodetector) matrices%mueller_buf(:, ind) = matrices%single_mueller
 
       if (md == 0 .OR. n == it_stop) then
          open (unit=1, file=fname, action="write", position="append", STATUS="old")
@@ -711,7 +730,26 @@ contains
             end do
          end if
          close (1)
-         matrices%buffer = n
+         if(.not. photodetector) matrices%buffer = n
+      end if
+
+      if(photodetector) then
+         fname = 'out/detector' // trim(matrices%out)
+         fmt = '(I0, A, ES17.8E3, A, 18(3ES17.8E3))'
+         if (md == 0 .OR. n == it_stop) then
+            open (unit=1, file=fname, action="write", position="append", STATUS="old")
+            if (n > it_stop - it_log .OR. it_log == 0) then
+               do i = 1, 1000
+                  if (i + matrices%buffer <= it_stop) then
+                     write (1, fmt) i + matrices%buffer,  ' |',&
+                        matrices%t_buf(:, i),  ' |',&
+                        matrices%mueller_buf(:, i)
+                  end if
+               end do
+            end if
+            close (1)
+            matrices%buffer = n
+         end if
       end if
 
    end subroutine append_log
