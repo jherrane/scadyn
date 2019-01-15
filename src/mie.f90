@@ -510,7 +510,7 @@ contains
       allocate (S_out(N_phi*N_theta, 18))
       NN = N_phi*N_theta
 
-      las = 0
+      las = 1
       do i1 = 1, N_phi
          do i2 = 1, N_theta
 

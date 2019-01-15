@@ -55,7 +55,6 @@ contains
       real(dp), dimension(18) :: S
       complex(dp), dimension(:), allocatable :: p, q, p90, q90
 
-
 ! Choose wavelength
       ii = matrices%whichbar
       if (ii == 0) ii = 1
