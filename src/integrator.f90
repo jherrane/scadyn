@@ -656,6 +656,7 @@ contains
       real(dp), dimension(3) :: F
       real(dp) :: Fnorm, Fg
       logical :: tested_gravity
+      character(len=120) :: fname, fmt
 
       tested_gravity = .FALSE.
 
@@ -684,6 +685,16 @@ contains
             tested_gravity = .TRUE.
          end if
       end do
+
+      if(photodetector) then
+         call compute_single_mueller(detect_theta, 0d0, matrices%single_mueller)
+         fname = 'out/intensity' // trim(matrices%out)
+         fmt = '(4(ES17.8E3))'
+         open (unit=1, file=fname, action="write", position="append", STATUS="old")
+         write (1, fmt) detect_theta, beam_w0, 2d0*pi/mesh%ki(1), matrices%single_mueller(3)
+         close (1)
+      end if 
+
       matrices%x_CM = F
 
    end subroutine ot_calibrate

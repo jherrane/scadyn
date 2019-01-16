@@ -684,7 +684,7 @@ contains
          end if
          fname = 'out/intensity' // trim(matrices%out)
          open (unit=1, file=fname, ACTION="write", STATUS="replace")
-          write (1, '(A)') ' Log: n | t | phi, theta, S11'
+          write (1, '(A)') ' Log: n | t | S11'
          close (1)
       end if
 
@@ -735,7 +735,7 @@ contains
 
       if(photodetector) then
          fname = 'out/intensity' // trim(matrices%out)
-         fmt = '(I0, A, ES17.8E3, A, 18(3ES17.8E3))'
+         fmt = '(I0, A, ES17.8E3, A, ES17.8E3)'
          if (md == 0 .OR. n == it_stop) then
             open (unit=1, file=fname, action="write", position="append", STATUS="old")
             if (n > it_stop - it_log .OR. it_log == 0) then
@@ -743,7 +743,7 @@ contains
                   if (i + matrices%buffer <= it_stop) then
                      write (1, fmt) i + matrices%buffer,  ' |',&
                         matrices%t_buf(:, i),  ' |',&
-                        matrices%mueller_buf(1:3, i)
+                        matrices%mueller_buf(3, i)
                   end if
                end do
             end if
