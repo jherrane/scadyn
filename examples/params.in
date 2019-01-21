@@ -37,7 +37,7 @@ int_mode 0              # 0 = full scattering dynamics integration,
                         # 2 = explicit integration only (optical tweezers etc.)
 
 Tmat 1                  # 1 = file is usable / 0 = force T-matrix calculation
-polarization 2          # 1 = lin / 2 = un*
+polarization 2          # 1 = lin / 2 = un* / 3 = circ
 bars 10                 # Number of wavelengths in range lmb1-lmb2 nm
 lambda1 200
 lambda2 2000
