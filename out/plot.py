@@ -96,9 +96,9 @@ if __name__ == "__main__":
    inputf = inputf.replace('|','')
    lines = np.loadtxt(StringIO(inputf), skiprows=skip)
    if(last!=0):
-      lines = lines[0:last,:]
+      lines = lines[last:-1,:]
    if(first!=0):
-      lines = lines[first:-1,:]
+      lines = lines[0:first,:]
       
    magtol = 1e-3
 
