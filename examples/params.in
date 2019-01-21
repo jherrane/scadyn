@@ -29,7 +29,7 @@ waves bnd              # Wavelength band options lin, inv, log, bnd*, sil,
                         # isrf
 mueller_mode none       # Mueller matrix type, none*, ave, ori, perf_ori
 
-test_forces 3           # 0 = integrate, 1 = test methods, 2 = calc Qt, 
+test_forces 1           # 0 = integrate, 1 = test methods, 2 = calc Qt, 
                         # 3 = write fields to file, 4 = trap efficiencies
 
 int_mode 0              # 0 = full scattering dynamics integration,
