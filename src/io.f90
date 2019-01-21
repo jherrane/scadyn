@@ -396,7 +396,7 @@ contains
       do while (.true.)
          read (11, *, iostat=ios) ! ios should have been declared as an integer
          if (ios > 0) then
-            stop'problem somewhere (Called from io:get_last_line_no)'
+            stop 'problem somewhere (Called from io:get_last_line_no)'
          else if (ios < 0) then ! end of file is reached
             exit
          else
