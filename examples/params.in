@@ -7,7 +7,7 @@ a 2d-7                  # Equivalent radius
 rho 3d3                 # Density
 drag 1                  # Mesh "drag coefficient", for sphere = 1
 
-rho_med 1d-4             # Density of medium
+rho_med 1d-4            # Density of medium
 mu 1d-5                 # Dynamic viscosity of medium (air: 1d-3, water: 1d-5 )
 
 T 5800                  # Black body temperature (K) of the incident radiation
@@ -53,6 +53,10 @@ tol_m 3d-3              # Tolerance to when state is declared aligned
 
 dt 1d0
 rot_max 1d-2
+
+photodetector 0         # Measure time dependent scattered intensity at 
+                        # scattering angle theta
+theta 30d0              # Scattering angle at which intensity is collected (deg)
 
 autoterminate 0         # Terminate integration if particle falls from tweezers
 shortlog 0              # Use minimal logging (in alignment calculations)= no
