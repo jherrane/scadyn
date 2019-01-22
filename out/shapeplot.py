@@ -4,8 +4,7 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import matplotlib.pyplot as plt
 from numpy.linalg import norm
 import numpy as np
-from matplotlib import rc
-from matplotlib import rcParams
+from matplotlib import rc, rcParams
 rcParams.update({'figure.autolayout': True})
             
 def read_mesh(meshname):
@@ -23,10 +22,7 @@ def read_mesh(meshname):
    return coord,etopol,faces
  
 if __name__ == "__main__":
-   # Setup ------------------------------------------------------------------ #
-   meshname = "gsph1.h5"
-   a_rad = 2.e-7
-   rho = 3000
+   meshname = "shape.h5"
    colors = ['r','k','b']
 
    # Read vertices (coord) and face data (etopol) from mesh hdf5 file
@@ -39,7 +35,6 @@ if __name__ == "__main__":
    plt.rc('text', usetex=True)
    plt.rc('font', family='serif')
    font = {'weight' : 'bold', 'size' : 48}
-   
    mpl.rc('font',**font)
    
    # Set nice axis limits
@@ -48,7 +43,6 @@ if __name__ == "__main__":
    ax.set_xlim(-mx, mx)
    ax.set_ylim(-mx, mx)
    ax.set_zlim(-mx, mx)
-   # plt.title('t = '+str(int(t[i][0]))+' s')
 
    points = coord
    
@@ -62,5 +56,5 @@ if __name__ == "__main__":
    plt.setp( ax.get_xticklabels(), visible=False)
    plt.setp( ax.get_yticklabels(), visible=False)
    plt.setp( ax.get_zticklabels(), visible=False)
-#   plt.show()
+
    plt.savefig('shape')
