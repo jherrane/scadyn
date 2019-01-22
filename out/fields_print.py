@@ -1,12 +1,8 @@
-import h5py
+import h5py, numpy as np
 import matplotlib as mpl
-import matplotlib.colors as col
+from matplotlib import colors as col, pyplot as plt, rc, rcParams
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-import matplotlib.pyplot as plt
 from numpy.linalg import norm
-import numpy as np
-from matplotlib import rc
-from matplotlib import rcParams
 rcParams.update({'figure.autolayout': True})
             
 def make_segmented_cmap(): 
