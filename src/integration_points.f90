@@ -1,7 +1,7 @@
 !************************************************************************
 ! Gauss-Legendre integration points and weights for the reference triangle
 ! and tetrahedron. Orders 1, 3, 5 available
-! Copyright (c) 2018 Johannes and University of Helsinki
+! Copyright (c) 2018 Johannes Markkanen and University of Helsinki
 ! All rights reserved.
 ! The MIT License is applied to this software, see LICENSE
 module integration_points

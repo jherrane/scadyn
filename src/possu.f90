@@ -1,5 +1,5 @@
 module possu
-! Copyright (c) 2018 Johannes and University of Helsinki
+! Copyright (c) 2018 Johannes Markkanen and University of Helsinki
 ! All rights reserved.
 ! The MIT License is applied to this software, see LICENSE
    use common
