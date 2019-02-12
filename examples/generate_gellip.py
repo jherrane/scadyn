@@ -2,10 +2,13 @@ import numpy as np, matplotlib as mpl
 from matplotlib import rc, rcParams, pyplot as plt
 from mpl_toolkits import mplot3d
 from scipy.special import spherical_in, factorial, lpmn
-import sys, pymesh
+import sys, pymesh, getopt
 from numpy.random import normal, seed
 from numpy import linalg as la
 import h5py
+
+drawAndSaveHDF5 = True
+meshname = "mesh"
 
 sigma = 0.125  # Standard deviation
 ell   = 0.35   # Correlation length
@@ -84,14 +87,7 @@ def deform_mesh(mesh):
          
    return X
 
-if __name__ == "__main__":
-   seed(gid)
-   ellipsoid = genellip()  
-
-   # Discrete triangle representation for a sample G-sphere.
-   node = deform_mesh(ellipsoid)
-   gellip = pymesh.form_mesh(node,ellipsoid.elements)
-   
+def draw_mesh(mesh):
    fig = plt.figure(figsize=(6, 6),frameon=False)
    ax = mplot3d.Axes3D(fig)
    
@@ -109,7 +105,7 @@ if __name__ == "__main__":
    plt.setp( ax.get_yticklabels(), visible=False)
    plt.setp( ax.get_zticklabels(), visible=False)
 
-   plt.savefig("mesh")
+   plt.savefig(meshname)
    
    # Generate the tetrahedral 3d mesh for the particle. Note that optimal 
    # tet_volume and mesh refinement are highly situational, hard to automatize!
@@ -124,7 +120,7 @@ if __name__ == "__main__":
    param_r = eps_r*np.ones(tetramesh.voxels.shape[0])
    param_i = eps_i*np.ones(tetramesh.voxels.shape[0])
    
-   with h5py.File("tetramesh.h5","w") as f:
+   with h5py.File(meshname+".h5","w") as f:
       dset1 = f.create_dataset("coord", tetramesh.vertices.shape, dtype='double' )
       dset1[...] = tetramesh.vertices
       dset2 = f.create_dataset("etopol", tetramesh.voxels.shape, dtype='int32')
@@ -133,5 +129,51 @@ if __name__ == "__main__":
       dset3[...] = param_r
       dset4 = f.create_dataset("param_i", param_i.shape, dtype='double')
       dset4[...] = param_i
+
+def args(argv):
+   drawAndSaveHDF5 = True
+   meshname = "mesh"
+   gid   = 1      # G-ellipsoid id
+   gotGid = False
+   try:
+      opts, args = getopt.getopt(argv,"i:o:f:")
+   except getopt.GetoptError:
+      print('generate_gellip.py -i <G-ID> -o <meshname> -f <drawAndSaveHDF5>')
+      sys.exit(2)
+   for opt, arg in opts:
+      if opt in ('-i'):
+         try:
+            gid = int(arg)
+            gotGid = True
+         except ValueError:
+            print('Argument of -i is an integer, so try again!')
+            sys.exit(2)
+      if opt in ('-o'):
+         meshname = arg
+      if opt in ('-f'):
+         if arg not in ('f', 't'):
+            print('Argument of -f is boolean (t/f), so try again!')
+            sys.exit(2)
+         if arg in ('f') :
+            drawAndSaveHDF5 = False
+         elif arg in ('t'):
+            drawAndSaveHDF5 = True
+   if gotGid:
+      meshname = meshname + str(gid)
+   return meshname, drawAndSaveHDF5, gid
+
+if __name__ == "__main__":
+   meshname, drawAndSaveHDF5, gid = args(sys.argv[1:])
+   seed(gid)
+   ellipsoid = genellip()  
+
+   # Discrete triangle representation for a sample G-sphere.
+   node = deform_mesh(ellipsoid)
+   gellip = pymesh.form_mesh(node,ellipsoid.elements)
+   
+   if(drawAndSaveHDF5):
+      draw_mesh(gellip)
+   else:
+      pymesh.save_mesh(meshname+".ply", gellip)
 
       
