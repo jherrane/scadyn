@@ -18,13 +18,9 @@
 */out/**
 /out/
 scadyn
-*/bin/**
-/bin/
+*/build/**
+/build/
 */Geometries/**
 /Geometries/
 */T/**
 /T/
-*.pyc*
-*.h5
-*.in
-
