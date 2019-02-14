@@ -1,4 +1,4 @@
-import numpy as np, sys, pymesh, h5py, matplotlib as mpl
+import numpy as np, sys, pymesh, h5py, matplotlib as mpl, getopt
 from scipy.special import spherical_in, factorial, lpmn
 from numpy.linalg import norm as vlen
 from numpy.random import seed, normal
@@ -6,15 +6,14 @@ from matplotlib import rc, rcParams, pyplot as plt
 from mpl_toolkits import mplot3d
 
 # Parameter declarations
-cflg = 1       # Correlation function C_1 = power law, C_2 = Gauss
-sigma = 0.285    # Relative std of radial distance
-nu = 4.5       # Power law index for C_1 correlation
+cflg = 1        # Correlation function C_1 = power law, C_2 = Gauss
+sigma = 0.285   # Relative std of radial distance
+nu = 4.5        # Power law index for C_1 correlation
 gamma = 35.0    # Input angle for C_2 correlation
-lmin = 2       # Minimum degree in C_1, C_2
+lmin = 2        # Minimum degree in C_1, C_2
 lmax = 10
-gid = 1        # G-sphere id
 
-eps_r = 1.95   # Real and imaginary parts of permittivity
+eps_r = 1.95    # Real and imaginary parts of permittivity
 eps_i = 0.786  
 
 # For vectorizing we want to, well, use vectors. Here we handle indexing between
@@ -96,7 +95,78 @@ def r_gsphere(a_lm, b_lm, z, phi, beta):
          s = s + legp[mm,ll]*(a_lm[ii]*CPHI[mm]+b_lm[ii]*SPHI[mm])
    return np.exp(s-0.5*beta**2)
 
+def draw_mesh(meshname,mesh):
+   fig = plt.figure(figsize=(6, 6),frameon=False)
+   ax = mplot3d.Axes3D(fig)
+   
+   # Collect face data as vectors for plotting
+   facevectors = np.zeros((mesh.faces.shape[0],3,3))
+   for i, face in enumerate(mesh.faces):
+      for j in range(3):
+         facevectors[i][j] = mesh.vertices[face[j],:]
+   ax.add_collection3d(mplot3d.art3d.Poly3DCollection(facevectors, facecolor=[0.5,0.5,0.5], lw=0.5,edgecolor=[0,0,0], alpha=0.66))
+   
+   scale = mesh.vertices.flatten(-1)
+   ax.auto_scale_xyz(scale, scale, scale)
+   
+   plt.setp( ax.get_xticklabels(), visible=False)
+   plt.setp( ax.get_yticklabels(), visible=False)
+   plt.setp( ax.get_zticklabels(), visible=False)
+
+   plt.savefig(meshname)
+   
+   # Generate the tetrahedral 3d mesh for the particle. Note that optimal 
+   # refinement can be hard to automatize with tetgen, so quartet is used!
+   tetramesh = pymesh.tetrahedralize(mesh,0.15,engine='quartet')   
+      
+   param_r = eps_r*np.ones(tetramesh.voxels.shape[0])
+   param_i = eps_i*np.ones(tetramesh.voxels.shape[0])
+   
+   with h5py.File(meshname+".h5","w") as f:
+      dset1 = f.create_dataset("coord", tetramesh.vertices.shape, dtype='double' )
+      dset1[...] = tetramesh.vertices
+      dset2 = f.create_dataset("etopol", tetramesh.voxels.shape, dtype='int32')
+      dset2[...] = tetramesh.voxels+1
+      dset3 = f.create_dataset("param_r", param_r.shape, dtype='double')
+      dset3[...] = param_r
+      dset4 = f.create_dataset("param_i", param_i.shape, dtype='double')
+      dset4[...] = param_i
+
+def args(argv):
+   saveOnlyPly = False
+   meshname = "mesh"
+   gid   = 1      
+   gotGid = False
+   try:
+      opts, args = getopt.getopt(argv,"i:o:f:")
+   except getopt.GetoptError:
+      print('generate_gsphere.py -i <G-ID> -o <meshname> -f <saveOnlyPly>')
+      sys.exit(2)
+   for opt, arg in opts:
+      if opt in ('-i'):
+         try:
+            gid = int(arg)
+            gotGid = True
+         except ValueError:
+            print('Argument of -i is an integer, so try again!')
+            sys.exit(2)
+      if opt in ('-o'):
+         meshname = arg
+      if opt in ('-f'):
+         if arg not in ('f', 't'):
+            print('Argument of -f is boolean (t/f), so try again!')
+            sys.exit(2)
+         if arg in ('f') :
+            saveOnlyPly = False
+         elif arg in ('t'):
+            saveOnlyPly = True
+   if gotGid:
+      meshname = meshname + str(gid)
+   return meshname, saveOnlyPly, gid
+
 if __name__ == "__main__":
+   meshname, saveOnlyPly, gid = args(sys.argv[1:])
+
    gamma = gamma*np.pi/180
    ell = 2.0*np.sin(0.5*gamma)
    beta = np.sqrt(np.log(sigma**2+1.0))
@@ -116,47 +186,8 @@ if __name__ == "__main__":
    new_vertices = deform(sphere, a_lm, b_lm, beta)
    gsphere = pymesh.form_mesh(new_vertices,sphere.elements)
    
-   fig = plt.figure(figsize=(6, 6),frameon=False)
-   ax = mplot3d.Axes3D(fig)
+   if(saveOnlyPly):
+      pymesh.save_mesh(meshname+".ply", gsphere)
+   else:
+      draw_mesh(meshname,gsphere)
    
-   # Collect face data as vectors for plotting
-   facevectors = np.zeros((gsphere.faces.shape[0],3,3))
-   for i, face in enumerate(gsphere.faces):
-      for j in range(3):
-         facevectors[i][j] = gsphere.vertices[face[j],:]
-   ax.add_collection3d(mplot3d.art3d.Poly3DCollection(facevectors, facecolor=[0.5,0.5,0.5], lw=0.5,edgecolor=[0,0,0], alpha=0.66))
-   
-   scale = gsphere.vertices.flatten(-1)
-   ax.auto_scale_xyz(scale, scale, scale)
-   
-   plt.setp( ax.get_xticklabels(), visible=False)
-   plt.setp( ax.get_yticklabels(), visible=False)
-   plt.setp( ax.get_zticklabels(), visible=False)
-
-   plt.savefig("mesh")
-   
-   # Generate the tetrahedral 3d mesh for the particle. Note that optimal 
-   # tet_volume and mesh refinement are highly situational, hard to automatize!
-   tetgen = pymesh.tetgen()
-   tetgen.points = gsphere.vertices
-   tetgen.triangles = gsphere.faces
-   tetgen.max_tet_volume = 0.03
-   tetgen.verbosity = 1
-   tetgen.run()
-   tetramesh = tetgen.mesh
-   
-   param_r = eps_r*np.ones(tetramesh.voxels.shape[0])
-   param_i = eps_i*np.ones(tetramesh.voxels.shape[0])
-   
-   with h5py.File("tetramesh.h5","w") as f:
-      dset1 = f.create_dataset("coord", tetramesh.vertices.shape, dtype='double' )
-      dset1[...] = tetramesh.vertices
-      dset2 = f.create_dataset("etopol", tetramesh.voxels.shape, dtype='int32')
-      dset2[...] = tetramesh.voxels+1
-      dset3 = f.create_dataset("param_r", param_r.shape, dtype='double')
-      dset3[...] = param_r
-      dset4 = f.create_dataset("param_i", param_i.shape, dtype='double')
-      dset4[...] = param_i
-      
-      
-      

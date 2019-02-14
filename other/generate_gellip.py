@@ -82,18 +82,18 @@ def deform_mesh(mesh):
          
    return X
 
-def draw_mesh(mesh):
+def draw_mesh(meshname, mesh):
    fig = plt.figure(figsize=(6, 6),frameon=False)
    ax = mplot3d.Axes3D(fig)
    
    # Collect face data as vectors for plotting
-   facevectors = np.zeros((gellip.faces.shape[0],3,3))
-   for i, face in enumerate(gellip.faces):
+   facevectors = np.zeros((mesh.faces.shape[0],3,3))
+   for i, face in enumerate(mesh.faces):
       for j in range(3):
-         facevectors[i][j] = gellip.vertices[face[j],:]
+         facevectors[i][j] = mesh.vertices[face[j],:]
    ax.add_collection3d(mplot3d.art3d.Poly3DCollection(facevectors, facecolor=[0.5,0.5,0.5], lw=0.5,edgecolor=[0,0,0], alpha=0.66))
    
-   scale = gellip.vertices.flatten(-1)
+   scale = mesh.vertices.flatten(-1)
    ax.auto_scale_xyz(scale, scale, scale)
    
    plt.setp( ax.get_xticklabels(), visible=False)
@@ -103,14 +103,8 @@ def draw_mesh(mesh):
    plt.savefig(meshname)
    
    # Generate the tetrahedral 3d mesh for the particle. Note that optimal 
-   # tet_volume and mesh refinement are highly situational, hard to automatize!
-   tetgen = pymesh.tetgen()
-   tetgen.points = gellip.vertices
-   tetgen.triangles = gellip.faces
-   tetgen.max_tet_volume = 0.03
-   tetgen.verbosity = 1
-   tetgen.run()
-   tetramesh = tetgen.mesh
+   # refinement can be hard to automatize with tetgen, so quartet is used!
+   tetramesh = pymesh.tetrahedralize(mesh,0.15,engine='quartet')     
    
    param_r = eps_r*np.ones(tetramesh.voxels.shape[0])
    param_i = eps_i*np.ones(tetramesh.voxels.shape[0])
@@ -126,14 +120,14 @@ def draw_mesh(mesh):
       dset4[...] = param_i
 
 def args(argv):
-   drawAndSaveHDF5 = True
+   saveOnlyPly = False
    meshname = "mesh"
    gid   = 1      # G-ellipsoid id
    gotGid = False
    try:
       opts, args = getopt.getopt(argv,"i:o:f:")
    except getopt.GetoptError:
-      print('generate_gellip.py -i <G-ID> -o <meshname> -f <drawAndSaveHDF5>')
+      print('generate_gellip.py -i <G-ID> -o <meshname> -f <saveOnlyPly>')
       sys.exit(2)
    for opt, arg in opts:
       if opt in ('-i'):
@@ -150,15 +144,15 @@ def args(argv):
             print('Argument of -f is boolean (t/f), so try again!')
             sys.exit(2)
          if arg in ('f') :
-            drawAndSaveHDF5 = False
+            saveOnlyPly = False
          elif arg in ('t'):
-            drawAndSaveHDF5 = True
+            saveOnlyPly = True
    if gotGid:
       meshname = meshname + str(gid)
-   return meshname, drawAndSaveHDF5, gid
+   return meshname, saveOnlyPly, gid
 
 if __name__ == "__main__":
-   meshname, drawAndSaveHDF5, gid = args(sys.argv[1:])
+   meshname, saveOnlyPly, gid = args(sys.argv[1:])
    seed(gid)
    ellipsoid = genellip()  
 
@@ -166,9 +160,9 @@ if __name__ == "__main__":
    node = deform_mesh(ellipsoid)
    gellip = pymesh.form_mesh(node,ellipsoid.elements)
    
-   if(drawAndSaveHDF5):
-      draw_mesh(gellip)
-   else:
+   if(saveOnlyPly):
       pymesh.save_mesh(meshname+".ply", gellip)
+   else:
+      draw_mesh(meshname, gellip)
 
       
