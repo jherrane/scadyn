@@ -1,14 +1,9 @@
-import numpy as np, matplotlib as mpl
+import numpy as np, matplotlib as mpl, h5py, sys, pymesh, getopt
 from matplotlib import rc, rcParams, pyplot as plt
 from mpl_toolkits import mplot3d
 from scipy.special import spherical_in, factorial, lpmn
-import sys, pymesh, getopt
 from numpy.random import normal, seed
 from numpy import linalg as la
-import h5py
-
-drawAndSaveHDF5 = True
-meshname = "mesh"
 
 sigma = 0.125  # Standard deviation
 ell   = 0.35   # Correlation length
