@@ -1,6 +1,6 @@
 install() {
 	make
-	./scadyn --mesh examples/GRE-1.h5 -T examples/T-GRE-1.h5 --paramsfile examples/params.in
+	./scadyn --mesh other/GRE-1.h5 -T other/T-GRE-1.h5 --paramsfile other/params.in
 }
 
 install

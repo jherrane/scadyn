@@ -10,7 +10,7 @@ LIBS = -lm -L/usr/local/lib -L/usr/lib -L/usr/lib/x86_64-linux-gnu/hdf5/serial -
 
 # Source tree definitions
 VPATH = src
-BINDIR = bin
+BUILDDIR = build
 EXEC = scadyn
 
 .SUFFIXES:
@@ -20,40 +20,40 @@ EXEC = scadyn
 yell = "Starting Make..."
 
 # Includes and flag for putting .mod files to directory bin, home version
-INCS = -I/usr/include -I/usr/local/include/ -I/usr/include/hdf5/serial/ -J${BINDIR}
+INCS = -I/usr/include -I/usr/local/include/ -I/usr/include/hdf5/serial/ -J${BUILDDIR}
 
 # Dependency tree
-OBJECTS = ${BINDIR}/common.o \
-${BINDIR}/sfunctions.o \
-${BINDIR}/h5io.o \
-${BINDIR}/io.o \
-${BINDIR}/integration_points.o \
-${BINDIR}/translations.o \
-${BINDIR}/mie.o \
-${BINDIR}/possu.o \
-${BINDIR}/sparse.o \
-${BINDIR}/singularity_subtraction.o \
-${BINDIR}/singularity_subtraction_N.o \
-${BINDIR}/geometry.o \
-${BINDIR}/sparse_mat.o \
-${BINDIR}/precorrection.o \
-${BINDIR}/projection.o \
-${BINDIR}/build_G.o \
-${BINDIR}/gmres_module.o \
-${BINDIR}/setup.o \
-${BINDIR}/T_matrix.o \
-${BINDIR}/forces.o \
-${BINDIR}/bessel.o \
-${BINDIR}/shapebeam.o \
-${BINDIR}/mueller.o \
-${BINDIR}/integrator.o \
-${BINDIR}/postprocessing.o \
-${BINDIR}/main.o
+OBJECTS = ${BUILDDIR}/common.o \
+${BUILDDIR}/sfunctions.o \
+${BUILDDIR}/h5io.o \
+${BUILDDIR}/io.o \
+${BUILDDIR}/integration_points.o \
+${BUILDDIR}/translations.o \
+${BUILDDIR}/mie.o \
+${BUILDDIR}/possu.o \
+${BUILDDIR}/sparse.o \
+${BUILDDIR}/singularity_subtraction.o \
+${BUILDDIR}/singularity_subtraction_N.o \
+${BUILDDIR}/geometry.o \
+${BUILDDIR}/sparse_mat.o \
+${BUILDDIR}/precorrection.o \
+${BUILDDIR}/projection.o \
+${BUILDDIR}/build_G.o \
+${BUILDDIR}/gmres_module.o \
+${BUILDDIR}/setup.o \
+${BUILDDIR}/T_matrix.o \
+${BUILDDIR}/forces.o \
+${BUILDDIR}/bessel.o \
+${BUILDDIR}/shapebeam.o \
+${BUILDDIR}/mueller.o \
+${BUILDDIR}/integrator.o \
+${BUILDDIR}/postprocessing.o \
+${BUILDDIR}/main.o
 
 ###############################################################################
 # Taito version for everything
 FCTAITO = mpif90
-INCSTAITO = -I/usr/include -I/usr/local/include/ -I${FFTW_ROOT}/include/ -I${H5ROOT}/include/ -m64 -I$(MKLROOT)/include/ -J${BINDIR}
+INCSTAITO = -I/usr/include -I/usr/local/include/ -I${FFTW_ROOT}/include/ -I${H5ROOT}/include/ -m64 -I$(MKLROOT)/include/ -J${BUILDDIR}
 LIBSTAITO = -L${FFTW_ROOT}/lib -lfftw3 -lfftw3_mpi -L${H5ROOT}/lib -lhdf5_fortran -lhdf5 -Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_gf_lp64.a $(MKLROOT)/lib/intel64/libmkl_core.a $(MKLROOT)/lib/intel64/libmkl_sequential.a -Wl,--end-group -lpthread -lm -ldl
 
 ifeq ($(HOSTNAME),taito)
@@ -73,7 +73,7 @@ all: pre-build main-build post-build
 pre-build:
 	@echo $(yell)
 
-main-build: ${EXEC} | $(BINDIR)
+main-build: ${EXEC} | $(BUILDDIR)
 
 post-build:
 	@echo "Target $(EXEC) compiled successfully"
@@ -84,11 +84,11 @@ debug: all
 debugall: FCFLAGS = $(DEBUG) $(DEBUGALL)
 debugall: all
 
-$(BINDIR):
-	@echo "Binary files are put into the directory $(BINDIR)"
-	@mkdir -p ${BINDIR}
+$(BUILDDIR):
+	@echo "Compiler files are put into the directory $(BUILDDIR)"
+	@mkdir -p ${BUILDDIR}
 
-${BINDIR}/%.o: %.f90 |$(BINDIR)
+${BUILDDIR}/%.o: %.f90 |$(BUILDDIR)
 	@echo "Compiling $^"
 	@${FC} ${FCFLAGS} $(INCS) -c $^ -o $@ 
 
@@ -99,14 +99,14 @@ ${EXEC}: ${OBJECTS}
 # Clean only objects
 clean:
 	@echo "Deleted all .o files"
-	@rm -rf $(BINDIR)/*.o
+	@rm -rf $(BUILDDIR)/*.o
 	@rm -rf *.mod
 	@rm -f *~
 
 # Full clean
 veryclean: clean
-	@echo "Deleted all .mod files"
+	@echo "Deleted all .o and .mod files"
 	@echo "Deleted executable and directory bin"
 	@rm -f $(EXEC)
-	@rm -rf $(BINDIR)
+	@rm -rf $(BUILDDIR)
 
