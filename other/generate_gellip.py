@@ -82,7 +82,7 @@ def deform_mesh(mesh):
          
    return X
 
-def draw_mesh(meshname, mesh):
+def draw_mesh(meshname, mesh, refinement):
    fig = plt.figure(figsize=(6, 6),frameon=False)
    ax = mplot3d.Axes3D(fig)
    
@@ -104,7 +104,8 @@ def draw_mesh(meshname, mesh):
    
    # Generate the tetrahedral 3d mesh for the particle. Note that optimal 
    # refinement can be hard to automatize with tetgen, so quartet is used!
-   tetramesh = pymesh.tetrahedralize(mesh,0.15,engine='quartet')     
+   tetramesh = pymesh.tetrahedralize(mesh,refinement,engine='quartet')     
+   print('Number of tetras: ' + str(tetramesh.num_elements))
    
    param_r = eps_r*np.ones(tetramesh.voxels.shape[0])
    param_i = eps_i*np.ones(tetramesh.voxels.shape[0])
@@ -124,10 +125,11 @@ def args(argv):
    meshname = "mesh"
    gid   = 1      # G-ellipsoid id
    gotGid = False
+   refinement = 0.15
    try:
-      opts, args = getopt.getopt(argv,"i:o:f:")
+      opts, args = getopt.getopt(argv,"i:o:f:r:")
    except getopt.GetoptError:
-      print('generate_gellip.py -i <G-ID> -o <meshname> -f <saveOnlyPly>')
+      print('generate_gellip.py -i <G-ID> -o <meshname> -f <saveOnlyPly> -r <refinement_level>')
       sys.exit(2)
    for opt, arg in opts:
       if opt in ('-i'):
@@ -136,6 +138,12 @@ def args(argv):
             gotGid = True
          except ValueError:
             print('Argument of -i is an integer, so try again!')
+            sys.exit(2)
+      if opt in ('-r'):
+         try:
+            refinement = float(arg)
+         except ValueError:
+            print('Argument of -r is a float, so try again!')
             sys.exit(2)
       if opt in ('-o'):
          meshname = arg
@@ -149,10 +157,10 @@ def args(argv):
             saveOnlyPly = True
    if gotGid:
       meshname = meshname + str(gid)
-   return meshname, saveOnlyPly, gid
+   return meshname, saveOnlyPly, gid, refinement
 
 if __name__ == "__main__":
-   meshname, saveOnlyPly, gid = args(sys.argv[1:])
+   meshname, saveOnlyPly, gid, refinement = args(sys.argv[1:])
    seed(gid)
    ellipsoid = genellip()  
 
@@ -163,6 +171,6 @@ if __name__ == "__main__":
    if(saveOnlyPly):
       pymesh.save_mesh(meshname+".ply", gellip)
    else:
-      draw_mesh(meshname, gellip)
+      draw_mesh(meshname, gellip, refinement)
 
       
