@@ -8,6 +8,7 @@ rho 3d3                 # Density
 drag 1                  # Mesh "drag coefficient", for sphere = 1
 
 rho_med 1d-4            # Density of medium
+ref_med 1.0             # Refractive index of the medium (default: 1.0)
 mu 1d-5                 # Dynamic viscosity of medium (air: 1d-5, water: 1d-3 )
 
 T 5800                  # Black body temperature (K) of the incident radiation
@@ -19,9 +20,6 @@ B 1d-9                  # External magnetic field (lies in x,z-plane) magnitude
 B_psi 0                 # Angle between B and k (in degrees)
 Kw 1d-13                # Imag part of susceptibility over angular velocity
 
-refr 0.0                # Refractive index (set to zero to ignore)
-refi 0.0
-ref_med 1.0             # Refractive index of the medium (default: 1.0)
 E 1d0                   # Amplitude of E at its maximum
 
 #####  Run parameters   #######################################################

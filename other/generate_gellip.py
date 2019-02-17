@@ -13,8 +13,11 @@ c     = 0.50   # Ellipsoid semiaxis c
 ref   = 3      # Mesh refinement level
 gid   = 1      # G-ellipsoid id
 
-eps_r = 1.95   # Real and imaginary parts of permittivity
-eps_i = 0.786  
+
+ref_ind = 1.52 + 0.1j
+
+eps_r = np.real(ref_ind**2)
+eps_i = np.imag(ref_ind**2)
 
 h     = a*(c/a)**2
 sigma = sigma/h
@@ -82,26 +85,22 @@ def deform_mesh(mesh):
          
    return X
 
-def draw_mesh(meshname, mesh, refinement):
-   fig = plt.figure(figsize=(6, 6),frameon=False)
-   ax = mplot3d.Axes3D(fig)
-   
-   # Collect face data as vectors for plotting
-   facevectors = np.zeros((mesh.faces.shape[0],3,3))
-   for i, face in enumerate(mesh.faces):
-      for j in range(3):
-         facevectors[i][j] = mesh.vertices[face[j],:]
-   ax.add_collection3d(mplot3d.art3d.Poly3DCollection(facevectors, facecolor=[0.5,0.5,0.5], lw=0.5,edgecolor=[0,0,0], alpha=0.66))
-   
-   scale = mesh.vertices.flatten(-1)
-   ax.auto_scale_xyz(scale, scale, scale)
-   
-   plt.setp( ax.get_xticklabels(), visible=False)
-   plt.setp( ax.get_yticklabels(), visible=False)
-   plt.setp( ax.get_zticklabels(), visible=False)
+def boundary_faces(T):
+   T1 = np.array([T[:,0], T[:,1],T[:,2]]) 
+   T2 = np.array([T[:,0], T[:,1],T[:,3]])
+   T3 = np.array([T[:,0], T[:,2],T[:,3]]) 
+   T4 = np.array([T[:,1], T[:,2],T[:,3]])
 
-   plt.savefig(meshname)
+   T  = np.concatenate((T1,T2,T3,T4),axis=1)
+   T = np.sort(T,axis=0)
+
+   unique_cols, inverse = np.unique(T,axis=1, return_inverse=True)
+   counts = np.bincount(inverse)==1
+   F = unique_cols[:,counts] 
    
+   return F.transpose()
+
+def draw_mesh(meshname, mesh, refinement):
    # Generate the tetrahedral 3d mesh for the particle. Note that optimal 
    # refinement can be hard to automatize with tetgen, so quartet is used!
    tetramesh = pymesh.tetrahedralize(mesh,refinement,engine='quartet')     
@@ -119,6 +118,27 @@ def draw_mesh(meshname, mesh, refinement):
       dset3[...] = param_r
       dset4 = f.create_dataset("param_i", param_i.shape, dtype='double')
       dset4[...] = param_i
+   fig = plt.figure(figsize=(6, 6),frameon=False)
+   ax = mplot3d.Axes3D(fig)
+   
+   # Collect face data as vectors for plotting
+   F = boundary_faces(tetramesh.elements)
+   
+   facevectors = np.zeros((F.shape[0],3,3))
+   for i, face in enumerate(F):
+      for j in range(3):
+         facevectors[i][j] = tetramesh.vertices[face[j],:]
+   ax.add_collection3d(mplot3d.art3d.Poly3DCollection(facevectors, facecolor=[0.5,0.5,0.5], lw=0.5,edgecolor=[0,0,0], alpha=0.66))
+   
+   scale = tetramesh.vertices.flatten(-1)
+   ax.auto_scale_xyz(scale, scale, scale)
+   
+   plt.setp( ax.get_xticklabels(), visible=False)
+   plt.setp( ax.get_yticklabels(), visible=False)
+   plt.setp( ax.get_zticklabels(), visible=False)
+
+   plt.savefig(meshname)
+   return tetramesh
 
 def args(argv):
    saveOnlyPly = False
@@ -171,6 +191,7 @@ if __name__ == "__main__":
    if(saveOnlyPly):
       pymesh.save_mesh(meshname+".ply", gellip)
    else:
-      draw_mesh(meshname, gellip, refinement)
+      tetramesh = draw_mesh(meshname, gellip, refinement)
+#      pymesh.save_mesh(meshname+".mesh",tetramesh)
 
       

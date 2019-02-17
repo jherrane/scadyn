@@ -13,8 +13,10 @@ gamma = 35.0    # Input angle for C_2 correlation
 lmin = 2        # Minimum degree in C_1, C_2
 lmax = 10
 
-eps_r = 1.95    # Real and imaginary parts of permittivity
-eps_i = 0.786  
+ref_ind = 1.686 + 0.0312j
+
+eps_r = np.real(ref_ind**2)
+eps_i = np.imag(ref_ind**2)
 
 # For vectorizing we want to, well, use vectors. Here we handle indexing between
 # arrays and vectors (both ways).
@@ -95,26 +97,22 @@ def r_gsphere(a_lm, b_lm, z, phi, beta):
          s = s + legp[mm,ll]*(a_lm[ii]*CPHI[mm]+b_lm[ii]*SPHI[mm])
    return np.exp(s-0.5*beta**2)
 
-def draw_mesh(meshname, mesh, refinement):
-   fig = plt.figure(figsize=(6, 6),frameon=False)
-   ax = mplot3d.Axes3D(fig)
-   
-   # Collect face data as vectors for plotting
-   facevectors = np.zeros((mesh.faces.shape[0],3,3))
-   for i, face in enumerate(mesh.faces):
-      for j in range(3):
-         facevectors[i][j] = mesh.vertices[face[j],:]
-   ax.add_collection3d(mplot3d.art3d.Poly3DCollection(facevectors, facecolor=[0.5,0.5,0.5], lw=0.5,edgecolor=[0,0,0], alpha=0.66))
-   
-   scale = mesh.vertices.flatten(-1)
-   ax.auto_scale_xyz(scale, scale, scale)
-   
-   plt.setp( ax.get_xticklabels(), visible=False)
-   plt.setp( ax.get_yticklabels(), visible=False)
-   plt.setp( ax.get_zticklabels(), visible=False)
+def boundary_faces(T):
+   T1 = np.array([T[:,0], T[:,1],T[:,2]]) 
+   T2 = np.array([T[:,0], T[:,1],T[:,3]])
+   T3 = np.array([T[:,0], T[:,2],T[:,3]]) 
+   T4 = np.array([T[:,1], T[:,2],T[:,3]])
 
-   plt.savefig(meshname)
+   T  = np.concatenate((T1,T2,T3,T4),axis=1)
+   T = np.sort(T,axis=0)
+
+   unique_cols, inverse = np.unique(T,axis=1, return_inverse=True)
+   counts = np.bincount(inverse)==1
+   F = unique_cols[:,counts] 
    
+   return F.transpose()
+
+def draw_mesh(meshname, mesh, refinement):
    # Generate the tetrahedral 3d mesh for the particle. Note that optimal 
    # refinement can be hard to automatize with tetgen, so quartet is used!
    tetramesh = pymesh.tetrahedralize(mesh,refinement,engine='quartet')     
@@ -132,7 +130,28 @@ def draw_mesh(meshname, mesh, refinement):
       dset3[...] = param_r
       dset4 = f.create_dataset("param_i", param_i.shape, dtype='double')
       dset4[...] = param_i
+   fig = plt.figure(figsize=(6, 6),frameon=False)
+   ax = mplot3d.Axes3D(fig)
+   
+   # Collect face data as vectors for plotting
+   F = boundary_faces(tetramesh.elements)
+   
+   facevectors = np.zeros((F.shape[0],3,3))
+   for i, face in enumerate(F):
+      for j in range(3):
+         facevectors[i][j] = tetramesh.vertices[face[j],:]
+   ax.add_collection3d(mplot3d.art3d.Poly3DCollection(facevectors, facecolor=[0.5,0.5,0.5], lw=0.5,edgecolor=[0,0,0], alpha=0.66))
+   
+   scale = tetramesh.vertices.flatten(-1)
+   ax.auto_scale_xyz(scale, scale, scale)
+   
+   plt.setp( ax.get_xticklabels(), visible=False)
+   plt.setp( ax.get_yticklabels(), visible=False)
+   plt.setp( ax.get_zticklabels(), visible=False)
 
+   plt.savefig(meshname)
+   return tetramesh
+   
 def args(argv):
    saveOnlyPly = False
    meshname = "mesh"
@@ -197,5 +216,5 @@ if __name__ == "__main__":
    if(saveOnlyPly):
       pymesh.save_mesh(meshname+".ply", gsphere)
    else:
-      draw_mesh(meshname, gsphere, refinement)
-   
+      tetramesh = draw_mesh(meshname, gsphere, refinement)
+#      pymesh.save_mesh(meshname+".mesh",tetramesh)

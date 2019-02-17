@@ -208,7 +208,7 @@ contains
    subroutine read_params()
 ! Input related variables
       character(len=150) :: buffer, label
-      real(dp) :: temp, tempii, temp_med
+      real(dp) :: temp_med
       integer :: pos, tempint
       integer, parameter :: fh = 15
       integer :: ios = 0
@@ -274,11 +274,6 @@ contains
                read (buffer, *, iostat=ios) R0
             case ('dt')
                read (buffer, *, iostat=ios) matrices%dt0
-            case ('refr')
-               read (buffer, *, iostat=ios) temp
-               if (temp > 1d-7) matrices%refr = temp
-            case ('refi')
-               read (buffer, *, iostat=ios) tempii
             case ('ref_med')
                read (buffer, *, iostat=ios) temp_med
                if(temp_med>1.0d0) matrices%ref_med = temp_med
@@ -373,7 +368,6 @@ contains
       matrices%x_CM = matrices%x_CM*matrices%lambda2
       epsilon = epsilon*matrices%ref_med**2
 
-      if (temp > 1d-7) matrices%refi = tempii
       it_stop = it_max
       if(it_log > it_max) it_log = 0
       matrices%B = matrices%B_len*(matmul(R_aa([0d0, 1d0, 0d0], matrices%B_psi), [0d0, 0d0, 1d0]))
