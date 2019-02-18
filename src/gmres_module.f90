@@ -73,43 +73,43 @@ contains
 
       call IFFT3d_2(SS)
 
-      Y_xx = sparse_eps_matmul(mesh%param, matrices%S, matrices%indS, arr2vec(mesh, SS), Nbasis)
+      Y_xx = sparse_eps_matmul(mesh%eps, matrices%S, matrices%indS, arr2vec(mesh, SS), Nbasis)
 
       call vec2arr2(SS, mesh, sparse_T_matmul(matrices%S, matrices%indS, X_xyz(:, 2), mm))
       call FFT3d_2(SS)
       SS = matrices%Fg*SS
       call IFFT3d_2(SS)
-      Y_yy = sparse_eps_matmul(mesh%param, matrices%S, matrices%indS, arr2vec(mesh, SS), Nbasis)
+      Y_yy = sparse_eps_matmul(mesh%eps, matrices%S, matrices%indS, arr2vec(mesh, SS), Nbasis)
 
       call vec2arr2(SS, mesh, sparse_T_matmul(matrices%S, matrices%indS, X_xyz(:, 3), mm))
       call FFT3d_2(SS)
       SS = matrices%Fg*SS
       call IFFT3d_2(SS)
-      Y_zz = sparse_eps_matmul(mesh%param, matrices%S, matrices%indS, arr2vec(mesh, SS), Nbasis)
+      Y_zz = sparse_eps_matmul(mesh%eps, matrices%S, matrices%indS, arr2vec(mesh, SS), Nbasis)
 
       call vec2arr2(SS, mesh, sparse_T_matmul(matrices%Sx, matrices%indS, X_xyz(:, 1), mm))
       call FFT3d_2(SS)
       SS = matrices%Fg*SS
       call IFFT3d_2(SS)
-      Y2_x = sparse_eps_matmul(mesh%param, matrices%Sx, matrices%indS, arr2vec(mesh, SS), Nbasis)
-      Y2_y = sparse_eps_matmul(mesh%param, matrices%Sy, matrices%indS, arr2vec(mesh, SS), Nbasis)
-      Y2_z = sparse_eps_matmul(mesh%param, matrices%Sz, matrices%indS, arr2vec(mesh, SS), Nbasis)
+      Y2_x = sparse_eps_matmul(mesh%eps, matrices%Sx, matrices%indS, arr2vec(mesh, SS), Nbasis)
+      Y2_y = sparse_eps_matmul(mesh%eps, matrices%Sy, matrices%indS, arr2vec(mesh, SS), Nbasis)
+      Y2_z = sparse_eps_matmul(mesh%eps, matrices%Sz, matrices%indS, arr2vec(mesh, SS), Nbasis)
 
       call vec2arr2(SS, mesh, sparse_T_matmul(matrices%Sy, matrices%indS, X_xyz(:, 2), mm))
       call FFT3d_2(SS)
       SS = matrices%Fg*SS
       call IFFT3d_2(SS)
-      Y2_x = Y2_x + sparse_eps_matmul(mesh%param, matrices%Sx, matrices%indS, arr2vec(mesh, SS), Nbasis)
-      Y2_y = Y2_y + sparse_eps_matmul(mesh%param, matrices%Sy, matrices%indS, arr2vec(mesh, SS), Nbasis)
-      Y2_z = Y2_z + sparse_eps_matmul(mesh%param, matrices%Sz, matrices%indS, arr2vec(mesh, SS), Nbasis)
+      Y2_x = Y2_x + sparse_eps_matmul(mesh%eps, matrices%Sx, matrices%indS, arr2vec(mesh, SS), Nbasis)
+      Y2_y = Y2_y + sparse_eps_matmul(mesh%eps, matrices%Sy, matrices%indS, arr2vec(mesh, SS), Nbasis)
+      Y2_z = Y2_z + sparse_eps_matmul(mesh%eps, matrices%Sz, matrices%indS, arr2vec(mesh, SS), Nbasis)
 
       call vec2arr2(SS, mesh, sparse_T_matmul(matrices%Sz, matrices%indS, X_xyz(:, 3), mm))
       call FFT3d_2(SS)
       SS = matrices%Fg*SS
       call IFFT3d_2(SS)
-      Y2_x = Y2_x + sparse_eps_matmul(mesh%param, matrices%Sx, matrices%indS, arr2vec(mesh, SS), Nbasis)
-      Y2_y = Y2_y + sparse_eps_matmul(mesh%param, matrices%Sy, matrices%indS, arr2vec(mesh, SS), Nbasis)
-      Y2_z = Y2_z + sparse_eps_matmul(mesh%param, matrices%Sz, matrices%indS, arr2vec(mesh, SS), Nbasis)
+      Y2_x = Y2_x + sparse_eps_matmul(mesh%eps, matrices%Sx, matrices%indS, arr2vec(mesh, SS), Nbasis)
+      Y2_y = Y2_y + sparse_eps_matmul(mesh%eps, matrices%Sy, matrices%indS, arr2vec(mesh, SS), Nbasis)
+      Y2_z = Y2_z + sparse_eps_matmul(mesh%eps, matrices%Sz, matrices%indS, arr2vec(mesh, SS), Nbasis)
 
 !-------------------------- Construct final vector--------------------------------------
       allocate (Y_aim(3*Nbasis*mesh%N_tet))

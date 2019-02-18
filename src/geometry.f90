@@ -32,7 +32,7 @@ contains
          print *, 'something is wrong (Point is not in any cube)'
       end if
 
-      nn = mesh%nodes(:, mesh%etopol_box(:, point_in_cube))
+      nn = mesh%nodes(:, mesh%elem_box(:, point_in_cube))
 
       xmin = minval(nn(1, :)); 
       ymin = minval(nn(2, :)); 
@@ -65,8 +65,8 @@ contains
       real(dp) :: delta, min_x, min_y, min_z, max_x, max_y, max_z, PP(3, 4), vol
       integer :: las, m1, l1, k1, P(4), i1
 
-      min_coord = 1.0*minval(mesh%coord, dim=2)
-      max_coord = 1.0*maxval(mesh%coord, dim=2)
+      min_coord = 1.0*minval(mesh%node, dim=2)
+      max_coord = 1.0*maxval(mesh%node, dim=2)
 
       mesh%min_coord = min_coord
 
@@ -80,8 +80,8 @@ contains
 
       vol = 0.0
       do i1 = 1, mesh%N_tet
-         P = mesh%etopol(:, i1)
-         PP = mesh%coord(:, P)
+         P = mesh%elem(:, i1)
+         PP = mesh%node(:, P)
          vol = vol + tetra_volume(PP)
       end do
 
@@ -174,8 +174,8 @@ contains
             end do
          end do
 
-         allocate (mesh%etopol_box(8, (mesh%Nx - 1)*(mesh%Ny - 1)*(mesh%Nz - 1)))
-         mesh%etopol_box = etopol_box
+         allocate (mesh%elem_box(8, (mesh%Nx - 1)*(mesh%Ny - 1)*(mesh%Nz - 1)))
+         mesh%elem_box = etopol_box
          mesh%N_cubes = (Nx - 1)*(Ny - 1)*(Nz - 1)
          mesh%Nx_cube = (Nx - 1)
          mesh%Ny_cube = (Ny - 1)
@@ -208,8 +208,8 @@ contains
             end do
          end do
 
-         allocate (mesh%etopol_box(27, (mesh%Nx - 2)/2*(mesh%Ny - 2)/2*(mesh%Nz - 2)/2))
-         mesh%etopol_box = etopol_box2
+         allocate (mesh%elem_box(27, (mesh%Nx - 2)/2*(mesh%Ny - 2)/2*(mesh%Nz - 2)/2))
+         mesh%elem_box = etopol_box2
          mesh%Nx_cube = (Nx - 2)/2
          mesh%Ny_cube = (Ny - 2)/2
          mesh%Nz_cube = (Nz - 2)/2
@@ -258,8 +258,8 @@ contains
             end do
          end do
 
-         allocate (mesh%etopol_box(64, (mesh%Nx - 1)/3*(mesh%Ny - 1)/3*(mesh%Nz - 1)/3))
-         mesh%etopol_box = etopol_box3
+         allocate (mesh%elem_box(64, (mesh%Nx - 1)/3*(mesh%Ny - 1)/3*(mesh%Nz - 1)/3))
+         mesh%elem_box = etopol_box3
          mesh%N_cubes = (Nx - 1)/3*(Ny - 1)/3*(Nz - 1)/3
          mesh%Nx_cube = (Nx - 1)/3
          mesh%Ny_cube = (Ny - 1)/3
@@ -341,8 +341,8 @@ contains
 
       do tetra = 1, mesh%N_tet
 
-         p = mesh%etopol(:, tetra)
-         co = mesh%coord(:, p)
+         p = mesh%elem(:, tetra)
+         co = mesh%node(:, p)
 
          cp = (co(:, 1) + co(:, 2) + co(:, 3) + co(:, 4))/4 !Center of tetra
 

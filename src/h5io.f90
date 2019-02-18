@@ -17,22 +17,21 @@ module h5io
       character(len=80) :: file
 
       ! character(len=8), PARAMETER :: file = "mesh.h5"
-      character(len=5), PARAMETER :: coord_dataset = "coord"
-      character(len=6), PARAMETER :: etopol_dataset = "etopol"
-      character(len=7), PARAMETER :: param_r_dataset = "param_r"
-      character(len=7), PARAMETER :: param_i_dataset = "param_i"
+      character(len=5), PARAMETER :: node_dataset = "node"
+      character(len=6), PARAMETER :: elem_dataset = "elem"
+      character(len=7), PARAMETER :: refr_r_dataset = "refr_r"
+      character(len=7), PARAMETER :: refr_i_dataset = "refr_i"
 
       integer(HID_T) :: file_id
-      integer(HID_T) :: coord_dataset_id, etopol_dataset_id, param_r_dataset_id, param_i_dataset_id
-      integer(HID_T) :: coord_dataspace_id, etopol_dataspace_id, param_r_dataspace_id, param_i_dataspace_id
-      integer(HSIZE_T), dimension(2) :: dims_out, coord_dims, etopol_dims, param_r_dims, param_i_dims
+      integer(HID_T) :: node_dataset_id, elem_dataset_id, refr_r_dataset_id, refr_i_dataset_id
+      integer(HID_T) :: node_dataspace_id, elem_dataspace_id, refr_r_dataspace_id, refr_i_dataspace_id
+      integer(HSIZE_T), dimension(2) :: dims_out, node_dims, elem_dims, refr_r_dims, refr_i_dims
 
       integer :: error, i
 
-      real(dp), dimension(:, :), allocatable :: coord
-      integer, dimension(:, :), allocatable :: etopol
-      real(dp), dimension(:, :), allocatable :: param_r, param_i
-      real(dp) :: vol, a_eff
+      real(dp), dimension(:, :), allocatable :: node
+      integer, dimension(:, :), allocatable :: elem
+      real(dp), dimension(:, :), allocatable :: refr_r, refr_i
 
       file = mesh%meshname
       call h5open_f(error)
@@ -40,96 +39,88 @@ module h5io
 
 !****************************************************************************80
 
-      call h5dopen_f(file_id, coord_dataset, coord_dataset_id, error)
-      call h5dget_space_f(coord_dataset_id, coord_dataspace_id, error)
-      call H5sget_simple_extent_dims_f(coord_dataspace_id, dims_out, coord_dims, error)
-      allocate (coord(coord_dims(1), coord_dims(2)))
-      call h5dread_f(coord_dataset_id, H5T_NATIVE_DOUBLE, coord, coord_dims, error)
-      call h5dclose_f(coord_dataset_id, error)
+      call h5dopen_f(file_id, node_dataset, node_dataset_id, error)
+      call h5dget_space_f(node_dataset_id, node_dataspace_id, error)
+      call H5sget_simple_extent_dims_f(node_dataspace_id, dims_out, node_dims, error)
+      allocate (node(node_dims(1), node_dims(2)))
+      call h5dread_f(node_dataset_id, H5T_NATIVE_DOUBLE, node, node_dims, error)
+      call h5dclose_f(node_dataset_id, error)
 
 !****************************************************************************80
 
-      call h5dopen_f(file_id, etopol_dataset, etopol_dataset_id, error)
-      call h5dget_space_f(etopol_dataset_id, etopol_dataspace_id, error)
-      call H5sget_simple_extent_dims_f(etopol_dataspace_id, dims_out, etopol_dims, error)
-      allocate (etopol(etopol_dims(1), etopol_dims(2)))
-      call h5dread_f(etopol_dataset_id, H5T_NATIVE_integer, etopol, etopol_dims, error)
-      call h5dclose_f(etopol_dataset_id, error)
+      call h5dopen_f(file_id, elem_dataset, elem_dataset_id, error)
+      call h5dget_space_f(elem_dataset_id, elem_dataspace_id, error)
+      call H5sget_simple_extent_dims_f(elem_dataspace_id, dims_out, elem_dims, error)
+      allocate (elem(elem_dims(1), elem_dims(2)))
+      call h5dread_f(elem_dataset_id, H5T_NATIVE_integer, elem, elem_dims, error)
+      call h5dclose_f(elem_dataset_id, error)
 
 !****************************************************************************80
 
-      call h5dopen_f(file_id, param_r_dataset, param_r_dataset_id, error)
-      call h5dget_space_f(param_r_dataset_id, param_r_dataspace_id, error)
-      call H5sget_simple_extent_dims_f(param_r_dataspace_id, dims_out, param_r_dims, error)
-      if (param_r_dims(1) < int(size(etopol, 2), 8)) then
-         allocate (param_r(size(etopol, 2), param_r_dims(1)))
+      call h5dopen_f(file_id, refr_r_dataset, refr_r_dataset_id, error)
+      call h5dget_space_f(refr_r_dataset_id, refr_r_dataspace_id, error)
+      call H5sget_simple_extent_dims_f(refr_r_dataspace_id, dims_out, refr_r_dims, error)
+      if (refr_r_dims(1) < int(size(elem, 2), 8)) then
+         allocate (refr_r(size(elem, 2), refr_r_dims(1)))
       else
-         allocate (param_r(param_r_dims(1), 1))
+         allocate (refr_r(refr_r_dims(1), 1))
       end if
-      call h5dread_f(param_r_dataset_id, H5T_NATIVE_DOUBLE, param_r, param_r_dims, error)
-      call h5dclose_f(param_r_dataset_id, error)
+      call h5dread_f(refr_r_dataset_id, H5T_NATIVE_DOUBLE, refr_r, refr_r_dims, error)
+      call h5dclose_f(refr_r_dataset_id, error)
 
 !****************************************************************************80
 
-      call h5dopen_f(file_id, param_i_dataset, param_i_dataset_id, error)
-      call h5dget_space_f(param_i_dataset_id, param_i_dataspace_id, error)
-      call H5sget_simple_extent_dims_f(param_i_dataspace_id, dims_out, param_i_dims, error)
-      if (param_i_dims(1) < int(size(etopol, 2), 8)) then
-         allocate (param_i(size(etopol, 2), param_i_dims(1)))
+      call h5dopen_f(file_id, refr_i_dataset, refr_i_dataset_id, error)
+      call h5dget_space_f(refr_i_dataset_id, refr_i_dataspace_id, error)
+      call H5sget_simple_extent_dims_f(refr_i_dataspace_id, dims_out, refr_i_dims, error)
+      if (refr_i_dims(1) < int(size(elem, 2), 8)) then
+         allocate (refr_i(size(elem, 2), refr_i_dims(1)))
       else
-         allocate (param_i(param_i_dims(1), 1))
+         allocate (refr_i(refr_i_dims(1), 1))
       end if
-      call h5dread_f(param_i_dataset_id, H5T_NATIVE_DOUBLE, param_i, param_i_dims, error)
-      call h5dclose_f(param_i_dataset_id, error)
+      call h5dread_f(refr_i_dataset_id, H5T_NATIVE_DOUBLE, refr_i, refr_i_dims, error)
+      call h5dclose_f(refr_i_dataset_id, error)
 
 !****************************************************************************80
 
       call h5fclose_f(file_id, error)
       call h5close_f(error)
 
-      if (allocated(mesh%coord)) deallocate (mesh%coord, mesh%etopol, mesh%param, mesh%params)
-      allocate (mesh%coord(3, size(coord, 2)))
-      mesh%coord = coord
-      print *, '   Number of nodes                =', size(coord, 2)
-      mesh%N_node = size(coord, 2)
+      if (allocated(mesh%node)) deallocate (mesh%node, mesh%elem, mesh%refr, mesh%refrs)
+      allocate (mesh%node(3, size(node, 2)))
+      mesh%node = node
+      print *, '   Number of nodes                =', size(node, 2)
+      mesh%N_node = size(node, 2)
 
-      allocate (mesh%etopol(4, size(etopol, 2)))
-      mesh%etopol = etopol
-      print *, '   Number of elements             =', size(etopol, 2)
-      mesh%N_tet = size(etopol, 2)
+      allocate (mesh%elem(4, size(elem, 2)))
+      mesh%elem = elem
+      print *, '   Number of elements             =', size(elem, 2)
+      mesh%N_tet = size(elem, 2)
 
-      allocate (mesh%params(size(param_r, 1), size(param_r, 2)))
-      allocate (mesh%param(size(param_r, 1)))
-      mesh%params = dcmplx(param_r, param_i)
+      allocate (mesh%refrs(size(refr_r, 1), size(refr_r, 2)))
+      allocate (mesh%refr(size(refr_r, 1)))
+      mesh%refrs = dcmplx(refr_r, refr_i)
       write (*, '(2(A,F5.3))') '    Refractive index of medium     =   ', matrices%ref_med
-      if (matrices%refr > 1d-7) then
-         deallocate(mesh%params)
-         allocate(mesh%params(size(param_r,1), matrices%bars))
-         mesh%param = dcmplx(matrices%refr**2 - matrices%refi**2, &
-                             2d0*matrices%refr*matrices%refi)
+      if (matrices%refr_r > 1d-7) then
+         deallocate(mesh%refrs)
+         allocate(mesh%refrs(size(refr_r,1), matrices%bars))
+         mesh%refr = dcmplx(matrices%refr_r, matrices%refr_i)
          write (*, '(2(A,F5.3))') '    Refractive index               =   '&
-         , matrices%refr, ' + i', matrices%refi
-         write (*, '(2(A,F5.3))') '    Dielectric constant            =   '&
-         , matrices%refr**2 - matrices%refi**2, &
-            ' + i', 2d0*matrices%refr*matrices%refi
+         , matrices%refr_r, ' + i', matrices%refr_i
          do i = 1,matrices%bars
-            mesh%params(:,i) = mesh%param
+            mesh%refrs(:,i) = mesh%refr
          end do
       else
-         mesh%param = dcmplx(param_r(:, 1), param_i(:, 1))
-         if (maxval(param_r(:, 1)) - minval(param_r(:, 1)) > 1d-7 &
-            .OR. maxval(param_i(:, 1)) - minval(param_i(:, 1)) > 1d-7) then
+         mesh%refr = dcmplx(refr_r(:, 1), refr_i(:, 1))
+         if (maxval(refr_r(:, 1)) - minval(refr_r(:, 1)) > 1d-7 &
+            .OR. maxval(refr_i(:, 1)) - minval(refr_i(:, 1)) > 1d-7) then
          else
-            write (*, '(2(A,F5.3))') '    Dielectric constant  =   '&
-            , param_r(1, 1), ' + i', param_i(1, 1)
+            write (*, '(2(A,F5.3))') '    Refractive index   =   '&
+            , refr_r(1, 1), ' + i', refr_i(1, 1)
          end if
       end if
 
-      vol = get_tetra_vol()
-      a_eff = (3d0*vol/4d0/pi)**(1d0/3d0)
-
-      mesh%coord = mesh%coord*mesh%a/a_eff ! Scale coordinates to correspond the real grain
-! With correction to scaling (effective radius is defined by volumes)
+      mesh%node = mesh%node*mesh%a! Scale node coordinates for the real grain
 
    end subroutine read_mesh
 
@@ -160,13 +151,13 @@ module h5io
       integer :: error, i, nm, ind
 
       real(dp), dimension(3) :: ref_a
-      real(dp), dimension(:), allocatable :: wls, param_r, param_i
+      real(dp), dimension(:), allocatable :: wls, refr_r, refr_i
       real(dp), dimension(:), allocatable :: Taai_r, Taai_i
       real(dp), dimension(:), allocatable :: Tabi_r, Tabi_i
       real(dp), dimension(:), allocatable :: Tbai_r, Tbai_i
       real(dp), dimension(:), allocatable :: Tbbi_r, Tbbi_i
       complex(dp), dimension(:), allocatable :: Taai, Tabi, Tbai, Tbbi
-      complex(dp) :: ref
+      complex(dp) :: refr
       LOGICAL :: exists
 
       file = matrices%tname
@@ -254,16 +245,16 @@ module h5io
          call h5dclose_f(dataset9_id, error)
 
          mesh%a = ref_a(3)
-         allocate (param_r(size(mesh%param)), param_i(size(mesh%param)))
-         param_r = real(mesh%param)
-         param_i = imag(mesh%param)
-         if (maxval(param_r) - minval(param_r) > 1d-7 .OR. maxval(param_i) - minval(param_i) > 1d-7) then
+         allocate (refr_r(size(mesh%refr)), refr_i(size(mesh%refr)))
+         refr_r = real(mesh%refr)
+         refr_i = imag(mesh%refr)
+         if (maxval(refr_r) - minval(refr_r) > 1d-7 .OR. maxval(refr_i) - minval(refr_i) > 1d-7) then
             write (*, '(A)') '    Note: Geometry is inhomogeneous.'
          else
-            mesh%param = dcmplx(ref_a(1), ref_a(2))
-            ref = sqrt(dcmplx(ref_a(1), ref_a(2)))
-            matrices%refr = real(ref)
-            matrices%refi = imag(ref)
+            mesh%refr = dcmplx(ref_a(1), ref_a(2))
+            refr= dcmplx(ref_a(1), ref_a(2))
+            matrices%refr_r = real(refr)
+            matrices%refr_i = imag(refr)
          end if
 
 !****************************************************************************80
@@ -276,17 +267,11 @@ module h5io
          call h5dclose_f(dataset10_id, error)
 
          mesh%ki = 2d0*pi/wls
-         if (use_mie == 1) then
-            do i = 1, size(wls, 1)
-               matrices%Nmaxs(i) = truncation_order(mesh%ki(i)*mesh%a)
-            end do
-         else
-            do i = 1, size(wls, 1)
-               matrices%Nmaxs(i) = truncation_order(mesh%ki(i)*&
-                  (dble(maxval([mesh%Nx, mesh%Ny, mesh%Nz]))* &
-                                mesh%delta)/2.0d0)
-            end do
-         end if
+
+         do i = 1, size(wls, 1)
+            matrices%Nmaxs(i) = truncation_order(mesh%ki(i)*mesh%a)
+         end do
+
 
 !****************************************************************************80
       end if
@@ -435,8 +420,8 @@ module h5io
 
       CALL h5dcreate_f(file_id, dsetname9, H5T_NATIVE_DOUBLE, dspace_id2, &
                        dset_id9, error, H5P_DEFAULT_F, H5P_DEFAULT_F, H5P_DEFAULT_F)
-      CALL h5dwrite_f(dset_id9, H5T_NATIVE_DOUBLE, [real(mesh%param(1)), &
-                                                    imag(mesh%param(1)), mesh%a], dimsinfo, error)
+      CALL h5dwrite_f(dset_id9, H5T_NATIVE_DOUBLE, [real(mesh%refr(1)), &
+                                                    imag(mesh%refr(1)), mesh%a], dimsinfo, error)
       CALL h5dclose_f(dset_id9, error)
 
 !****************************************************************************80
@@ -555,8 +540,8 @@ module h5io
 
       CALL h5dcreate_f(file_id, dsetname9, H5T_NATIVE_DOUBLE, dspace_id2, &
                        dset_id9, error, H5P_DEFAULT_F, H5P_DEFAULT_F, H5P_DEFAULT_F)
-      CALL h5dwrite_f(dset_id9, H5T_NATIVE_DOUBLE, [real(mesh%param(1)), &
-                                                    imag(mesh%param(1)), mesh%a], dimsinfo, error)
+      CALL h5dwrite_f(dset_id9, H5T_NATIVE_DOUBLE, [real(mesh%refr(1)), &
+                                                    imag(mesh%refr(1)), mesh%a], dimsinfo, error)
       CALL h5dclose_f(dset_id9, error)
 
 !****************************************************************************80

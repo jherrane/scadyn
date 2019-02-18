@@ -28,16 +28,16 @@ contains
       integer :: N, i1, i2
       double precision :: r(3), rp(3)
 
-      N = size(mesh%etopol_box, 1)
+      N = size(mesh%elem_box, 1)
 
       allocate (G(N, N))
       G(:, :) = dcmplx(0.0, 0.0)
 
       do i1 = 1, N
-         r = mesh%nodes(:, mesh%etopol_box(i1, t_cube))
+         r = mesh%nodes(:, mesh%elem_box(i1, t_cube))
          do i2 = 1, N
-            if (mesh%etopol_box(i1, t_cube) .ne. mesh%etopol_box(i2, b_cube)) then
-               rp = mesh%nodes(:, mesh%etopol_box(i2, b_cube))
+            if (mesh%elem_box(i1, t_cube) .ne. mesh%elem_box(i2, b_cube)) then
+               rp = mesh%nodes(:, mesh%elem_box(i2, b_cube))
                G(i1, i2) = Gr(r, rp, mesh%k)
             end if
          end do
@@ -137,7 +137,7 @@ contains
       integer :: T_nodes(4), B_nodes(4), bases(mesh%N_tet_cube), tests(mesh%N_tet_cube)
       integer, dimension(:), allocatable :: near_cubes
       double precision ::  vol_T, vol_B, B_coord(3, 4), T_coord(3, 4)
-      double complex :: mat_block(3, 3), corr(3, 3), corr2(3, 3), ele_param
+      double complex :: mat_block(3, 3), corr(3, 3), corr2(3, 3), ele_eps
       double complex, dimension(:, :), allocatable :: Gcorr
       double precision :: T_rot(3, 6), T_dN(3, 4), B_rot(3, 6), B_dN(3, 4)
       double precision, dimension(:, :), allocatable :: P0_tet, P0_tri
@@ -148,7 +148,7 @@ contains
 
       M_cube = (2*mesh%near_zone + 1)**3
 
-      allocate (Gcorr(size(mesh%etopol_box, 1), size(mesh%etopol_box, 1)))
+      allocate (Gcorr(size(mesh%elem_box, 1), size(mesh%elem_box, 1)))
 
       allocate (near_cubes(M_cube))
 
@@ -168,10 +168,10 @@ contains
             sizeof(matrices%S)/1024/1024*4 + &
             sizeof(matrices%indS)/1024/1024 + &
             sizeof(matrices%Fg)/1024/1024*2 + &
-            (5 + mesh%maxit)*8*2*3*size(mesh%etopol, 2)/1024/1024 + &
-            sizeof(mesh%coord)/1024/1024 + &
-            sizeof(mesh%etopol)/1024/1024 + &
-            sizeof(mesh%etopol_box)/1024/1024 + &
+            (5 + mesh%maxit)*8*2*3*size(mesh%elem, 2)/1024/1024 + &
+            sizeof(mesh%node)/1024/1024 + &
+            sizeof(mesh%elem)/1024/1024 + &
+            sizeof(mesh%elem_box)/1024/1024 + &
             sizeof(mesh%nodes)/1024/1024 + &
             sizeof(mesh%tetras)/1024/1024
 
@@ -197,21 +197,21 @@ contains
                tet_T = tests(t1)
                if (tet_T == 0) exit
 
-               T_nodes = mesh%etopol(:, tet_T)
-               T_coord = mesh%coord(:, T_nodes)
+               T_nodes = mesh%elem(:, tet_T)
+               T_coord = mesh%node(:, T_nodes)
                vol_T = tetra_volume(T_coord)
 
                call gradshape(T_rot, T_dN, T_coord)
 
-               ele_param = mesh%param(tet_T)
+               ele_eps = mesh%eps(tet_T)
 
                do b1 = 1, mesh%N_tet_cube
                   tet_B = bases(b1)
 
                   if (tet_B == 0) exit
                   if (tet_B >= tet_T) then
-                     B_nodes = mesh%etopol(:, tet_B)
-                     B_coord = mesh%coord(:, B_nodes)
+                     B_nodes = mesh%elem(:, tet_B)
+                     B_coord = mesh%node(:, B_nodes)
                      vol_B = tetra_volume(B_coord)
 
                      call gradshape(B_rot, B_dN, B_coord)
@@ -226,13 +226,13 @@ contains
 
                      alok(:, :) = dcmplx(0.0, 0.0)
                      if (tet_T == tet_B) then
-                        alok(1, 1) = 1.0/(ele_param - 1.0)
-                        alok(2, 2) = 1.0/(ele_param - 1.0)
-                        alok(3, 3) = 1.0/(ele_param - 1.0)
+                        alok(1, 1) = 1.0/(ele_eps - 1.0)
+                        alok(2, 2) = 1.0/(ele_eps - 1.0)
+                        alok(3, 3) = 1.0/(ele_eps - 1.0)
 
-                        !alok(1,1) = ele_param / (ele_param-1.0)
-                        !alok(2,2) = ele_param / (ele_param-1.0)
-                        !alok(3,3) = ele_param / (ele_param-1.0)
+                        !alok(1,1) = ele_eps / (ele_eps-1.0)
+                        !alok(2,2) = ele_eps / (ele_eps-1.0)
+                        !alok(3,3) = ele_eps / (ele_eps-1.0)
                      end if
 
                      call integrate_V_V_G(alok1, mesh, P0_tet, w0_tet, P0_tet, w0_tet, T_coord, B_coord)
@@ -275,7 +275,7 @@ contains
       integer :: T_nodes(4), B_nodes(4), bases(mesh%N_tet_cube), tests(mesh%N_tet_cube)
       integer, dimension(:), allocatable :: near_cubes
       double precision ::  vol_T, vol_B, B_coord(3, 4), T_coord(3, 4)
-      double complex :: mat_block(12, 12), corr(12, 12), corr2(12, 12), ele_param
+      double complex :: mat_block(12, 12), corr(12, 12), corr2(12, 12), ele_eps
       double complex, dimension(:, :), allocatable :: Gcorr
       double precision :: T_rot(3, 6), T_dN(3, 4), B_rot(3, 6), B_dN(3, 4)
       double precision, dimension(:, :), allocatable :: P0_tet, P0_tri
@@ -286,7 +286,7 @@ contains
 
       M_cube = (2*mesh%near_zone + 1)**3
 
-      allocate (Gcorr(size(mesh%etopol_box, 1), size(mesh%etopol_box, 1)))
+      allocate (Gcorr(size(mesh%elem_box, 1), size(mesh%elem_box, 1)))
 
       allocate (near_cubes(M_cube))
 
@@ -306,10 +306,10 @@ contains
             sizeof(matrices%S)/1024/1024*4 + &
             sizeof(matrices%indS)/1024/1024 + &
             sizeof(matrices%Fg)/1024/1024*2 + &
-            (5 + mesh%maxit)*8*2*12*size(mesh%etopol, 2)/1024/1024 + &
-            sizeof(mesh%coord)/1024/1024 + &
-            sizeof(mesh%etopol)/1024/1024 + &
-            sizeof(mesh%etopol_box)/1024/1024 + &
+            (5 + mesh%maxit)*8*2*12*size(mesh%elem, 2)/1024/1024 + &
+            sizeof(mesh%node)/1024/1024 + &
+            sizeof(mesh%elem)/1024/1024 + &
+            sizeof(mesh%elem_box)/1024/1024 + &
             sizeof(mesh%nodes)/1024/1024 + &
             sizeof(mesh%tetras)/1024/1024
 
@@ -335,21 +335,21 @@ contains
                tet_T = tests(t1)
                if (tet_T == 0) exit
 
-               T_nodes = mesh%etopol(:, tet_T)
-               T_coord = mesh%coord(:, T_nodes)
+               T_nodes = mesh%elem(:, tet_T)
+               T_coord = mesh%node(:, T_nodes)
                vol_T = tetra_volume(T_coord)
 
                call gradshape(T_rot, T_dN, T_coord)
 
-               ele_param = mesh%param(tet_T)
+               ele_eps = mesh%eps(tet_T)
 
                do b1 = 1, mesh%N_tet_cube
                   tet_B = bases(b1)
 
                   if (tet_B == 0) exit
                   if (tet_B >= tet_T) then
-                     B_nodes = mesh%etopol(:, tet_B)
-                     B_coord = mesh%coord(:, B_nodes)
+                     B_nodes = mesh%elem(:, tet_B)
+                     B_coord = mesh%node(:, B_nodes)
                      vol_B = tetra_volume(B_coord)
 
                      call gradshape(B_rot, B_dN, B_coord)
@@ -373,7 +373,7 @@ contains
                      call integrate_V_dV_GNN(alok5, mesh, P0_tet, w0_tet, P0_tri, w0_tri, T_coord, B_coord, T_dN)
                      call aloks(alok1, alok3, ind, GNN, tet_T, tet_B, T_dN, B_dN)
 
-                     mat_block = 1.0/sqrt(vol_B*vol_T)*(alok/(ele_param - 1.0) + &
+                     mat_block = 1.0/sqrt(vol_B*vol_T)*(alok/(ele_eps - 1.0) + &
                                                         (-mesh%k**2*(alok1 - corr) + (alok2 + alok3 - alok4 - alok5) - corr2))
 
                      matrices%sp_mat(:, :, blok) = cmplx(mat_block)

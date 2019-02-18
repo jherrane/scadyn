@@ -136,12 +136,12 @@ contains
             matrices%mueller_mode = trim(arg)
             write (*, '(2A)') ' Mueller mode: ', trim(matrices%mueller_mode)
          case ('-p', '--paramsfile') ! Skip, as already read in check_paramsfile
-         case ('--refr')
+         case ('--refr_r')
             call get_command_argument(i + 1, arg)
-            read (arg, *) matrices%refr
-         case ('--refi')
+            read (arg, *) matrices%refr_r
+         case ('--refr_i')
             call get_command_argument(i + 1, arg)
-            read (arg, *) matrices%refi
+            read (arg, *) matrices%refr_i
          case ('--refmed')
             call get_command_argument(i + 1, arg)
             read (arg, *) matrices%ref_med
@@ -177,8 +177,8 @@ contains
             write (*, '(A)') ' -T --Tmat       T.h5        T-matrix file'
             write (*, '(A)') ' -o --out                    Output file identifier'
             write (*, '(A)') ' -p --paramsfile params.in   Read input parameters from file'
-            write (*, '(A)') '    --refr       0.0         Real part of refractive index'
-            write (*, '(A)') '    --refi       0.0         Imaginary part of refractive index'
+            write (*, '(A)') '    --refr_r     0.0         Real part of refractive index'
+            write (*, '(A)') '    --refr_i     0.0         Imaginary part of refractive index'
             write (*, '(A)') '    --refmed     1.0         Refractive index of the medium (real)'
             write (*, '(A)') ' -w --wavelen    0           Choose wavelength from the T-matrix'
             write (*, '(A)') ' -S --singleT    0           Calculate only one T-matrix, of wb'

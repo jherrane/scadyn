@@ -14,9 +14,8 @@ contains
 !****************************************************************************80
 
    subroutine init_geometry()
-      type(data_struct), dimension(:), allocatable :: sphere
-      real(dp) :: ka, maxrad, maxrad_sph, vol
-      integer :: i, Nspheres, sph, max_level, max_sph
+      real(dp) :: ka
+      integer :: i
       complex(dp) :: k
 
 !* TETRAHEDRAL MESH *************************************************
@@ -36,12 +35,12 @@ contains
          call int_points()
 
          if (matrices%Tmat == 0) print *, 'Initializing FFT... '
-         if (allocated(mesh%nodes)) deallocate (mesh%nodes, mesh%etopol_box, mesh%tetras)
+         if (allocated(mesh%nodes)) deallocate (mesh%nodes, mesh%elem_box, mesh%tetras)
          call build_grid(mesh) ! geometry
          call build_box(mesh) ! geometry
          call tetras_in_cubes(mesh) ! geometry
 
-         if (matrices%Tmat == 0) then
+         if (matrices%Tmat == 0 .AND. debug == 1) then
             print *, '   Grid size            = ', (/mesh%Nx, mesh%Ny, mesh%Nz/)
             print *, '   Delta grid           = ', real(mesh%delta)
             print *, '   Number of cubes      = ', mesh%N_cubes
@@ -64,12 +63,9 @@ contains
             matrices%Nmaxs(i) = truncation_order(ka)
          end do
 
-         allocate (mesh%param(1))
-         mesh%param = dcmplx(matrices%refr**2 - matrices%refi**2, &
-                             2d0*matrices%refr*matrices%refi)
-         write (*, '(2(A,F5.3))') '    Refractive index     =   ', matrices%refr, ' + i', matrices%refi
-         write (*, '(2(A,F5.3))') '    Dielectric constant  =   ', matrices%refr**2 - matrices%refi**2, &
-            ' + i', 2d0*matrices%refr*matrices%refi
+         allocate (mesh%eps(1), mesh%refr(1))
+         mesh%refr = dcmplx(matrices%refr_r, matrices%refr_i)
+         write (*, '(2(A,F5.3))') '    Refractive index     =   ', matrices%refr_r, ' + i', matrices%refr_i
       end if
    end subroutine init_geometry
 
@@ -80,7 +76,7 @@ contains
       real(dp) :: k_orig
 
       k_orig = mesh%k ! Keep the original just in case
-      M_box = size(mesh%etopol_box, 1)
+      M_box = size(mesh%elem_box, 1)
 
       if (.not. allocated(matrices%rhs)) then
          if (mesh%order == 0) then
@@ -299,8 +295,8 @@ contains
       integer :: i1
 
       d = 0d0
-      do i1 = 1, size(mesh%coord, 2)
-         d2 = vlen(mesh%coord(:, i1))
+      do i1 = 1, size(mesh%node, 2)
+         d2 = vlen(mesh%node(:, i1))
          if (d2 > d) then
             d = d2
          end if
@@ -462,14 +458,15 @@ contains
 ! Set the particle as Draine&Lee1984 astrosilicate
    subroutine band_astrosilicate()
       real(dp) :: lmax
-      real(dp), dimension(:), allocatable :: c, diff, absdif, w, epsr, epsi
+      real(dp), dimension(:), allocatable :: c, diff, absdif, w, epsr, epsi, &
+                                             refr_r, refr_i
       integer :: i, n, size_param, ind
 
       call read_mesh()
 
-      size_param = size(mesh%params, 1)
-      if (allocated(mesh%params)) deallocate (mesh%params)
-      allocate (mesh%params(size_param, matrices%bars))
+      size_param = size(mesh%refrs, 1)
+      if (allocated(mesh%refrs)) deallocate (mesh%refrs)
+      allocate (mesh%refrs(size_param, matrices%bars))
 
 ! Read the astrosilicate data
       open (unit=15, file="examples/eps_Sil", status='old', &
@@ -477,11 +474,11 @@ contains
 
       read (15, *) n
       read (15, *)
-      allocate (w(n), epsr(n), epsi(n))
+      allocate (w(n), epsr(n), epsi(n), refr_r(n), refr_i(n))
 
       do i = 1, n
-         read (15, *) w(i), epsr(i), epsi(i)
-         epsr(i) = epsr(i) + 1
+         read (15, *) w(i), epsr(i), epsi(i), refr_r(i), refr_i(i)
+         refr_r(i) = refr_r(i) + 1
       end do
 
       close (15)
@@ -490,7 +487,7 @@ contains
 ! the wavelength band
       do i = 1, matrices%bars
          ind = minloc(abs(w - 2d0*pi/mesh%ki(i)/1d-6), 1)
-         mesh%params(:, i) = dcmplx(epsr(ind), epsi(ind))
+         mesh%refrs(:, i) = dcmplx(refr_r(ind), refr_i(ind))
       end do
 
    end subroutine band_astrosilicate
@@ -682,10 +679,10 @@ contains
 
       do i1 = 1, mesh%N_tet
          ! Get vertices
-         p0 = mesh%coord(:, mesh%etopol(1, i1))
-         p1 = mesh%coord(:, mesh%etopol(2, i1))
-         p2 = mesh%coord(:, mesh%etopol(3, i1))
-         p3 = mesh%coord(:, mesh%etopol(4, i1))
+         p0 = mesh%node(:, mesh%elem(1, i1))
+         p1 = mesh%node(:, mesh%elem(2, i1))
+         p2 = mesh%node(:, mesh%elem(3, i1))
+         p3 = mesh%node(:, mesh%elem(4, i1))
          COM = [(p0(1) + p1(1) + p2(1) + p3(1))/4d0, &
                 (p0(2) + p1(2) + p2(2) + p3(2))/4d0, &
                 (p0(3) + p1(3) + p2(3) + p3(3))/4d0]
@@ -732,9 +729,9 @@ contains
       mesh%CM = CM/totMass
       mesh%I = I
 
-      mesh%coord(1, :) = mesh%coord(1, :) - mesh%CM(1)
-      mesh%coord(2, :) = mesh%coord(2, :) - mesh%CM(2)
-      mesh%coord(3, :) = mesh%coord(3, :) - mesh%CM(3)
+      mesh%node(1, :) = mesh%node(1, :) - mesh%CM(1)
+      mesh%node(2, :) = mesh%node(2, :) - mesh%CM(2)
+      mesh%node(3, :) = mesh%node(3, :) - mesh%CM(3)
 
    end subroutine vie_params
 

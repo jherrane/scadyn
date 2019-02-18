@@ -32,7 +32,7 @@ contains
       integer :: B_nodes(4), Ns, ierr
 
       N_basis = 3*mesh%N_tet
-      M_box = size(mesh%etopol_box, 1)
+      M_box = size(mesh%elem_box, 1)
       M = int(M_box**(1.0/3.0) - 1)
 !print*,'   Expansion order      =',M
 
@@ -73,15 +73,15 @@ contains
 !--------------- Compute W-----------------------------------------!
       tet_B = 1
 
-      B_nodes = mesh%etopol(:, tet_B)
-      B_coord = mesh%coord(:, B_nodes)
+      B_nodes = mesh%elem(:, tet_B)
+      B_coord = mesh%node(:, B_nodes)
       vol_B = tetra_volume(B_coord)
 
       call linmap_tet(Pb, Wb, B_coord, P0_tet, W0_tet)
       cp = (B_coord(:, 1) + B_coord(:, 2) + B_coord(:, 3) + B_coord(:, 4))/4
 
       cube = point_in_cube(mesh, cp)
-      box_nodes = mesh%etopol_box(:, cube)
+      box_nodes = mesh%elem_box(:, cube)
       node1 = mesh%nodes(:, box_nodes(1))
 
       cp_cube(1) = node1(1) + mesh%box_delta/2.0
@@ -102,18 +102,18 @@ contains
 
       do tet_B = 1, mesh%N_tet
 
-         B_nodes = mesh%etopol(:, tet_B)
-         B_coord = mesh%coord(:, B_nodes)
+         B_nodes = mesh%elem(:, tet_B)
+         B_coord = mesh%node(:, B_nodes)
          vol_B = tetra_volume(B_coord)
 
-         erI = mesh%param(tet_B) - dcmplx(1.0, 0.0)
+         erI = mesh%eps(tet_B) - dcmplx(1.0, 0.0)
 
          call linmap_tet(Pb, Wb, B_coord, P0_tet, W0_tet)
 
          cp = (B_coord(:, 1) + B_coord(:, 2) + B_coord(:, 3) + B_coord(:, 4))/4
 
          cube = point_in_cube(mesh, cp)
-         box_nodes = mesh%etopol_box(:, cube)
+         box_nodes = mesh%elem_box(:, cube)
          node1 = mesh%nodes(:, box_nodes(1))
 
          cp_cube(1) = node1(1) + mesh%box_delta/2.0
@@ -188,7 +188,7 @@ contains
       real(dp) :: B_rot(3, 6), B_dN(3, 4)
 
       N_basis = 3*mesh%N_tet
-      M_box = size(mesh%etopol_box, 1)
+      M_box = size(mesh%elem_box, 1)
       M = int(M_box**(1.0/3.0) - 1)
 !print*,'   Expansion order      =',M
 
@@ -241,15 +241,15 @@ contains
 !--------------- Compute W-----------------------------------------!
       tet_B = 1
 
-      B_nodes = mesh%etopol(:, tet_B)
-      B_coord = mesh%coord(:, B_nodes)
+      B_nodes = mesh%elem(:, tet_B)
+      B_coord = mesh%node(:, B_nodes)
       vol_B = tetra_volume(B_coord)
 
       call linmap_tet(Pb, Wb, B_coord, P0_tet, W0_tet)
       cp = (B_coord(:, 1) + B_coord(:, 2) + B_coord(:, 3) + B_coord(:, 4))/4
 
       cube = point_in_cube(mesh, cp)
-      box_nodes = mesh%etopol_box(:, cube)
+      box_nodes = mesh%elem_box(:, cube)
       node1 = mesh%nodes(:, box_nodes(1))
 
       cp_cube(1) = node1(1) + mesh%box_delta/2.0
@@ -270,18 +270,18 @@ contains
 
       do tet_B = 1, mesh%N_tet
 
-         B_nodes = mesh%etopol(:, tet_B)
-         B_coord = mesh%coord(:, B_nodes)
+         B_nodes = mesh%elem(:, tet_B)
+         B_coord = mesh%node(:, B_nodes)
          vol_B = tetra_volume(B_coord)
 
-         erI = mesh%param(tet_B) - dcmplx(1.0, 0.0)
+         erI = mesh%eps(tet_B) - dcmplx(1.0, 0.0)
 
          call linmap_tet(Pb, Wb, B_coord, P0_tet, W0_tet)
          call gradshape(B_rot, B_dN, B_coord)
          cp = (B_coord(:, 1) + B_coord(:, 2) + B_coord(:, 3) + B_coord(:, 4))/4
 
          cube = point_in_cube(mesh, cp)
-         box_nodes = mesh%etopol_box(:, cube)
+         box_nodes = mesh%elem_box(:, cube)
          node1 = mesh%nodes(:, box_nodes(1))
 
          cp_cube(1) = node1(1) + mesh%box_delta/2.0

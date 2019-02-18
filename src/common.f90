@@ -60,16 +60,16 @@ module common
 !****************************************************************************80
 
    type mesh_struct
-      complex(dp), dimension(:, :), allocatable :: params
-      complex(dp), dimension(:), allocatable :: param
+      complex(dp), dimension(:, :), allocatable :: refrs
+      complex(dp), dimension(:), allocatable :: param, refr, eps
 
-      real(dp), dimension(:, :), allocatable  ::  coord, nodes, P
+      real(dp), dimension(:, :), allocatable  ::  node, nodes, P
       real(dp), dimension(:), allocatable ::  ki, w, radius
       real(dp), dimension(3)  ::  min_coord, alpha
       real(dp)  ::  delta, k, box_delta, V, mass, CM(3), &
                    I(3, 3), maxrad
 
-      integer, dimension(:, :), allocatable :: etopol, etopol_box, tetras, etopol_edges, edges
+      integer, dimension(:, :), allocatable :: elem, elem_box, tetras
       integer :: Nx, Ny, Nz, N_cubes, N_tet, N_tet_cube, Nx_cube, Ny_cube, &
                  Nz_cube, M1_loc, M2_loc, N1_loc, N2_loc, N_node
 
@@ -134,10 +134,10 @@ module common
 
 ! Initial values set up at the very beginning, changable by input arguments or files
       real(dp)                :: E = 1d0
-      real(dp)                :: refr = 0d0
-      real(dp)                :: refi = 0d0
+      real(dp)                :: refr_r = 0d0
+      real(dp)                :: refr_i = 0d0
       real(dp)                :: ref_med = 1d0
-      real(dp)                :: rho_med = 0d0
+      real(dp)                :: rho_med = 1d0
       real(dp)                :: mu = 0d0
       real(dp)                :: NA = 0.8d0
       real(dp)                :: tol_m = 3d-3
@@ -163,15 +163,6 @@ module common
       integer                 :: bars = 10
       integer                 :: polarization = 2
    end type data
-
-   type data_struct
-      integer :: Nmax, ind_a1, ind_a2, ind_b1, ind_b2
-      integer :: Tmat_ind, ifT
-      real(dp) :: euler_angles(3)
-      real(dp) :: cp(3), r
-      complex(dp) :: eps_r
-      complex(dp), dimension(:, :), allocatable :: A, B
-   end type data_struct
 
 type(data) :: matrices
 type(mesh_struct) :: mesh
@@ -371,10 +362,10 @@ contains
 
       do i1 = 1, mesh%N_tet
          ! Get vertices
-         p0 = mesh%coord(:, mesh%etopol(1, i1))
-         p1 = mesh%coord(:, mesh%etopol(2, i1))
-         p2 = mesh%coord(:, mesh%etopol(3, i1))
-         p3 = mesh%coord(:, mesh%etopol(4, i1))
+         p0 = mesh%node(:, mesh%elem(1, i1))
+         p1 = mesh%node(:, mesh%elem(2, i1))
+         p2 = mesh%node(:, mesh%elem(3, i1))
+         p3 = mesh%node(:, mesh%elem(4, i1))
 
          V = abs(dot_product((p0 - p3), &
                              crossRR((p1 - p3), (p2 - p3))))/6d0

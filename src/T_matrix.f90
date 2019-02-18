@@ -34,12 +34,14 @@ contains
          call mie_T_matrix()
       else
          do i = 1, sz
-            if (size(mesh%params, 2) > 1 .AND. matrices%refr < 1d-7)then
+            if (size(mesh%refrs, 2) > 1 .AND. matrices%refr_r < 1d-7)then
                if(matrices%whichbar > 0) then
-                  mesh%param = mesh%params(:, matrices%whichbar)
+                  mesh%refr = mesh%refrs(:, matrices%whichbar)
                else
-                  mesh%param = mesh%params(:,1)
+                  mesh%refr = mesh%refrs(:,1)
                end if
+               mesh%eps = dcmplx(real(mesh%refr)**2-imag(mesh%refr)**2, &
+                  2d0*real(mesh%refr)*imag(mesh%refr))
             end if
             ii = i
             if (matrices%singleT == 1) then
@@ -145,7 +147,7 @@ contains
 
          allocate (a_n(Nmax), b_n(Nmax), j0(Nmax), j1(Nmax), h0(Nmax), j0d(Nmax), &
                    j1d(Nmax), h0d(Nmax))
-         m = dcmplx(matrices%refr)
+         m = dcmplx(matrices%refr_r)
          r1 = ka*m
 
          call sbesseljd(Nmax, dcmplx(ka), j0, j0d)
@@ -288,7 +290,7 @@ contains
       nm = (Nmax+1)**2 -1
 
       do tet = 1, mesh%N_tet
-         T_coord = mesh%coord(:,mesh%etopol(:,tet))
+         T_coord = mesh%node(:,mesh%elem(:,tet))
          r = (T_coord(:,1) +T_coord(:,2) + T_coord(:,3) + T_coord(:,4))/4.0
 
          call calc_MN(MM_nm, NN_nm, Nmax, k, r, 0)

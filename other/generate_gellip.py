@@ -14,10 +14,10 @@ ref   = 3      # Mesh refinement level
 gid   = 1      # G-ellipsoid id
 
 
-ref_ind = 1.52 + 0.1j
+refr_ind = 1.52 + 0.1j
 
-eps_r = np.real(ref_ind**2)
-eps_i = np.imag(ref_ind**2)
+refr_r = np.real(ref_ind)
+refr_i = np.imag(ref_ind)
 
 h     = a*(c/a)**2
 sigma = sigma/h
@@ -110,13 +110,13 @@ def draw_mesh(meshname, mesh, refinement):
    param_i = eps_i*np.ones(tetramesh.voxels.shape[0])
    
    with h5py.File(meshname+".h5","w") as f:
-      dset1 = f.create_dataset("coord", tetramesh.vertices.shape, dtype='double' )
+      dset1 = f.create_dataset("node", tetramesh.vertices.shape, dtype='double' )
       dset1[...] = tetramesh.vertices
-      dset2 = f.create_dataset("etopol", tetramesh.voxels.shape, dtype='int32')
+      dset2 = f.create_dataset("elem", tetramesh.voxels.shape, dtype='int32')
       dset2[...] = tetramesh.voxels+1
-      dset3 = f.create_dataset("param_r", param_r.shape, dtype='double')
+      dset3 = f.create_dataset("refr_r", refr_r.shape, dtype='double')
       dset3[...] = param_r
-      dset4 = f.create_dataset("param_i", param_i.shape, dtype='double')
+      dset4 = f.create_dataset("refr_i", refr_i.shape, dtype='double')
       dset4[...] = param_i
    fig = plt.figure(figsize=(6, 6),frameon=False)
    ax = mplot3d.Axes3D(fig)
