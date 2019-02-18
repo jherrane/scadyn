@@ -141,7 +141,6 @@ def draw_mesh(meshname, mesh, refinement):
    return tetramesh
 
 def args(argv):
-   saveOnlyPly = False
    meshname = "mesh"
    gid   = 1      # G-ellipsoid id
    gotGid = False
@@ -149,7 +148,7 @@ def args(argv):
    try:
       opts, args = getopt.getopt(argv,"i:o:f:r:")
    except getopt.GetoptError:
-      print('generate_gellip.py -i <G-ID> -o <meshname> -f <saveOnlyPly> -r <refinement_level>')
+      print('generate_gellip.py -i <G-ID> -o <meshname> -r <refinement_level>')
       sys.exit(2)
    for opt, arg in opts:
       if opt in ('-i'):
@@ -167,20 +166,12 @@ def args(argv):
             sys.exit(2)
       if opt in ('-o'):
          meshname = arg
-      if opt in ('-f'):
-         if arg not in ('f', 't'):
-            print('Argument of -f is boolean (t/f), so try again!')
-            sys.exit(2)
-         if arg in ('f') :
-            saveOnlyPly = False
-         elif arg in ('t'):
-            saveOnlyPly = True
    if gotGid:
       meshname = meshname + str(gid)
-   return meshname, saveOnlyPly, gid, refinement
+   return meshname, gid, refinement
 
 if __name__ == "__main__":
-   meshname, saveOnlyPly, gid, refinement = args(sys.argv[1:])
+   meshname, gid, refinement = args(sys.argv[1:])
    seed(gid)
    ellipsoid = genellip()  
 
@@ -188,10 +179,8 @@ if __name__ == "__main__":
    node = deform_mesh(ellipsoid)
    gellip = pymesh.form_mesh(node,ellipsoid.elements)
    
-   if(saveOnlyPly):
-      pymesh.save_mesh(meshname+".ply", gellip)
-   else:
-      tetramesh = draw_mesh(meshname, gellip, refinement)
-#      pymesh.save_mesh(meshname+".mesh",tetramesh)
+   tetramesh = draw_mesh(meshname, gellip, refinement)
+   pymesh.save_mesh(meshname+".ply", gellip)
+   pymesh.save_mesh(meshname+".mesh",tetramesh)
 
       
