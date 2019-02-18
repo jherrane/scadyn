@@ -9,7 +9,7 @@ program main
 
    implicit none
 
-   call splash('v0.7')
+   call splash('v0.8')
 
    call check_paramsfile()
    call read_params()
@@ -21,7 +21,7 @@ program main
    call allocate_Ti()
 
    if (matrices%Tmat == 1) then
-      call read_T()
+      if (use_mie /= 1) call read_T()
       call fix_band()
       write (*, '(A, 20F6.3)') ' Wavelengths in medium (um): ', 2d6*pi/mesh%ki
    else
@@ -30,7 +30,7 @@ program main
       end if
       write (*, '(A, 20F6.3)') ' Wavelengths in medium (um): ', 2d6*pi/mesh%ki
       call calc_T()
-      call write_T()
+      if (use_mie /= 1) call write_T()
    end if
 
    if (run_test == 0) then
