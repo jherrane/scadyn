@@ -98,7 +98,7 @@ module h5io
       mesh%N_tet = size(elem, 2)
 
       allocate (mesh%refrs(size(refr_r, 1), size(refr_r, 2)))
-      allocate (mesh%refr(size(refr_r, 1)))
+      allocate (mesh%refr(size(refr_r, 1)), mesh%eps(size(refr_r, 1)))
       mesh%refrs = dcmplx(refr_r, refr_i)
       write (*, '(2(A,F5.3))') '    Refractive index of medium     =   ', matrices%ref_med
       if (matrices%refr_r > 1d-7) then

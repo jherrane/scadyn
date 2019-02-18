@@ -109,6 +109,14 @@ contains
             deallocate (matrices%S, matrices%Sx, matrices%Sy, matrices%Sz, matrices%indS)
          end if
          mesh%k = mesh%ki(i)
+         if (size(mesh%refrs, 2) > 1) then
+            mesh%eps = dcmplx(real(mesh%refrs(:,i))**2-imag(mesh%refrs(:,i))**2, &
+                  2d0*real(mesh%refrs(:,i))*imag(mesh%refrs(:,i)))
+         else
+            mesh%eps = dcmplx(real(mesh%refrs(:,1))**2-imag(mesh%refrs(:,1))**2, &
+                  2d0*real(mesh%refrs(:,1))*imag(mesh%refrs(:,1)))
+         end if
+         
          call print_bar(i, size(mesh%ki))
          if (mesh%order == 1) call pfft_projection_lin(matrices, mesh)
          if (mesh%order == 0) call pfft_projection_const(matrices, mesh)
