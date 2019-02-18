@@ -14,7 +14,7 @@ ref   = 3      # Mesh refinement level
 gid   = 1      # G-ellipsoid id
 
 
-refr_ind = 1.52 + 0.1j
+refr_ind = 1.4588 + 0.001j
 
 refr_r = np.real(refr_ind)
 refr_i = np.imag(refr_ind)

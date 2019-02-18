@@ -13,7 +13,7 @@ gamma = 35.0    # Input angle for C_2 correlation
 lmin = 2        # Minimum degree in C_1, C_2
 lmax = 10
 
-refr_ind = 1.686 + 0.0312j
+refr_ind = 1.4588 + 0.001j
 
 refr_r = np.real(refr_ind)
 refr_i = np.imag(refr_ind)
