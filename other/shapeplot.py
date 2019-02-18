@@ -20,8 +20,8 @@ def boundary_faces(T):
    
 def read_mesh(meshname):
    meshfile = h5py.File(meshname,"r")
-   V = np.asarray(meshfile['coord'][:])
-   T = np.asarray(meshfile['etopol'][:])-1
+   V = np.asarray(meshfile['node'][:])
+   T = np.asarray(meshfile['elem'][:])-1
    F = boundary_faces(T)
 
    msh =  mesh.Mesh(np.zeros(F.shape[0], dtype=mesh.Mesh.dtype))

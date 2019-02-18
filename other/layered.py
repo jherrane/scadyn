@@ -78,24 +78,24 @@ if __name__ == "__main__":
       T = TT
       
    elem = layers(T,[3,8])
-   eps_r = [2.128,2.128,2.]
-   eps_i = [0.003,0.003,0.003]
+   refr_r = [1.686,1.6861,2.]
+   refr_i = [0.0312,0.0312,0.003]
    param_r = np.zeros(elem.shape[0])
    param_i = np.zeros(elem.shape[0])
    mx = np.max(elem[:,4])
    
    for i in range(mx):
       ind = elem[:,4]==i+1
-      param_i[ind] = eps_i[i]
-      param_r[ind] = eps_r[i]
+      param_i[ind] = refr_i[i]
+      param_r[ind] = refr_r[i]
    
    with h5py.File(outmesh+".h5","w") as f:
-      dset1 = f.create_dataset("coord", V.shape, dtype='double' )
+      dset1 = f.create_dataset("node", V.shape, dtype='double' )
       dset1[...] = V
-      dset2 = f.create_dataset("etopol", elem.shape, dtype='int32')
+      dset2 = f.create_dataset("elem", elem.shape, dtype='int32')
       dset2[...] = elem
-      dset3 = f.create_dataset("param_r", param_r.shape, dtype='double')
+      dset3 = f.create_dataset("refr_r", param_r.shape, dtype='double')
       dset3[...] = param_r
-      dset4 = f.create_dataset("param_i", param_i.shape, dtype='double')
+      dset4 = f.create_dataset("refr_i", param_i.shape, dtype='double')
       dset4[...] = param_i
       

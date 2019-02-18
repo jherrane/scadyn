@@ -15,8 +15,8 @@ lmax = 10
 
 refr_ind = 1.686 + 0.0312j
 
-refr_r = np.real(ref_ind)
-refr_i = np.imag(ref_ind)
+refr_r = np.real(refr_ind)
+refr_i = np.imag(refr_ind)
 
 # For vectorizing we want to, well, use vectors. Here we handle indexing between
 # arrays and vectors (both ways).
@@ -118,17 +118,17 @@ def draw_mesh(meshname, mesh, refinement):
    tetramesh = pymesh.tetrahedralize(mesh,refinement,engine='quartet')     
    print('Number of tetras: ' + str(tetramesh.num_elements))
    
-   param_r = eps_r*np.ones(tetramesh.voxels.shape[0])
-   param_i = eps_i*np.ones(tetramesh.voxels.shape[0])
+   param_r = refr_r*np.ones(tetramesh.voxels.shape[0])
+   param_i = refr_i*np.ones(tetramesh.voxels.shape[0])
    
    with h5py.File(meshname+".h5","w") as f:
       dset1 = f.create_dataset("node", tetramesh.vertices.shape, dtype='double' )
       dset1[...] = tetramesh.vertices
       dset2 = f.create_dataset("elem", tetramesh.voxels.shape, dtype='int32')
       dset2[...] = tetramesh.voxels+1
-      dset3 = f.create_dataset("refr_r", refr_r.shape, dtype='double')
+      dset3 = f.create_dataset("refr_r", param_r.shape, dtype='double')
       dset3[...] = param_r
-      dset4 = f.create_dataset("refr_i", refr_i.shape, dtype='double')
+      dset4 = f.create_dataset("refr_i", param_i.shape, dtype='double')
       dset4[...] = param_i
    fig = plt.figure(figsize=(6, 6),frameon=False)
    ax = mplot3d.Axes3D(fig)
@@ -216,5 +216,5 @@ if __name__ == "__main__":
    if(saveOnlyPly):
       pymesh.save_mesh(meshname+".ply", gsphere)
    else:
-      tetramesh = draw_mesh(meshname, gsphere, refinement)
+      tetramesh = draw_mesh(meshname, sphere, refinement)
 #      pymesh.save_mesh(meshname+".mesh",tetramesh)
