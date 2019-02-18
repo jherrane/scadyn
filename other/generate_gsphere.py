@@ -216,5 +216,5 @@ if __name__ == "__main__":
    if(saveOnlyPly):
       pymesh.save_mesh(meshname+".ply", gsphere)
    else:
-      tetramesh = draw_mesh(meshname, sphere, refinement)
+      tetramesh = draw_mesh(meshname, gsphere, refinement)
 #      pymesh.save_mesh(meshname+".mesh",tetramesh)
