@@ -180,7 +180,6 @@ if __name__ == "__main__":
    gellip = pymesh.form_mesh(node,ellipsoid.elements)
    
    tetramesh = draw_mesh(meshname, gellip, refinement)
-   pymesh.save_mesh(meshname+".ply", gellip)
    pymesh.save_mesh(meshname+".mesh",tetramesh)
 
       

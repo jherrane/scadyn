@@ -204,6 +204,5 @@ if __name__ == "__main__":
    new_vertices = deform(sphere, a_lm, b_lm, beta)
    gsphere = pymesh.form_mesh(new_vertices,sphere.elements)
    
-   pymesh.save_mesh(meshname+".ply", gsphere)
    tetramesh = draw_mesh(meshname, gsphere, refinement)
    pymesh.save_mesh(meshname+".mesh",tetramesh)
