@@ -49,8 +49,8 @@ def outlayer(elem):
 
 def read_mesh(meshname):
    meshfile = h5py.File(meshname,"r")
-   V = np.asarray(meshfile['coord'][:])
-   T = np.asarray(meshfile['etopol'][:],dtype=int)
+   V = np.asarray(meshfile['node'][:])
+   T = np.asarray(meshfile['elem'][:],dtype=int)
 
    return V, T
 
