@@ -153,7 +153,6 @@ def draw_mesh(meshname, mesh, refinement):
    return tetramesh
    
 def args(argv):
-   saveOnlyPly = False
    meshname = "mesh"
    gid   = 1      
    gotGid = False
@@ -161,7 +160,7 @@ def args(argv):
    try:
       opts, args = getopt.getopt(argv,"i:o:f:r:")
    except getopt.GetoptError:
-      print('generate_gsphere.py -i <G-ID> -o <meshname> -f <saveOnlyPly> -r <refinement_level>')
+      print('generate_gsphere.py -i <G-ID> -o <meshname> -r <refinement_level>')
       sys.exit(2)
    for opt, arg in opts:
       if opt in ('-i'):
@@ -179,20 +178,12 @@ def args(argv):
             sys.exit(2)
       if opt in ('-o'):
          meshname = arg
-      if opt in ('-f'):
-         if arg not in ('f', 't'):
-            print('Argument of -f is boolean (t/f), so try again!')
-            sys.exit(2)
-         if arg in ('f') :
-            saveOnlyPly = False
-         elif arg in ('t'):
-            saveOnlyPly = True
    if gotGid:
       meshname = meshname + str(gid)
-   return meshname, saveOnlyPly, gid, refinement
+   return meshname, gid, refinement
 
 if __name__ == "__main__":
-   meshname, saveOnlyPly, gid, refinement  = args(sys.argv[1:])
+   meshname, gid, refinement  = args(sys.argv[1:])
 
    gamma = gamma*np.pi/180
    ell = 2.0*np.sin(0.5*gamma)
@@ -213,8 +204,5 @@ if __name__ == "__main__":
    new_vertices = deform(sphere, a_lm, b_lm, beta)
    gsphere = pymesh.form_mesh(new_vertices,sphere.elements)
    
-   if(saveOnlyPly):
-      pymesh.save_mesh(meshname+".ply", gsphere)
-   else:
-      tetramesh = draw_mesh(meshname, gsphere, refinement)
-#      pymesh.save_mesh(meshname+".mesh",tetramesh)
+   tetramesh = draw_mesh(meshname, gsphere, refinement)
+   pymesh.save_mesh(meshname+".mesh",tetramesh)

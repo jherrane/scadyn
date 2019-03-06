@@ -472,8 +472,8 @@ contains
       allocate (mesh%params(size_param, matrices%bars))
 
 ! Read the astrosilicate data
-      open (unit=15, file="examples/eps_Sil", status='old', &
-            access='sequential', form='formatted', action='read')
+open (unit=15, file="other/eps_Sil", status='old', &
+         access='sequential', form='formatted', action='read')
 
       read (15, *) n
       read (15, *)
