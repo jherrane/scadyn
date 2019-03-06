@@ -54,7 +54,8 @@ contains
 
 ! Check whether using maxval is good or not
          do i = 1, matrices%bars
-            ka = mesh%ki(i)*mesh%a
+            ka = mesh%ki(i)*(dble(maxval([mesh%Nx, mesh%Ny, mesh%Nz])) &
+                             *mesh%delta)/2.0d0
             matrices%Nmaxs(i) = truncation_order(ka)
          end do
       else ! MIE *************************************************************
