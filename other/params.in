@@ -1,7 +1,7 @@
 #####  Physical setup   #######################################################
 R0 i                    # r = random matrix, i = identity matrix*
 w0 0d0 0d0 0d0          # Initial angular velocity
-pos 0.5d0 0.5d0 0d0     # Initial position (in units largest wavelength)
+pos 0.0d0 0.0d0 0d0     # Initial position (in units largest wavelength)
 
 a 2d-7                  # Equivalent radius
 rho 3d3                 # Density
@@ -23,7 +23,7 @@ Kw 1d-13                # Imag part of susceptibility over angular velocity
 E 1d0                   # Amplitude of E at its maximum
 
 #####  Run parameters   #######################################################
-waves bnd              # Wavelength band options lin, inv, log, bnd*, sil, 
+waves bnd               # Wavelength band options lin, inv, log, bnd*, sil, 
                         # isrf
 mueller_mode none       # Mueller matrix type, none*, ave, ori, perf_ori
 
