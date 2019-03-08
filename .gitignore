@@ -11,10 +11,7 @@
 # Executables
 *.out
 
-*/ext/**
-/ext/
-*/data/**
-/data/
+*/other/**
 */out/**
 /out/
 scadyn
@@ -26,3 +23,4 @@ scadyn
 /T/
 *.h5
 *.in
+
