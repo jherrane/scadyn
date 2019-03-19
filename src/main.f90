@@ -8,8 +8,10 @@ program main
    use postprocessing
 
    implicit none
+   real(dp) :: tick, tock
+   character(80) :: tstr
 
-   call splash('v0.8')
+   call splash('v0.8', tick)
 
    call check_paramsfile()
    call read_params()
@@ -28,8 +30,8 @@ program main
          call mie_T_matrix()
       end if
       write (*, '(A, 20F6.3)') ' Wavelengths in medium (um): ', 2d6*pi/mesh%ki
-   else
-      call T_empty()
+   else 
+      if(use_mie /= 1) call T_empty()
       write (*, '(A, 20F6.3)') ' Wavelengths in medium (um): ', 2d6*pi/mesh%ki
       call calc_T()
    end if
@@ -41,6 +43,10 @@ program main
    end if
 
    call compute_mueller()
+
+   call curr_time(tock)
+   tstr = time2str(tock-tick)
+   write (*, '(2A)') ' Total execution time: ', trim(tstr)
 
 contains
 

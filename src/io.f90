@@ -15,29 +15,32 @@ contains
 ! MY ROUTINES *****************************************************************
 !****************************************************************************80
 
-   subroutine splash(v)
+   subroutine splash(v, tick)
       character(4) :: v ! Version
+      real(dp), optional :: tick
       print *, '******************************************************************************'
       print *, '**                                                                          **'
       print *, '**                         JVIE T-Matrix Dynamics ',v,'                      **'
       print *, '**                                                                          **'
       print *, '******************************************************************************'
       print *, ''
-      call curr_time()
+      call curr_time(tick)
 
    end subroutine splash
 
 !****************************************************************************80
 
-   subroutine curr_time()
+   subroutine curr_time(tick)
       character(8)  :: date, fmt, fmt2
       character(10) :: time
       character(5)  :: zone
       character(3)  :: hh, mm, ss, ms
       integer, dimension(8) :: values
+      real(dp), optional :: tick
 
       fmt = '(I2.2)'
       fmt2 = '(I3.3)'
+      if(present(tick)) call cpu_time(tick)
       call date_and_time(date, time, zone, values)
       write (hh, fmt) values(5)
       write (mm, fmt) values(6)
@@ -47,6 +50,25 @@ contains
          trim(hh), ':', trim(mm), ':', trim(ss), '.', trim(ms)
 
    end subroutine curr_time
+
+!****************************************************************************80
+
+   function time2str(time) result(tstr)
+      character(80) :: tstr
+      character(6) :: hstr, mstr, sstr
+      real(dp) :: time
+      integer :: hour, min, sec
+
+      hour = nint(time/3600)
+      min = nint((time - hour*3600)/60)
+      sec = time-hour*3600-min*60
+
+      write(hstr, '(I0)') hour
+      write(mstr, '(I0)') min
+      write(sstr, '(I0)') sec
+      tstr = trim(hstr)//'h '//trim(mstr)//'m '//trim(sstr)//'s'
+
+   end function time2str
 
 !****************************************************************************80
 
