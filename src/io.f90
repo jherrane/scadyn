@@ -59,8 +59,8 @@ contains
       real(dp) :: time
       integer :: hour, min, sec
 
-      hour = nint(time/3600)
-      min = nint((time - hour*3600)/60)
+      hour = floor(time/3600)
+      min = floor((time - hour*3600)/60)
       sec = time-hour*3600-min*60
 
       write(hstr, '(I0)') hour
