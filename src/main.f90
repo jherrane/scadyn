@@ -21,16 +21,17 @@ program main
    call allocate_Ti()
 
    if (matrices%Tmat == 1) then
-      if (use_mie /= 1) call read_T()
-      call fix_band()
-      write (*, '(A, 20F6.3)') ' Wavelengths in medium (um): ', 2d6*pi/mesh%ki
-   else
-      if (matrices%singleT == 1) then
-         call T_empty()
+      if (use_mie /= 1) then
+         call read_T()
+         call fix_band()
+      else
+         call mie_T_matrix()
       end if
       write (*, '(A, 20F6.3)') ' Wavelengths in medium (um): ', 2d6*pi/mesh%ki
+   else
+      call T_empty()
+      write (*, '(A, 20F6.3)') ' Wavelengths in medium (um): ', 2d6*pi/mesh%ki
       call calc_T()
-      if (use_mie /= 1) call write_T()
    end if
 
    if (run_test == 0) then
@@ -66,8 +67,8 @@ contains
       
       if (run_test == 1) call test_methods()
       if (run_test == 2) then
-         call torque_efficiency()
-         ! call RAT_efficiency(60, 20, Npsi_in = 7)
+         ! call torque_efficiency()
+         call RAT_efficiency(60, 20, Npsi_in = 50)
          ! call RAT_alignment()
       end if 
       if (run_test == 3) call write_fields()

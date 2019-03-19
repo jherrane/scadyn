@@ -466,7 +466,7 @@ contains
       real(dp), dimension(:), allocatable :: c, diff, absdif, w, epsr, epsi
       integer :: i, n, size_param, ind
 
-      call read_mesh()
+      if(use_mie /= 1) call read_mesh()
 
       size_param = size(mesh%params, 1)
       if (allocated(mesh%params)) deallocate (mesh%params)
@@ -618,8 +618,7 @@ open (unit=15, file="other/eps_Sil", status='old', &
    subroutine interstellar_env()
       integer :: i
       real(dp) :: urad, lambdamean
-      matrices%wT = (15d0/(8d0*pi*mesh%alpha(3))*k_b*matrices%Td/ &
-                     (mesh%rho*mesh%a**5))**0.5
+      matrices%wT = (k_b*matrices%Tgas/matrices%Ip(3))**0.5
       matrices%TDG = (2d0*mesh%alpha(3)*mesh%rho*mesh%a**2)/ &
                      (5d0*matrices%Kw*matrices%B_len**2)/(4*pi/(mu))
 
@@ -629,10 +628,10 @@ open (unit=15, file="other/eps_Sil", status='old', &
       lambdamean = 0d0
       do i = 1,matrices%bars
          urad = urad + (matrices%E_rel(i)*matrices%E)**2/sqrt(mu/epsilon)/2d0/cc
-         lambdamean = lambdamean + 1d0*pi/mesh%ki(i)
+         lambdamean = lambdamean + 2d0*pi/mesh%ki(i)*(matrices%E_rel(i)*matrices%E)**2/sqrt(mu/epsilon)/2d0/cc
       end do 
       
-      lambdamean = lambdamean/matrices%bars
+      lambdamean = lambdamean/urad
       matrices%M =  urad*lambdamean*mesh%a**2*matrices%Tdrag/ &
                      (2d0*matrices%Ip(3)*matrices%wT)
 
@@ -640,7 +639,7 @@ open (unit=15, file="other/eps_Sil", status='old', &
          print*, 'The interstellar environment values'
          print*, 'lambda_mean = ', lambdamean
          print*, 'u_rad = ', urad
-         print*, 'w_T = ', matrices%wT
+         print*, 'w_T = ',  matrices%wT
          print*, 'T_DG (years) = ', matrices%TDG/(60*60*24*365)
          print*, 'T_drag (years) = ', matrices%Tdrag/(60*60*24*365)
          print*, 'M = ', matrices%M

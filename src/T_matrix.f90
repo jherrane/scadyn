@@ -75,6 +75,9 @@ contains
             matrices%Tabi(1:nm, 1:nm, ii) = matrices%Tab
             matrices%Tbai(1:nm, 1:nm, ii) = matrices%Tba
             matrices%Tbbi(1:nm, 1:nm, ii) = matrices%Tbb
+            if(matrices%singleT == 0) then
+               call singleT_write2file(i)
+            end if
          end do
       end if
 

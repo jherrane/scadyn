@@ -576,7 +576,7 @@ module h5io
 
 !****************************************************************************80
 
-   subroutine singleT_write2file()
+   subroutine singleT_write2file(which_i)
       character(len=80) :: filename
 
       character(len=6), PARAMETER :: dsetname1 = "Taai_r"
@@ -603,22 +603,37 @@ module h5io
       integer(HSIZE_T), dimension(1) :: dims, dims_out
       real(dp), dimension(:), allocatable :: Ti_r, Ti_i
       integer     ::   error ! Error flag
-      integer :: i, ind1, ind2, nm
+      integer :: i, ind1, ind2, nm, choosebar
+      integer, optional :: which_i
 
       filename = matrices%tname
       dims = int8((/T_size/))
       allocate(Ti_r(T_size), Ti_i(T_size))
 
       ind1 = 1
-      do i = 1, matrices%bars
-         nm = (matrices%Nmaxs(i)+1)**2-1
-         if(i==matrices%whichbar)then
-            ind2 = ind1+nm**2-1
-            exit
-         else
-            ind1 = ind1+nm**2
-         end if
-      end do
+      if(present(which_i)) then
+         choosebar = which_i
+         do i = 1, matrices%bars
+            nm = (matrices%Nmaxs(i)+1)**2-1
+            if(i==which_i)then
+               ind2 = ind1+nm**2-1
+               exit
+            else
+               ind1 = ind1+nm**2
+            end if
+         end do
+      else
+         choosebar = matrices%whichbar
+         do i = 1, matrices%bars
+            nm = (matrices%Nmaxs(i)+1)**2-1
+            if(i==matrices%whichbar)then
+               ind2 = ind1+nm**2-1
+               exit
+            else
+               ind1 = ind1+nm**2
+            end if
+         end do
+      end if
 
       call h5open_f(error)
       call h5fopen_f(filename, H5F_ACC_RDWR_F, file_id, error)
@@ -630,7 +645,7 @@ module h5io
       call H5sget_simple_extent_dims_f(dspace_id, dims_out, dims, error)
       call h5dread_f(dset_id1, H5T_NATIVE_DOUBLE, Ti_r, dims, error)
       Ti_r(ind1:ind2) = reshape(real(matrices%Taai(1:nm, 1:nm, &
-         matrices%whichbar)), [nm**2])
+         choosebar)), [nm**2])
       CALL h5dwrite_f(dset_id1, H5T_NATIVE_DOUBLE, Ti_r, dims, error)
       call h5dclose_f(dset_id1, error)
 
@@ -639,7 +654,7 @@ module h5io
       call H5sget_simple_extent_dims_f(dspace_id, dims_out, dims, error)
       call h5dread_f(dset_id2, H5T_NATIVE_DOUBLE, Ti_i, dims, error)
       Ti_i(ind1:ind2) = reshape(imag(matrices%Taai(1:nm, 1:nm, &
-         matrices%whichbar)), [nm**2])
+         choosebar)), [nm**2])
       CALL h5dwrite_f(dset_id2, H5T_NATIVE_DOUBLE, Ti_i, dims, error)
       call h5dclose_f(dset_id2, error)
 
@@ -650,7 +665,7 @@ module h5io
       call H5sget_simple_extent_dims_f(dspace_id, dims_out, dims, error)
       call h5dread_f(dset_id3, H5T_NATIVE_DOUBLE, Ti_r, dims, error)
       Ti_r(ind1:ind2) = reshape(real(matrices%Tabi(1:nm, 1:nm, &
-         matrices%whichbar)), [nm**2])
+         choosebar)), [nm**2])
       CALL h5dwrite_f(dset_id3, H5T_NATIVE_DOUBLE, Ti_r, dims, error)
       call h5dclose_f(dset_id3, error)
 
@@ -659,7 +674,7 @@ module h5io
       call H5sget_simple_extent_dims_f(dspace_id, dims_out, dims, error)
       call h5dread_f(dset_id4, H5T_NATIVE_DOUBLE, Ti_i, dims, error)
       Ti_i(ind1:ind2) = reshape(imag(matrices%Tabi(1:nm, 1:nm, &
-         matrices%whichbar)), [nm**2])
+         choosebar)), [nm**2])
       CALL h5dwrite_f(dset_id4, H5T_NATIVE_DOUBLE, Ti_i, dims, error)
       call h5dclose_f(dset_id4, error)
 
@@ -670,7 +685,7 @@ module h5io
       call H5sget_simple_extent_dims_f(dspace_id, dims_out, dims, error)
       call h5dread_f(dset_id5, H5T_NATIVE_DOUBLE, Ti_r, dims, error)
       Ti_r(ind1:ind2) = reshape(real(matrices%Tbai(1:nm, 1:nm, &
-         matrices%whichbar)), [nm**2])
+         choosebar)), [nm**2])
       CALL h5dwrite_f(dset_id5, H5T_NATIVE_DOUBLE, Ti_r, dims, error)
       call h5dclose_f(dset_id5, error)
 
@@ -679,7 +694,7 @@ module h5io
       call H5sget_simple_extent_dims_f(dspace_id, dims_out, dims, error)
       call h5dread_f(dset_id6, H5T_NATIVE_DOUBLE, Ti_i, dims, error)
       Ti_i(ind1:ind2) = reshape(imag(matrices%Tbai(1:nm, 1:nm, &
-         matrices%whichbar)), [nm**2])
+         choosebar)), [nm**2])
       CALL h5dwrite_f(dset_id6, H5T_NATIVE_DOUBLE, Ti_i, dims, error)
       call h5dclose_f(dset_id6, error)
 
@@ -690,7 +705,7 @@ module h5io
       call H5sget_simple_extent_dims_f(dspace_id, dims_out, dims, error)
       call h5dread_f(dset_id7, H5T_NATIVE_DOUBLE, Ti_r, dims, error)
       Ti_r(ind1:ind2) = reshape(real(matrices%Tbbi(1:nm, 1:nm, &
-         matrices%whichbar)), [nm**2])
+         choosebar)), [nm**2])
       CALL h5dwrite_f(dset_id7, H5T_NATIVE_DOUBLE, Ti_r, dims, error)
       call h5dclose_f(dset_id7, error)
 
@@ -699,7 +714,7 @@ module h5io
       call H5sget_simple_extent_dims_f(dspace_id, dims_out, dims, error)
       call h5dread_f(dset_id8, H5T_NATIVE_DOUBLE, Ti_i, dims, error)
       Ti_i(ind1:ind2) = reshape(imag(matrices%Tbbi(1:nm, 1:nm, &
-         matrices%whichbar)), [nm**2])
+         choosebar)), [nm**2])
       CALL h5dwrite_f(dset_id8, H5T_NATIVE_DOUBLE, Ti_i, dims, error)
       call h5dclose_f(dset_id8, error)
 

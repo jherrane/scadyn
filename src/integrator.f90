@@ -259,10 +259,10 @@ contains
 ! Start integration
 
       Nw = 10
-      Nxi = 15
-      Npoints = 300
+      Nxi = 10
+      Npoints = 1000
       allocate(path_w(Nxi,Nw,Npoints), path_xi(Nxi,Nw,Npoints))
-      call grid_xi_w(Nxi, Nw, xi, w, w_limits=[-40d0,40d0])
+      call grid_xi_w(Nxi, Nw, xi, w, w_limits=[-0.1d0,0.1d0])
 
       open(unit=1,file="out/path"//trim(matrices%out), action="write", status="replace")
       write(1,'(I0)') Nxi
@@ -296,14 +296,14 @@ contains
 ! about its major axis of inertia (a_3) for angles 0 to pi between
 ! a_3 and incident k0. Results are automatically comparable with DDSCAT.
    subroutine RAT_efficiency(Nxi, Nphi, Npsi_in, FGH)
-      integer :: i, j, k, Nxi, Nphi, Npsi, ind
+      integer :: i, j, k, Nxi, Nphi, Npsi, ind, Ntheta
       integer, optional :: Npsi_in
-      real(dp) :: F, G, H
+      real(dp) :: F, G, H, cth
       real(dp), dimension(3) :: Q_t, n_phi
-      real(dp), dimension(:, :), allocatable :: F_coll
+      real(dp), dimension(:, :), allocatable :: F_coll, Q_coll
       real(dp), dimension(:, :), allocatable, optional, intent(out) :: FGH
       real(dp), dimension(3,3) :: R_B, R_phi, R_xi
-      real(dp), dimension(:), allocatable :: psi, xi, phi
+      real(dp), dimension(:), allocatable :: psi, xi, phi, theta, costheta, Q_t1, Q_t2, Q_t3
 
       if(.NOT. present(Npsi_in)) then
          Npsi = 1
@@ -312,6 +312,8 @@ contains
       end if
 
       allocate (xi(Nxi), phi(Nphi), psi(Npsi), F_coll(6, Nxi*Npsi))
+      Ntheta = 315
+      allocate(theta(Ntheta), Q_t1(Ntheta), Q_t2(Ntheta), Q_t3(Ntheta), costheta(Ntheta))
       if(present(FGH)) allocate(FGH(4,Nxi*Npsi))
       call linspace(0d0, pi, Nxi, xi)
       call linspace(0d0, pi/2d0, Npsi, psi)
@@ -319,26 +321,29 @@ contains
       call linspace(0d0, pi*2d0, Nphi, phi)
       F_coll(:, :) = 0d0
 
-! Radiative torque calculations, emulating work of Draine & Weingartner (1997),
- ! ApJ 480:633  
+      call linspace(0d0, pi, Ntheta, theta)
+      costheta=cos(theta)
+
+! Radiative torque calculations, similarly as in LH07
+      write (*, '(A)') '  Starting the calculation of beta-averaged torque efficiencies:'
+      do i = 1, Ntheta
+         Q_t = get_Qav(theta(i), 0d0)
+! Flip the coordinate labels to match Lazarian2007b: In this code, k is along 
+! z instead of x, 0-polarization is the y of L2007b. So, inverse that next.
+         Q_t1(i) = Q_t(3)
+         Q_t2(i) = Q_t(1)
+         Q_t3(i) = Q_t(2)
+         call print_bar(i, Ntheta)
+      end do
+
       ind = 0
       write (*, '(A)') '  Starting the calculation of phi-averaged radiative torques:'
-! First, set up rotation axis for precession averaging in the direction of psi (B)     
       do i = 1, Npsi
-         n_phi = matmul(R_aa([0d0, 1d0, 0d0], psi(i)), [0d0,0d0,1d0]) ! Is actually B
-         R_B = rotate_a_to_b(matrices%P(:, 3), n_phi)
-! Rotation to xi of a_3 is a combined rotation of angle psi+xi
          do j = 1, Nxi
-            R_xi = matmul(R_aa([0d0, 1d0, 0d0], xi(j)), R_B)
-
-! Find rotation of angle phi around the rotated a_3-axis and the whole rotation
             do k = 1, Nphi
-               R_phi = R_aa(n_phi, phi(k))
-               matrices%R = matmul(R_phi, R_xi) ! First a_3 to xi, then beta about a_3
-
-               call get_forces(1)
-
-               Q_t = matmul(transpose(matrices%R),matrices%Q_t)/dble(Nphi)
+               cth = cos(xi(j))*cos(psi(i))-sin(xi(j))*sin(psi(i))*cos(phi(k))
+               Q_t = [interp1D(Q_t1,costheta,cth), &
+               interp1D(Q_t2,costheta,cth), interp1D(Q_t3,costheta,cth)]
                F = dot_product(Q_t, xihat(xi(j), phi(k), psi(i)))
                G = dot_product(Q_t, phihat(xi(j), phi(k), psi(i)))
                H = dot_product(Q_t, rhat(xi(j), phi(k), psi(i)))
@@ -355,6 +360,8 @@ contains
       close(1)
 
       open(unit=1, file="out/F"//trim(matrices%out), ACTION="write", STATUS="replace")
+      write (1, '(ES12.3)') matrices%wT
+      write (1, '(ES12.3)') matrices%Ip(3)
       write (1, '(A)') 'xi   psi   F  H  G'
       do i = 1, size(F_coll, 2)
          write (1, '(6ES12.3)') dcos(F_coll(1:2, i)), F_coll(3:5, i)
@@ -444,11 +451,11 @@ contains
 
       beta = matrices%Tdrag/matrices%TDG
 ! dxi = MF/w -betasin(xi)cos(xi)
-      dxiw(1) = matrices%M*interp1D(F,xis,dcos(xi))/w - &
-                  beta*dsin(xi)*dcos(xi)
+      dxiw(1) = matrices%M*interp1D(F,xis,dcos(xi))/w !- &
+                  ! beta*dsin(xi)*dcos(xi)
 ! dw = MH -(1+betasin^2(xi))w
-      dxiw(2) = matrices%M*interp1D(H,xis,dcos(xi)) - &
-                  (1d0+beta*(dsin(xi))**2)*w
+      dxiw(2) = matrices%M*interp1D(H,xis,dcos(xi)) !- &
+                  ! (1d0+beta*(dsin(xi))**2)*w
 
    end function get_dxiw
 
@@ -705,7 +712,7 @@ contains
    subroutine ADE_update(w, xi)
       real(dp) :: dxiw(2), w, xi, dt, k_w(4), k_xi(4)
 
-      dt = 1d-2
+      dt = 1d-7
 
       dxiw = get_dxiw(xi, w)
       k_w(1) = dxiw(2)
@@ -741,7 +748,7 @@ contains
       allocate(w(Nw), xi(Nxi))
       allocate(xi_grid(Nxi, Nw), w_grid(Nxi, Nw))
 
-      if(.NOT. present(w_limits)) w_limits = [-100d0,100d0]
+      if(.NOT. present(w_limits)) w_limits = [-1d0,1d0]
       call linspace(w_limits(1), w_limits(2), Nw, w)
       call linspace(-1d0,1d0,Nxi,xi)
       xi = acos(xi)
