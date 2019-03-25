@@ -74,7 +74,7 @@ contains
       if (run_test == 1) call test_methods()
       if (run_test == 2) then
          ! call torque_efficiency()
-         call RAT_efficiency(60, 20, Npsi_in = 50)
+         call RAT_efficiency(180, 90, Npsi_in = 90)
          ! call RAT_alignment()
       end if 
       if (run_test == 3) call write_fields()
