@@ -298,7 +298,7 @@ contains
    subroutine RAT_efficiency(Nxi, Nphi, Npsi_in, FGH)
       integer :: i, j, k, Nxi, Nphi, Npsi, ind, Ntheta
       integer, optional :: Npsi_in
-      real(dp) :: F, G, H, cth
+      real(dp) :: F, G, H, cth, psi_b, x,fi,p, th
       real(dp), dimension(3) :: Q_t, n_phi
       real(dp), dimension(:, :), allocatable :: F_coll, Q_coll
       real(dp), dimension(:, :), allocatable, optional, intent(out) :: FGH
@@ -342,16 +342,27 @@ contains
          do j = 1, Nxi
             do k = 1, Nphi
                cth = cos(xi(j))*cos(psi(i))-sin(xi(j))*sin(psi(i))*cos(phi(k))
+               th = acos(cth)
+               x = xi(j)
+               fi = phi(k)
+               p = psi(i)
+               psi_b = 2d0*atan2(sin(th)-sin(x)*sin(p), sin(x)*sin(fi))
                Q_t = [interp1D(Q_t1,costheta,cth), &
-               interp1D(Q_t2,costheta,cth), interp1D(Q_t3,costheta,cth)]
-               F = dot_product(Q_t, xihat(xi(j), phi(k), psi(i)))
-               G = dot_product(Q_t, phihat(xi(j), phi(k), psi(i)))
-               H = dot_product(Q_t, rhat(xi(j), phi(k), psi(i)))
+               interp1D(Q_t2,costheta,cth), 0d0]
+               
+               F = Q_t(1)*(-sin(p)*cos(x)*cos(fi)-cos(p)*sin(x)) &
+                  + Q_t(2)*(cos(psi_b)*(cos(p)*cos(x)*cos(fi)-sin(p)*sin(x))+sin(psi_b)*cos(x)*sin(fi)) &
+                  + Q_t(3)*(cos(psi_b)*cos(x)*sin(fi)+sin(psi_b)*(sin(p)*sin(x)-cos(p)*cos(x)*cos(fi)))
+               H = Q_t(1)*(-sin(p)*sin(x)*cos(fi)+cos(p)*cos(x)) &
+                  +Q_t(2)*(cos(psi_b)*(sin(p)*cos(x)+cos(p)*sin(x)*cos(fi))+sin(psi_b)*sin(x)*sin(fi))
+               G = Q_t(1)*(sin(p)*sin(fi))&
+                  +Q_t(2)*(sin(psi_b)*cos(fi)-cos(psi_b)*cos(p)*sin(fi)) &
+                  +Q_t(3)*(cos(psi_b)*cos(fi)-sin(psi_b)*cos(p)*sin(fi))
+
                F_coll(3, ind + 1) = F_coll(3, ind + 1) + F
                F_coll(4, ind + 1) = F_coll(4, ind + 1) + H
                F_coll(5, ind + 1) = F_coll(5, ind + 1) + G
             end do
-
             F_coll(1:2, ind + 1) = [xi(j), psi(i)]
             call print_bar(ind + 1, size(F_coll, 2))
             ind = ind + 1

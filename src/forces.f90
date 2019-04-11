@@ -47,6 +47,9 @@ contains
                (epsilon*(matrices%E)**2)/&
                   (0.5d0*pi/mesh%ki(i))/mesh%a**2/matrices%bars
             end if
+            Q_f = Q_f + matrices%force/&
+               (epsilon*(matrices%E_rel(i)*matrices%E)**2/2d0)/&
+               pi/mesh%a**2/matrices%bars
          end do
       else
          call forcetorque(matrices%whichbar)
