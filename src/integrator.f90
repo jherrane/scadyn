@@ -260,9 +260,9 @@ contains
 
       Nw = 10
       Nxi = 10
-      Npoints = 1000
+      Npoints = 3000
       allocate(path_w(Nxi,Nw,Npoints), path_xi(Nxi,Nw,Npoints))
-      call grid_xi_w(Nxi, Nw, xi, w, w_limits=[-0.1d0,0.1d0])
+      call grid_xi_w(Nxi, Nw, xi, w, w_limits=[-3d0,3d0])
 
       open(unit=1,file="out/path"//trim(matrices%out), action="write", status="replace")
       write(1,'(I0)') Nxi
@@ -723,7 +723,7 @@ contains
    subroutine ADE_update(w, xi)
       real(dp) :: dxiw(2), w, xi, dt, k_w(4), k_xi(4)
 
-      dt = 1d-7
+      dt = 1d-5
 
       dxiw = get_dxiw(xi, w)
       k_w(1) = dxiw(2)
