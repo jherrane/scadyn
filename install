@@ -1,6 +1,7 @@
 install() {
-	make
-	./scadyn --mesh other/GRE-1.h5 -T other/T-GRE-1.h5 --paramsfile other/params.in
+   make
+   python other/generate_gellip.py
+   ./scadyn -m mesh.h5 -T T.h5 -p other/params.in
 }
 
 install

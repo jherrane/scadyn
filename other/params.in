@@ -3,7 +3,7 @@ R0 i                    # r = random matrix, i = identity matrix*
 w0 0d0 0d0 0d0          # Initial angular velocity
 pos 0.0d0 0.0d0 0d0     # Initial position (in units largest wavelength)
 
-a 2d-7                  # Equivalent radius
+a 1d-7                  # Equivalent radius
 rho 3d3                 # Density
 drag 1                  # Mesh "drag coefficient", for sphere = 1
 
@@ -23,7 +23,7 @@ Kw 1d-13                # Imag part of susceptibility over angular velocity
 E 1d0                   # Amplitude of E at its maximum
 
 #####  Run parameters   #######################################################
-waves bnd               # Wavelength band options lin, inv, log, bnd*, sil, 
+waves lin               # Wavelength band options lin, inv, log, bnd*, sil, 
                         # isrf
 mueller_mode none       # Mueller matrix type, none*, ave, ori, perf_ori
 
@@ -34,11 +34,11 @@ int_mode 0              # 0 = full scattering dynamics integration,
                         # 1 = alignment integration of stably spinning particle
                         # 2 = explicit integration only (optical tweezers etc.)
 
-Tmat 1                  # 1 = file is usable / 0 = force T-matrix calculation
+Tmat 0                  # 1 = file is usable / 0 = force T-matrix calculation
 polarization 2          # 1 = lin / 2 = un* / 3 = circ
 bars 10                 # Number of wavelengths in range lmb1-lmb2 nm
-lambda1 200
-lambda2 2000
+lambda1 330
+lambda2 1200
 whichbar 0              # 0 = use all*
 beam_shape 0            # 0 = plane wave*, 1 = LG, 2 = Bessel
 pl 0 0                  # Laguerre-Gaussian beam mode

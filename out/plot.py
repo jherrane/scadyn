@@ -32,11 +32,11 @@ class cd:
 def plot_fig(x, y, markevery, title, xlabel, ylabel, figname, *args, **kwargs):
    ylim = kwargs.get('ylim', None)
    
-   fig = plt.figure(figsize=(16,14))
+   fig = plt.figure(figsize=(10,8))
 
    plt.rc('text', usetex=True)
    plt.rc('font', family='serif')
-   font = {'weight' : 'bold', 'size' : 48}
+   font = {'weight' : 'bold', 'size' : 36}
    mpl.rc('font',**font)
    
    plt.autoscale(enable=True, axis='x', tight=True)
@@ -56,10 +56,11 @@ def plot_fig(x, y, markevery, title, xlabel, ylabel, figname, *args, **kwargs):
          ax.set_ylim([-ylim,ylim])
    plt.xlabel(r'$'+xlabel+'$',labelpad=10)
    plt.ylabel(r'$'+ylabel+'$',labelpad=10)
-   plt.legend()
+   plt.legend(fontsize=20)
 
-   ax.tick_params(direction='out', length=16, width=2, which='major',pad=10)
-   ax.tick_params(direction='out', length=10, width=1, which='minor',pad=10)
+   ax.tick_params(direction='in', length=16, width=2, which='major',pad=10)
+   ax.tick_params(direction='in', length=10, width=1, which='minor',pad=10)
+   ax.tick_params(top=True, right=True,which='both')
    
    plt.title(title,fontweight='bold')
    plt.savefig(figname+file_suffix+'.png')

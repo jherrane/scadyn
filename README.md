@@ -14,8 +14,8 @@ Run `install` if you dare. The installation is dependent on the LAPACK, BLAS, HD
 Library locations and compiler probably need changing. Never tried, so good luck!
 
 ## Run
-Easiest way is to run `install`. The basic command is:
+Run install if you dare. All errors should indicate what dependencies I forgot about. The basic command is:
 ```
 ./scadyn --mesh shape.h5 -T T.h5 --paramsfile params.in
 ```
-The geometry meshes are to be `tetgen`-compatible.
+The geometry meshes are to be `tetgen`-compatible. Geometry generation routines are available, and can be run e.g. in `tetgen` or `quartet` mode. Former tends to generate unevenly sized tetrahedra inside the geometry while the latter is much more optimal on the inside, though the surface can be poor. Optimal geometry generation thus depends on the choice of initial surface refinement level, tetrahedralization refinement level and the tetrahedralization engine.
