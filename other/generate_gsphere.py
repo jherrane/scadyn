@@ -156,7 +156,7 @@ def args(argv):
    meshname = "mesh"
    gid   = 1      
    gotGid = False
-   refinement = 0.15
+   refinement = 0.2
    try:
       opts, args = getopt.getopt(argv,"i:o:f:r:")
    except getopt.GetoptError:
@@ -205,4 +205,4 @@ if __name__ == "__main__":
    gsphere = pymesh.form_mesh(new_vertices,sphere.elements)
    
    tetramesh = draw_mesh(meshname, gsphere, refinement)
-   pymesh.save_mesh(meshname+".mesh",tetramesh)
+#   pymesh.save_mesh(meshname+".mesh",tetramesh)

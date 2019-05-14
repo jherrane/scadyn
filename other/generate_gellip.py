@@ -144,7 +144,7 @@ def args(argv):
    meshname = "mesh"
    gid   = 1      # G-ellipsoid id
    gotGid = False
-   refinement = 0.15
+   refinement = 0.2
    try:
       opts, args = getopt.getopt(argv,"i:o:f:r:")
    except getopt.GetoptError:
@@ -180,5 +180,5 @@ if __name__ == "__main__":
    gellip = pymesh.form_mesh(node,ellipsoid.elements)
    
    tetramesh = draw_mesh(meshname, gellip, refinement)
-   pymesh.save_mesh(meshname+".mesh",tetramesh)
+#   pymesh.save_mesh(meshname+".mesh",tetramesh)
       

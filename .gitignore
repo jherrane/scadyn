@@ -14,14 +14,16 @@
 */other/**
 */out/**
 /out/
-Siris/
-scadyn
 */build/**
 /build/
 */Geometries/**
 /Geometries/
 */T/**
 /T/
+*/Siris/**
 *.h5
 *.in
+*.png
+
+scadyn
 
