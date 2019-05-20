@@ -310,6 +310,66 @@ module h5io
       end do
    end subroutine read_T
 
+!****************************************************************************80
+
+   subroutine read_k()
+      character(len=80) :: file ! File name
+      character(len=16), PARAMETER :: dataset9 = "T-ref-a"
+      character(len=16), PARAMETER :: dataset10 = "T-wavlens"
+
+      integer(HID_T) :: file_id
+      integer(HID_T) :: dataset9_id, dataset10_id
+      integer(HID_T) :: dataspace_id
+
+      integer(HSIZE_T), dimension(1) :: dims_out, dims
+      integer(HSIZE_T), dimension(1) :: dimswl, dimsinfo, dims1
+
+      integer :: error, i, nm, ind
+
+      real(dp), dimension(3) :: ref_a
+      real(dp), dimension(:), allocatable :: wls
+
+      complex(dp) :: ref
+      LOGICAL :: exists
+
+      file = matrices%tname
+
+      call h5open_f(error)
+      call h5fopen_f(file, H5F_ACC_RDWR_F, file_id, error)
+
+!****************************************************************************80
+
+      call h5lexists_f(file_id, dataset9, exists, error)
+         if (exists) then
+
+         call h5dopen_f(file_id, dataset10, dataset10_id, error)
+         call h5dget_space_f(dataset10_id, dataspace_id, error)
+         call H5sget_simple_extent_dims_f(dataspace_id, dimswl, dims1, error)
+         allocate (wls(dims1(1)))
+         call h5dread_f(dataset10_id, H5T_NATIVE_DOUBLE, wls, dims1, error)
+         call h5dclose_f(dataset10_id, error)
+
+         mesh%ki = 2d0*pi/wls
+         if (use_mie == 1) then
+            do i = 1, size(wls, 1)
+               matrices%Nmaxs(i) = truncation_order(mesh%ki(i)*mesh%a)
+            end do
+         else
+            do i = 1, size(wls, 1)
+               matrices%Nmaxs(i) = truncation_order(mesh%ki(i)*&
+                  (dble(maxval([mesh%Nx, mesh%Ny, mesh%Nz]))* &
+                                mesh%delta)/2.0d0)
+            end do
+         end if
+
+!****************************************************************************80
+      end if
+
+      call h5fclose_f(file_id, error)
+      call h5close_f(error)
+
+   end subroutine read_k
+
 ! HDF5 WRITE ******************************************************************
 !****************************************************************************80
    subroutine write_T()

@@ -443,6 +443,7 @@ contains
             sm = sm + matrices%E_rel(i)
          end do
          matrices%E_rel = matrices%E_rel/sm
+         matrices%E_rel = matrices%E_rel/maxval(matrices%E_rel)
       end if
        
    end subroutine calc_E_rel
@@ -450,11 +451,16 @@ contains
 !****************************************************************************80
 ! Setup the wavelength band and all matrices in it
    subroutine setup_band()
-      if (matrices%waves == 'bnd') then
-         call find_k()
+       if (matrices%Tmat == 1) then
+         call read_k()
          call calc_E_rel()
       else
-         call band_no_blackbody()
+         if (matrices%waves == 'bnd') then
+            call find_k()
+            call calc_E_rel()
+         else
+            call band_no_blackbody()
+         end if
       end if
 
    end subroutine setup_band
@@ -630,7 +636,7 @@ open (unit=15, file="other/eps_Sil", status='old', &
          urad = urad + (matrices%E_rel(i)*matrices%E)**2/sqrt(mu/epsilon)/2d0/cc
          lambdamean = lambdamean + 2d0*pi/mesh%ki(i)*(matrices%E_rel(i)*matrices%E)**2/sqrt(mu/epsilon)/2d0/cc
       end do 
-      
+
       lambdamean = lambdamean/urad
       matrices%M =  urad*lambdamean*mesh%a**2*matrices%Tdrag/ &
                      (2d0*matrices%Ip(3)*matrices%wT)
