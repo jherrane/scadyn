@@ -407,21 +407,6 @@ contains
    end subroutine adaptive_step
 
 !****************************************************************************80
-! Calculates the update coefficients for a linear vector ODE
-! via 2nd order Euler
-! input:  v(3) = velocity at previous timestep
-!         dt = timestep
-! output: dx(3) = RK-coefficient for calculating
-!         x_next = x + dt*v
-   function euler_3D(v, dt) result(dx)
-
-      real(dp) :: dx(3), v(3), dt
-
-      dx = v*dt
-
-   end function euler_3D
-
-!****************************************************************************80
 
    function get_dotq(w, q) result(dq)
 
@@ -504,10 +489,8 @@ contains
          if(mode==0) N = 0d0
       end if
 
-      FFD = (dble(matrices%F))/mesh%mass
-      matrices%vn = matrices%v_CM + euler_3D(FFD, dt)*dt
-      matrices%xn = matrices%x_CM + euler_3D(matrices%vn, dt)*dt
-
+      matrices%vn = matrices%v_CM + dble(matrices%F)/mesh%mass*dt
+      matrices%xn = matrices%x_CM + matrices%v_CM*dt + 0.5d0*(dble(matrices%F)/mesh%mass)*dt**2 
 ! Step 1) Newton solve
       wnh = matrices%w ! Body angular velocity
       Jw = matmul(matrices%I, wnh)
@@ -675,8 +658,14 @@ contains
       real(dp) :: Fnorm, Fg
       logical :: tested_gravity
       character(len=120) :: fname, fmt
+      integer :: i
 
       tested_gravity = .FALSE.
+
+      i = 1
+      if(matrices%whichbar /= 0) then
+         i = matrices%whichbar
+      end if
 
       if(seedling /= 0) brownian = .TRUE.
       Fg = (mesh%rho)*mesh%V*9.81d0
@@ -698,7 +687,7 @@ contains
             write(*,'(A,ES9.3,A)') '  Intensity at maximum is then ', matrices%E**2/(2d0*377d0), ' W/m^2'
             if(l==0 .AND. p == 0. .AND. beam_shape == 1) then
                write(*,'(A,ES9.3,A)') '  Corresponding LG00 beam power ', &
-               matrices%E**2/(2d0*377d0)*(pi/2d0)*(2d0/matrices%NA/mesh%ki(1))**2, ' W'
+               matrices%E**2/(2d0*377d0)*(pi/2d0)*(2d0/matrices%NA/mesh%ki(i))**2, ' W'
             end if
             call get_forces()
             tested_gravity = .TRUE.
