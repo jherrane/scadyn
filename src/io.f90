@@ -128,7 +128,7 @@ contains
 !****************************************************************************80
 ! Subroutine to read input parameters
    subroutine read_arguments()
-      integer :: i, muexp
+      integer :: i
       character(len=80) :: arg_name, arg
 
       matrices%singleT = 0
@@ -167,10 +167,6 @@ contains
          case ('--refmed')
             call get_command_argument(i + 1, arg)
             read (arg, *) matrices%ref_med
-         case ('--mu')
-            call get_command_argument(i + 1, arg)
-            read (arg, *) muexp
-            matrices%mu = 10d0**(-muexp)
          case ('-w', '--wavelen')
             call get_command_argument(i + 1, arg)
             read (arg, *) matrices%whichbar

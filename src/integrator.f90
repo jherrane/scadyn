@@ -689,7 +689,6 @@ contains
                write(*,'(A,ES9.3,A)') '  Corresponding LG00 beam power ', &
                matrices%E**2/(2d0*377d0)*(pi/2d0)*(2d0/matrices%NA/mesh%ki(i))**2, ' W'
             end if
-            write(*, '(A,ES9.3,A)') '  Dynamic viscosity is ', matrices%mu, 'Ns/m^2'
             call get_forces()
             tested_gravity = .TRUE.
          end if
