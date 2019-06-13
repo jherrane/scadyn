@@ -583,7 +583,7 @@ contains
 
 ! At really low pressures, the continuum assumption may not be valid.
 ! Disregard viscosity and thus drag.
-      if(matrices%rho_med<1d-1) then
+      if(matrices%rho_med<1d-2) then
          F_drag = 0d0
          N_drag = 0d0
       end if
@@ -592,7 +592,7 @@ contains
       F_m = 0.5d0*matrices%rho_med*mesh%V*dble(matrices%F)/mesh%mass
       F_mag = matrices%rho_med*mesh%V*crossRR(matrices%w,matrices%v_CM)*mesh%mass
 
-      ! print*, vlen(N), vlen(N_drag), vlen(matrices%w)
+      ! print*, vlen(matrices%N), vlen(N_drag), vlen(matrices%w)
       ! print*, vlen(matrices%F), vlen(F_drag), vlen(F_G), vlen(F_m), vlen(F_mag)
       N = matrices%N + N_drag
       F = (matrices%F + F_G + F_drag + F_m + F_mag)
@@ -689,6 +689,7 @@ contains
                write(*,'(A,ES9.3,A)') '  Corresponding LG00 beam power ', &
                matrices%E**2/(2d0*377d0)*(pi/2d0)*(2d0/matrices%NA/mesh%ki(i))**2, ' W'
             end if
+            write(*, '(A,ES9.3,A)') '  Dynamic viscosity is ', matrices%mu, 'Ns/m^2'
             call get_forces()
             tested_gravity = .TRUE.
          end if
