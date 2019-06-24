@@ -392,17 +392,19 @@ contains
 ! can rotate during a step
    subroutine adaptive_step(N, Fin)
       real(dp), dimension(3), optional :: Fin
-      real(dp) :: dw(3), N(3), F(3), dx(3), lambda
+      real(dp) :: dw(3), N(3), F(3), dx(3), lambda, dt_w, dt_x
 
       dw = get_dotw(N, matrices%w, matrices%I, matrices%I_inv)
-      matrices%dt = matrices%rot_max/max(vlen(matrices%w), vlen(dw))
+      dt_w = matrices%rot_max/max(vlen(matrices%w), vlen(dw))
+      dt_x = matrices%dt0
 
       if(present(Fin))then
          F = Fin
          lambda = 2d0*pi/minval(mesh%ki)
          dx = matrices%v_CM*matrices%dt + 0.5d0*F*matrices%dt**2
-         matrices%dt = matrices%dt*min(max(vlen(dx)/(lambda)/matrices%dt,0.5d0),2d0)
+         dt_x = 0.2*mesh%a/max(vlen(dx),vlen(matrices%v_CM))
       end if
+         matrices%dt = minval([dt_w,dt_x])
 
    end subroutine adaptive_step
 
