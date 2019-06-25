@@ -61,7 +61,7 @@ contains
       end if
 
       call diagonalize_inertia()
-      call interstellar_env()
+      if (int_mode == 0 .OR. int_mode == 1) call interstellar_env()
 
       call polarization()
       call init_values()

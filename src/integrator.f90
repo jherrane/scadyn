@@ -53,7 +53,7 @@ contains
       end if
 
       call diagonalize_inertia()
-      call interstellar_env()
+      if (int_mode == 0 .OR. int_mode == 1) call interstellar_env()
 
       call polarization()
       call init_values()
@@ -86,7 +86,7 @@ contains
          else
             if(i==1) call ot_calibrate()
             call ot_update()
-            if(autoterminate .AND. abs(matrices%x_CM(3)) > 4d0*2d0*pi/mesh%ki(1)) then
+            if(autoterminate .AND. abs(matrices%x_CM(3)) > 2d0*(mesh%a + 2d0*pi/mesh%ki(1))) then
                stop 'Particle flew out of the tweezers'
             end if
             if(photodetector) then
@@ -390,21 +390,26 @@ contains
 !****************************************************************************80
 ! Calculates adaptive time step over a maximum angle the particle
 ! can rotate during a step
-   subroutine adaptive_step(N, Fin)
-      real(dp), dimension(3), optional :: Fin
-      real(dp) :: dw(3), N(3), F(3), dx(3), lambda, dt_w, dt_x
+   subroutine adaptive_step(Rn, R, xn, x, step_ok, dt, dtn)
+      real(dp), dimension(3, 3) :: Rn, R, T
+      real(dp), dimension(3) :: xn, x
+      real(dp) :: trace, dt, dtn
+      logical :: step_ok, test_angle, test_motion
 
-      dw = get_dotw(N, matrices%w, matrices%I, matrices%I_inv)
-      dt_w = matrices%rot_max/max(vlen(matrices%w), vlen(dw))
-      dt_x = matrices%dt0
+      T = matmul(transpose(Rn),R)
+      trace = T(1,1)+T(2,2)+T(3,3)
 
-      if(present(Fin))then
-         F = Fin
-         lambda = 2d0*pi/minval(mesh%ki)
-         dx = matrices%v_CM*matrices%dt + 0.5d0*F*matrices%dt**2
-         dt_x = 0.2*mesh%a/max(vlen(dx),vlen(matrices%v_CM))
+! Test of motion has an experimentally determined tolerance
+      test_angle = dacos(0.5d0*(trace-1)) < matrices%rot_max
+      test_motion = vlen(xn - x) < 1d-5/minval(mesh%ki)
+
+      if(test_angle .AND. test_motion) then
+         step_ok = .TRUE.
+         dtn = dt
+      else
+         step_ok = .FALSE.
+         dtn = 0.5*dt
       end if
-         matrices%dt = minval([dt_w,dt_x])
 
    end subroutine adaptive_step
 
@@ -463,15 +468,13 @@ contains
       real(dp), dimension(3) :: F, N
       integer, optional :: mode
       integer :: maxiter, i1
-      real(dp) :: Rn(3, 3), wnh(3), dt, I(3), Jw(3), Ff, FFD(3)
+      real(dp) :: Rn(3, 3), wnh(3), dt, dtn, I(3), Jw(3), Ff, FFD(3)
       real(dp) :: PxW(3), hel(3), Jac(3, 3), Jwn(3), iterstop
+      logical :: step_ok
 
       maxiter = 50
 
       I = matrices%Ip
-      Jac = 0.d0
-      PxW = 0.d0
-      Jw = 0.d0
 
 ! First force calculation for getting a reasonable value for dt
       if (matrices%tt == 0d0) then
@@ -479,8 +482,7 @@ contains
       end if
 
       N = matrices%N
-      call adaptive_step(N)
-      dt = matrices%dt
+      
 
       if (matrices%E < 1d-7) then 
          N = 0d0
@@ -491,35 +493,52 @@ contains
          if(mode==0) N = 0d0
       end if
 
-      matrices%vn = matrices%v_CM + dble(matrices%F)/mesh%mass*dt
-      matrices%xn = matrices%x_CM + matrices%v_CM*dt + 0.5d0*(dble(matrices%F)/mesh%mass)*dt**2 
+      Jac = 0.d0
+      PxW = 0.d0
+      Jw = 0.d0
+
+      dt = matrices%dt
+      step_ok = .FALSE.
+      do while (.NOT. step_ok)
 ! Step 1) Newton solve
-      wnh = matrices%w ! Body angular velocity
-      Jw = matmul(matrices%I, wnh)
-      iterstop = maxval(matrices%I)*1.d-12
-
-      do i1 = 1, maxiter
-         Ff = dot_product(wnh, Jw)
-         PxW = 0.5*dt*crossRR(Jw, wnh)
-
-         hel = matmul(matrices%I, matrices%w) - Jw + PxW - &
-         0.25d0*dt**2*Ff*wnh + 0.5d0*dt*N
-
-         if (vlen(hel) < iterstop) then
-            exit
-         end if
-
-         Jac = -matrices%I + 0.5d0*dt*(reshape( &
-              [0.d0, Jw(3) - I(1)*wnh(3), -Jw(2) + I(1)*wnh(2), &
-              -Jw(3) + I(2)*wnh(3), 0.d0, Jw(1) - I(2)*wnh(1), &
-               Jw(2) - I(3)*wnh(2), -Jw(1) + I(3)*wnh(1), 0.d0], [3, 3]) &
-               - dt*real_outer_product(wnh, Jw)) - 0.25d0*dt*dt*Ff*eye(3)
-         wnh = wnh - matmul(inv(Jac), hel)
+         wnh = matrices%w ! Body angular velocity
          Jw = matmul(matrices%I, wnh)
-      end do
+         iterstop = maxval(matrices%I)*1.d-12
+
+         matrices%vn = matrices%v_CM + dble(matrices%F)/mesh%mass*dt
+         matrices%xn = matrices%x_CM + matrices%v_CM*dt + 0.5d0*(dble(matrices%F)/mesh%mass)*dt**2 
+
+         do i1 = 1, maxiter
+            Ff = dot_product(wnh, Jw)
+            PxW = 0.5*dt*crossRR(Jw, wnh)
+
+            hel = matmul(matrices%I, matrices%w) - Jw + PxW - &
+            0.25d0*dt**2*Ff*wnh + 0.5d0*dt*N
+
+            if (vlen(hel) < iterstop) then
+               exit
+            end if
+
+            Jac = -matrices%I + 0.5d0*dt*(reshape( &
+                 [0.d0, Jw(3) - I(1)*wnh(3), -Jw(2) + I(1)*wnh(2), &
+                 -Jw(3) + I(2)*wnh(3), 0.d0, Jw(1) - I(2)*wnh(1), &
+                  Jw(2) - I(3)*wnh(2), -Jw(1) + I(3)*wnh(1), 0.d0], [3, 3]) &
+                  - dt*real_outer_product(wnh, Jw)) - 0.25d0*dt*dt*Ff*eye(3)
+            wnh = wnh - matmul(inv(Jac), hel)
+            Jw = matmul(matrices%I, wnh)
+         end do
 
 ! Step 2) Explicit configuration update
-      Rn = matmul(matrices%R, cay(dt*wnh))
+         Rn = matmul(matrices%R, cay(dt*wnh))
+         call adaptive_step(Rn,matrices%R, matrices%xn, matrices%x_CM, step_ok, dt, dtn)
+         if(debug==1 .AND. .NOT. step_ok) then
+            print*, ' Integration step size was fixed from ', dt, ' to ', dtn
+         end if
+         dt = dtn
+      end do
+
+      matrices%dt = dt
+
       matrices%qn = mat2quat(Rn)
       matrices%qn = normalize_quat(matrices%qn)
       matrices%Rn = quat2mat(matrices%qn)
@@ -540,6 +559,12 @@ contains
       Jwn = Jw + PxW + 0.25d0*dt**2d0*dot_product(wnh, Jw)*wnh + 0.5d0*dt*N
       matrices%wn = matmul(matrices%I_inv, Jwn)
 
+! Magic numbers here low-key increasing the time step for better performance
+      if(dt*vlen(get_dotw(N, matrices%wn, matrices%I, matrices%I_inv)) < 1d-3) then
+         matrices%dt = 1.01*dt
+      end if 
+
+
    end subroutine vlv_update
 
 !****************************************************************************80
@@ -550,16 +575,14 @@ contains
    subroutine ot_update()
       real(dp), dimension(3) :: F, N, F_drag, N_drag, F_G, F_m, F_mag
       integer :: maxiter, i1
-      real(dp) :: Rn(3, 3), wnh(3), dt, I(3), Jw(3), Ff
+      real(dp) :: Rn(3, 3), wnh(3), dt, I(3), Jw(3), Ff, F_old(3), vhalf(3)
       real(dp) :: PxW(3), hel(3), Jac(3, 3), Jwn(3), iterstop
-      real(dp) :: rvec(3), D, Re_w, Re
+      real(dp) :: rvec(3), D, Re_w, Re, dtn
+      logical :: step_ok
 
       maxiter = 50
 
       I = matrices%Ip
-      Jac = 0.d0
-      PxW = 0.d0
-      Jw = 0.d0
 
       call get_forces()
 
@@ -597,49 +620,66 @@ contains
       ! print*, vlen(matrices%N), vlen(N_drag), vlen(matrices%w)
       ! print*, vlen(matrices%F), vlen(F_drag), vlen(F_G), vlen(F_m), vlen(F_mag)
       N = matrices%N + N_drag
-      F = (matrices%F + F_G + F_drag + F_m + F_mag)
-      call adaptive_step( N, F )
-      dt = matrices%dt
+      F = (matrices%F + F_G + F_drag + F_m + F_mag) 
 
-! For brownian motion, we approximate viscosity with water's
+! For brownian motion
+      rvec = 0d0
       if(brownian) then
-         D = k_b*matrices%Tgas/(3d0*pi*1d-3*mesh%a)
+         D = k_b*matrices%Tgas/(3d0*pi*matrices%mu*mesh%a)
          rvec = rand_vec()*sqrt(6d0*D*dt)
-         matrices%x_CM = matrices%x_CM + rvec
       end if
+
+! Low-key try to increase the time step
+      dt = matrices%dt
+      step_ok = .FALSE.
+      do while (.NOT. step_ok )
+         Jac = 0.d0
+         PxW = 0.d0
+         Jw = 0.d0
 
 ! Step update taking gravity, drag, added mass and Magnus
 ! forces into account
-      matrices%vn = matrices%v_CM + F/mesh%mass*dt
-      matrices%xn = matrices%x_CM + matrices%v_CM*dt + 0.5d0*(F/mesh%mass)*dt**2 
+         vhalf = matrices%v_CM + 0.5d0*matrices%F_old/mesh%mass*dt
+         matrices%xn = matrices%x_CM + vhalf*dt
+         matrices%vn = vhalf + 0.5d0*F/mesh%mass*dt
 
 ! Rotation step 1) Newton solve
-      wnh = matrices%w ! Body angular velocity
-      Jw = matmul(matrices%I, wnh)
-      iterstop = maxval(matrices%I)*1.d-12
-
-      do i1 = 1, maxiter
-         Ff = dot_product(wnh, Jw)
-         PxW = 0.5*dt*crossRR(Jw, wnh)
-
-         hel = matmul(matrices%I, matrices%w) - Jw + PxW - &
-         0.25d0*dt**2*Ff*wnh + 0.5d0*dt*N
-
-         if (vlen(hel) < iterstop) then
-            exit
-         end if
-
-         Jac = -matrices%I + 0.5d0*dt*(reshape( &
-              [0.d0, Jw(3) - I(1)*wnh(3), -Jw(2) + I(1)*wnh(2), &
-              -Jw(3) + I(2)*wnh(3), 0.d0, Jw(1) - I(2)*wnh(1), &
-               Jw(2) - I(3)*wnh(2), -Jw(1) + I(3)*wnh(1), 0.d0], [3, 3]) &
-               - dt*real_outer_product(wnh, Jw)) - 0.25d0*dt*dt*Ff*eye(3)
-         wnh = wnh - matmul(inv(Jac), hel)
+         wnh = matrices%w ! Body angular velocity
          Jw = matmul(matrices%I, wnh)
-      end do
+         iterstop = maxval(matrices%I)*1.d-12
+
+         do i1 = 1, maxiter
+            Ff = dot_product(wnh, Jw)
+            PxW = 0.5*dt*crossRR(Jw, wnh)
+
+            hel = matmul(matrices%I, matrices%w) - Jw + PxW - &
+            0.25d0*dt**2*Ff*wnh + 0.5d0*dt*N
+
+            if (vlen(hel) < iterstop) then
+               exit
+            end if
+
+            Jac = -matrices%I + 0.5d0*dt*(reshape( &
+                 [0.d0, Jw(3) - I(1)*wnh(3), -Jw(2) + I(1)*wnh(2), &
+                 -Jw(3) + I(2)*wnh(3), 0.d0, Jw(1) - I(2)*wnh(1), &
+                  Jw(2) - I(3)*wnh(2), -Jw(1) + I(3)*wnh(1), 0.d0], [3, 3]) &
+                  - dt*real_outer_product(wnh, Jw)) - 0.25d0*dt*dt*Ff*eye(3)
+            wnh = wnh - matmul(inv(Jac), hel)
+            Jw = matmul(matrices%I, wnh)
+         end do
 
 ! Rotation step 2) Explicit configuration update
-      Rn = matmul(matrices%R, cay(dt*wnh))
+         Rn = matmul(matrices%R, cay(dt*wnh))
+         call adaptive_step(Rn,matrices%R,matrices%xn,matrices%x_CM,step_ok,dt,dtn)
+         if(debug==1 .AND. .NOT. step_ok) then
+            print*, ' Integration step size was fixed from ', dt, ' to ', dtn
+         end if
+         dt = dtn
+
+      end do
+
+      matrices%dt = dt
+
       matrices%qn = mat2quat(Rn)
       matrices%qn = normalize_quat(matrices%qn)
       matrices%Rn = quat2mat(matrices%qn)
@@ -648,8 +688,16 @@ contains
       Jwn = Jw + PxW + 0.25d0*dt**2d0*dot_product(wnh, Jw)*wnh &
       + 0.5d0*dt*N
       matrices%wn = matmul(matrices%I_inv, Jwn)
+
+      matrices%xn = matrices%xn + rvec
       matrices%F = F
       matrices%N = N
+      matrices%F_old = F
+
+! Magic numbers here low-key increasing the time step for better performance
+      if(dt*vlen(get_dotw(N, matrices%wn, matrices%I, matrices%I_inv)) < 1d-3) then
+         matrices%dt = 1.01*dt
+      end if 
 
    end subroutine ot_update
 
@@ -706,6 +754,7 @@ contains
       end if 
 
       matrices%x_CM = F
+      matrices%F_old = matrices%F
 
    end subroutine ot_calibrate
 

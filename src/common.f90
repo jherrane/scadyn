@@ -155,6 +155,7 @@ module common
       real(dp)                :: B_len = 0d0
       real(dp), dimension(3)  :: w = [0d0, 0d0, 0d0]
       real(dp), dimension(3)  :: x_CM = [0d0, 0d0, 0d0]
+      real(dp), dimension(3)  :: F_old = [0d0, 0d0, 0d0]
       real(dp)                :: width = 550.0d-9
       integer                 :: Tmat = 0
       integer                 :: whichbar = 0
