@@ -399,16 +399,15 @@ contains
       T = matmul(transpose(Rn),R)
       trace = T(1,1)+T(2,2)+T(3,3)
 
-! Test of motion has an experimentally determined tolerance
       test_angle = dacos(0.5d0*(trace-1)) < matrices%rot_max
-      test_motion = vlen(xn - x) < 1d-5/minval(mesh%ki)
+      test_motion = vlen(xn - x) < 1d-6*2d0*pi/maxval(mesh%ki)
 
       if(test_angle .AND. test_motion) then
          step_ok = .TRUE.
          dtn = dt
       else
          step_ok = .FALSE.
-         dtn = 0.5*dt
+         dtn = 0.9*dt
       end if
 
    end subroutine adaptive_step
@@ -513,7 +512,7 @@ contains
             PxW = 0.5*dt*crossRR(Jw, wnh)
 
             hel = matmul(matrices%I, matrices%w) - Jw + PxW - &
-            0.25d0*dt**2*Ff*wnh + 0.5d0*dt*N
+            0.25d0*dt*Ff*wnh + 0.5d0*dt**2*N
 
             if (vlen(hel) < iterstop) then
                exit
@@ -556,14 +555,11 @@ contains
       end if
 
 ! Step 3) Explicit angular velocity update
-      Jwn = Jw + PxW + 0.25d0*dt**2d0*dot_product(wnh, Jw)*wnh + 0.5d0*dt*N
+      Jwn = Jw + PxW + 0.25d0*dt*dot_product(wnh, Jw)*wnh + 0.5d0*dt**2*N
       matrices%wn = matmul(matrices%I_inv, Jwn)
 
-! Magic numbers here low-key increasing the time step for better performance
-      if(dt*vlen(get_dotw(N, matrices%wn, matrices%I, matrices%I_inv)) < 1d-3) then
-         matrices%dt = 1.01*dt
-      end if 
-
+! Low-key increasing the time step to optimal value
+      matrices%dt = 1.1d0*dt
 
    end subroutine vlv_update
 
@@ -653,7 +649,7 @@ contains
             PxW = 0.5*dt*crossRR(Jw, wnh)
 
             hel = matmul(matrices%I, matrices%w) - Jw + PxW - &
-            0.25d0*dt**2*Ff*wnh + 0.5d0*dt*N
+            0.25d0*dt*Ff*wnh + 0.5d0*dt**2*N
 
             if (vlen(hel) < iterstop) then
                exit
@@ -685,8 +681,8 @@ contains
       matrices%Rn = quat2mat(matrices%qn)
 
 ! Rotation step 3) Explicit angular velocity update
-      Jwn = Jw + PxW + 0.25d0*dt**2d0*dot_product(wnh, Jw)*wnh &
-      + 0.5d0*dt*N
+      Jwn = Jw + PxW + 0.25d0*dt*dot_product(wnh, Jw)*wnh &
+      + 0.5d0*dt**2*N
       matrices%wn = matmul(matrices%I_inv, Jwn)
 
       matrices%xn = matrices%xn + rvec
@@ -694,10 +690,8 @@ contains
       matrices%N = N
       matrices%F_old = F
 
-! Magic numbers here low-key increasing the time step for better performance
-      if(dt*vlen(get_dotw(N, matrices%wn, matrices%I, matrices%I_inv)) < 1d-3) then
-         matrices%dt = 1.01*dt
-      end if 
+! Low-key increasing the time step to optimal value
+      matrices%dt = 1.001d0*dt
 
    end subroutine ot_update
 

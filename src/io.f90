@@ -386,6 +386,7 @@ contains
       else
          matrices%R = eye(3)
       end if
+      matrices%Rn = matrices%R
 
       matrices%x_CM = matrices%x_CM*matrices%lambda2
       epsilon = epsilon*matrices%ref_med**2
