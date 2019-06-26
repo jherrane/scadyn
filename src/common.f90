@@ -966,7 +966,7 @@ contains
    end function cay
 
 !****************************************************************************80
-! Dericative of the Cayley formula
+! Derivative of the Cayley formula
    function dcay(x) result(dcayx)
       real(dp) :: x(3), dcayx(3, 3), theta, xhat(3, 3)
 

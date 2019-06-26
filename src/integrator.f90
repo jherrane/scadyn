@@ -95,15 +95,6 @@ contains
             end if
          end if
 
-         call update_values()
-         J = matmul(matrices%I,matrices%w)
-         E = 0.5d0*dot_product(J,matrices%w)
-         if(dot_product(J,J)/=0d0) then
-            matrices%q_param = 2d0*matrices%Ip(3)*E/dot_product(J,J)
-         end if
-         
-         if(int_mode < 2) call check_stability(i)
-
 ! If logging of everything is enabled, then proceed.
          if(shortlog == 0) then
 ! If simulation has less than 100 000 steps, then write every update to file.
@@ -117,8 +108,18 @@ contains
                end if
             end if
          end if
+
          call print_bar(i+1, it_max)
          
+         call update_values()
+         J = matmul(matrices%I,matrices%w)
+         E = 0.5d0*dot_product(J,matrices%w)
+         if(dot_product(J,J)/=0d0) then
+            matrices%q_param = 2d0*matrices%Ip(3)*E/dot_product(J,J)
+         end if
+         
+         if(int_mode < 2) call check_stability(i)
+
       end do
 
    end subroutine solve_eoms
@@ -398,6 +399,8 @@ contains
 
       T = matmul(transpose(Rn),R)
       trace = T(1,1)+T(2,2)+T(3,3)
+      if(0.5d0*(trace-1)<-1d0) trace = -1d0+1d-9
+      if(0.5d0*(trace-1)>1d0) trace = 1d0-1d-9
 
       test_angle = dacos(0.5d0*(trace-1)) < matrices%rot_max
       test_motion = vlen(xn - x) < 1d-6*2d0*pi/maxval(mesh%ki)
@@ -499,7 +502,7 @@ contains
       dt = matrices%dt
       step_ok = .FALSE.
       do while (.NOT. step_ok)
-! Step 1) Newton solve
+! Newton's method
          wnh = matrices%w ! Body angular velocity
          Jw = matmul(matrices%I, wnh)
          iterstop = maxval(matrices%I)*1.d-12
@@ -512,7 +515,7 @@ contains
             PxW = 0.5*dt*crossRR(Jw, wnh)
 
             hel = matmul(matrices%I, matrices%w) - Jw + PxW - &
-            0.25d0*dt*Ff*wnh + 0.5d0*dt**2*N
+            0.25d0*dt**2*Ff*wnh + 0.5d0*dt*N
 
             if (vlen(hel) < iterstop) then
                exit
@@ -522,12 +525,12 @@ contains
                  [0.d0, Jw(3) - I(1)*wnh(3), -Jw(2) + I(1)*wnh(2), &
                  -Jw(3) + I(2)*wnh(3), 0.d0, Jw(1) - I(2)*wnh(1), &
                   Jw(2) - I(3)*wnh(2), -Jw(1) + I(3)*wnh(1), 0.d0], [3, 3]) &
-                  - dt*real_outer_product(wnh, Jw)) - 0.25d0*dt*dt*Ff*eye(3)
+                  - dt*real_outer_product(wnh, Jw)) - 0.25d0*dt**2*Ff*eye(3)
             wnh = wnh - matmul(inv(Jac), hel)
             Jw = matmul(matrices%I, wnh)
          end do
 
-! Step 2) Explicit configuration update
+! Rotation matrix update
          Rn = matmul(matrices%R, cay(dt*wnh))
          call adaptive_step(Rn,matrices%R, matrices%xn, matrices%x_CM, step_ok, dt, dtn)
          if(debug==1 .AND. .NOT. step_ok) then
@@ -554,8 +557,8 @@ contains
          if(mode==0) N = 0d0
       end if
 
-! Step 3) Explicit angular velocity update
-      Jwn = Jw + PxW + 0.25d0*dt*dot_product(wnh, Jw)*wnh + 0.5d0*dt**2*N
+! Angular velocity update
+      Jwn = Jw + PxW + 0.25d0*dt**2*dot_product(wnh, Jw)*wnh + 0.5d0*dt*N
       matrices%wn = matmul(matrices%I_inv, Jwn)
 
 ! Low-key increasing the time step to optimal value
@@ -639,7 +642,7 @@ contains
          matrices%xn = matrices%x_CM + vhalf*dt
          matrices%vn = vhalf + 0.5d0*F/mesh%mass*dt
 
-! Rotation step 1) Newton solve
+! Newton's method
          wnh = matrices%w ! Body angular velocity
          Jw = matmul(matrices%I, wnh)
          iterstop = maxval(matrices%I)*1.d-12
@@ -649,7 +652,7 @@ contains
             PxW = 0.5*dt*crossRR(Jw, wnh)
 
             hel = matmul(matrices%I, matrices%w) - Jw + PxW - &
-            0.25d0*dt*Ff*wnh + 0.5d0*dt**2*N
+            0.25d0*dt**2*Ff*wnh + 0.5d0*dt*N
 
             if (vlen(hel) < iterstop) then
                exit
@@ -659,12 +662,12 @@ contains
                  [0.d0, Jw(3) - I(1)*wnh(3), -Jw(2) + I(1)*wnh(2), &
                  -Jw(3) + I(2)*wnh(3), 0.d0, Jw(1) - I(2)*wnh(1), &
                   Jw(2) - I(3)*wnh(2), -Jw(1) + I(3)*wnh(1), 0.d0], [3, 3]) &
-                  - dt*real_outer_product(wnh, Jw)) - 0.25d0*dt*dt*Ff*eye(3)
+                  - dt*real_outer_product(wnh, Jw)) - 0.25d0*dt**2*Ff*eye(3)
             wnh = wnh - matmul(inv(Jac), hel)
             Jw = matmul(matrices%I, wnh)
          end do
 
-! Rotation step 2) Explicit configuration update
+! Rotation update
          Rn = matmul(matrices%R, cay(dt*wnh))
          call adaptive_step(Rn,matrices%R,matrices%xn,matrices%x_CM,step_ok,dt,dtn)
          if(debug==1 .AND. .NOT. step_ok) then
@@ -680,9 +683,8 @@ contains
       matrices%qn = normalize_quat(matrices%qn)
       matrices%Rn = quat2mat(matrices%qn)
 
-! Rotation step 3) Explicit angular velocity update
-      Jwn = Jw + PxW + 0.25d0*dt*dot_product(wnh, Jw)*wnh &
-      + 0.5d0*dt**2*N
+! Angular velocity update
+      Jwn = Jw + PxW + 0.25d0*dt**2*dot_product(wnh, Jw)*wnh + 0.5d0*dt*N
       matrices%wn = matmul(matrices%I_inv, Jwn)
 
       matrices%xn = matrices%xn + rvec
