@@ -14,6 +14,7 @@ module common
 !****************************************************************************80
 
    integer, parameter   :: dp = selected_real_kind(15, 307)
+   integer, parameter   :: qp = selected_real_kind(33, 4931)
    integer, parameter   :: nthreads = 24
 
    real(dp), parameter  :: pi = 3.141592653589793d0

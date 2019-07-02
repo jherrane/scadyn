@@ -391,26 +391,33 @@ contains
 !****************************************************************************80
 ! Calculates adaptive time step over a maximum angle the particle
 ! can rotate during a step
-   subroutine adaptive_step(Rn, R, xn, x, step_ok, dt, dtn)
+   subroutine adaptive_step(Rn, R, xn, x, wn, w, step_ok, dt, dtn)
       real(dp), dimension(3, 3) :: Rn, R, T
-      real(dp), dimension(3) :: xn, x
+      real(dp), dimension(3) :: xn, x, wn, vn, w, v
       real(dp) :: trace, dt, dtn
-      logical :: step_ok, test_angle, test_motion
+      logical :: step_ok, test_angle, test_motion, test_w
 
       T = matmul(transpose(Rn),R)
       trace = T(1,1)+T(2,2)+T(3,3)
-      if(0.5d0*(trace-1)<-1d0) trace = -1d0+1d-9
-      if(0.5d0*(trace-1)>1d0) trace = 1d0-1d-9
+      if(0.5d0*(trace-1d0)<-1d0) trace = -3d0+1d-9
+      if(0.5d0*(trace-1d0)>1d0) trace = 3d0-1d-9
 
       test_angle = dacos(0.5d0*(trace-1)) < matrices%rot_max
-      test_motion = vlen(xn - x) < 1d-6*2d0*pi/maxval(mesh%ki)
+      test_motion = vlen(xn - x) < matrices%rot_max*2d0*pi/maxval(mesh%ki)
+      if(vlen(w)<1d-6)then
+         test_w = .TRUE.
+         dt = 1d-12
+      else
+         test_w = abs((dot_product(wn,wn)-&
+            dot_product(w,w)))/abs(dot_product(w,w))<matrices%rot_max
+      end if
 
-      if(test_angle .AND. test_motion) then
+      if(test_angle .AND. test_motion .AND. test_w)  then
          step_ok = .TRUE.
          dtn = dt
       else
          step_ok = .FALSE.
-         dtn = 0.9*dt
+         dtn = 0.5*dt
       end if
 
    end subroutine adaptive_step
@@ -485,7 +492,6 @@ contains
 
       N = matrices%N
       
-
       if (matrices%E < 1d-7) then 
          N = 0d0
          matrices%F = 0d0
@@ -521,10 +527,10 @@ contains
                exit
             end if
 
-            Jac = -matrices%I + 0.5d0*dt*(reshape( &
-                 [0.d0, Jw(3) - I(1)*wnh(3), -Jw(2) + I(1)*wnh(2), &
-                 -Jw(3) + I(2)*wnh(3), 0.d0, Jw(1) - I(2)*wnh(1), &
-                  Jw(2) - I(3)*wnh(2), -Jw(1) + I(3)*wnh(1), 0.d0], [3, 3]) &
+            Jac = -matrices%I + 0.5d0*dt*(reshape( &  
+                 [0.d0, -Jw(3) + I(2)*wnh(3), Jw(2) - I(3)*wnh(2), &
+                 Jw(3) - I(1)*wnh(3), 0.d0, -Jw(1) + I(3)*wnh(1), &
+                  -Jw(2) + I(1)*wnh(2), Jw(1) - I(2)*wnh(1), 0.d0], [3, 3]) &
                   - dt*real_outer_product(wnh, Jw)) - 0.25d0*dt**2*Ff*eye(3)
             wnh = wnh - matmul(inv(Jac), hel)
             Jw = matmul(matrices%I, wnh)
@@ -532,7 +538,13 @@ contains
 
 ! Rotation matrix update
          Rn = matmul(matrices%R, cay(dt*wnh))
-         call adaptive_step(Rn,matrices%R, matrices%xn, matrices%x_CM, step_ok, dt, dtn)
+
+! Angular velocity update
+         Jwn = Jw + PxW + 0.25d0*dt**2*dot_product(wnh, Jw)*wnh + 0.5d0*dt*N
+         matrices%wn = matmul(matrices%I_inv, Jwn)
+
+         call adaptive_step(matrices%Rn,matrices%R, matrices%xn, matrices%x_CM, &
+            wnh, matrices%w, step_ok,dt,dtn)
          if(debug==1 .AND. .NOT. step_ok) then
             print*, ' Integration step size was fixed from ', dt, ' to ', dtn
          end if
@@ -557,12 +569,8 @@ contains
          if(mode==0) N = 0d0
       end if
 
-! Angular velocity update
-      Jwn = Jw + PxW + 0.25d0*dt**2*dot_product(wnh, Jw)*wnh + 0.5d0*dt*N
-      matrices%wn = matmul(matrices%I_inv, Jwn)
-
 ! Low-key increasing the time step to optimal value
-      matrices%dt = 1.1d0*dt
+      matrices%dt = 2d0*dt
 
    end subroutine vlv_update
 
@@ -573,16 +581,15 @@ contains
 ! expected.
    subroutine ot_update()
       real(dp), dimension(3) :: F, N, F_drag, N_drag, F_G, F_m, F_mag
-      integer :: maxiter, i1
+      integer :: i1
       real(dp) :: Rn(3, 3), wnh(3), dt, I(3), Jw(3), Ff, F_old(3), vhalf(3)
       real(dp) :: PxW(3), hel(3), Jac(3, 3), Jwn(3), iterstop
       real(dp) :: rvec(3), D, Re_w, Re, dtn
       logical :: step_ok
 
-      maxiter = 50
-
       I = matrices%Ip
-
+      matrices%F = 0d0
+      matrices%N = 0d0
       call get_forces()
 
 ! Calculate Reynolds numbers for rotation (_w) and translation
@@ -621,13 +628,6 @@ contains
       N = matrices%N + N_drag
       F = (matrices%F + F_G + F_drag + F_m + F_mag) 
 
-! For brownian motion
-      rvec = 0d0
-      if(brownian) then
-         D = k_b*matrices%Tgas/(3d0*pi*matrices%mu*mesh%a)
-         rvec = rand_vec()*sqrt(6d0*D*dt)
-      end if
-
 ! Low-key try to increase the time step
       dt = matrices%dt
       step_ok = .FALSE.
@@ -636,18 +636,12 @@ contains
          PxW = 0.d0
          Jw = 0.d0
 
-! Step update taking gravity, drag, added mass and Magnus
-! forces into account
-         vhalf = matrices%v_CM + 0.5d0*matrices%F_old/mesh%mass*dt
-         matrices%xn = matrices%x_CM + vhalf*dt
-         matrices%vn = vhalf + 0.5d0*F/mesh%mass*dt
-
 ! Newton's method
          wnh = matrices%w ! Body angular velocity
          Jw = matmul(matrices%I, wnh)
-         iterstop = maxval(matrices%I)*1.d-12
+         iterstop = minval(matrices%I)*1.d-12
 
-         do i1 = 1, maxiter
+         do i1 = 1, 50
             Ff = dot_product(wnh, Jw)
             PxW = 0.5*dt*crossRR(Jw, wnh)
 
@@ -658,18 +652,34 @@ contains
                exit
             end if
 
-            Jac = -matrices%I + 0.5d0*dt*(reshape( &
-                 [0.d0, Jw(3) - I(1)*wnh(3), -Jw(2) + I(1)*wnh(2), &
-                 -Jw(3) + I(2)*wnh(3), 0.d0, Jw(1) - I(2)*wnh(1), &
-                  Jw(2) - I(3)*wnh(2), -Jw(1) + I(3)*wnh(1), 0.d0], [3, 3]) &
+            Jac = -matrices%I + 0.5d0*dt*(reshape( &  
+                 [0.d0, -Jw(3) + I(2)*wnh(3), Jw(2) - I(3)*wnh(2), &
+                 Jw(3) - I(1)*wnh(3), 0.d0, -Jw(1) + I(3)*wnh(1), &
+                  -Jw(2) + I(1)*wnh(2), Jw(1) - I(2)*wnh(1), 0.d0], [3, 3]) &
                   - dt*real_outer_product(wnh, Jw)) - 0.25d0*dt**2*Ff*eye(3)
+
             wnh = wnh - matmul(inv(Jac), hel)
             Jw = matmul(matrices%I, wnh)
          end do
 
 ! Rotation update
          Rn = matmul(matrices%R, cay(dt*wnh))
-         call adaptive_step(Rn,matrices%R,matrices%xn,matrices%x_CM,step_ok,dt,dtn)
+         matrices%qn = mat2quat(Rn)
+         matrices%qn = normalize_quat(matrices%qn)
+         matrices%Rn = quat2mat(matrices%qn)
+
+! Step update taking gravity, drag, added mass and Magnus
+! forces into account
+         matrices%vn = matrices%v_CM + F/mesh%mass*dt
+         matrices%xn = matrices%x_CM + matrices%v_CM*dt + 0.5d0*(F/mesh%mass)*dt**2 
+
+! Angular velocity update
+         Jwn = Jw + PxW + 0.25d0*dt**2*dot_product(wnh, Jw)*wnh + 0.5d0*dt*N
+         matrices%wn = matmul(matrices%I_inv, Jwn)
+
+         call adaptive_step(matrices%Rn, matrices%R, matrices%xn, matrices%x_CM, &
+            wnh, matrices%w, step_ok,dt,dtn)
+
          if(debug==1 .AND. .NOT. step_ok) then
             print*, ' Integration step size was fixed from ', dt, ' to ', dtn
          end if
@@ -679,13 +689,12 @@ contains
 
       matrices%dt = dt
 
-      matrices%qn = mat2quat(Rn)
-      matrices%qn = normalize_quat(matrices%qn)
-      matrices%Rn = quat2mat(matrices%qn)
-
-! Angular velocity update
-      Jwn = Jw + PxW + 0.25d0*dt**2*dot_product(wnh, Jw)*wnh + 0.5d0*dt*N
-      matrices%wn = matmul(matrices%I_inv, Jwn)
+! For brownian motion
+      rvec = 0d0
+      if(brownian) then
+         D = k_b*matrices%Tgas/(3d0*pi*matrices%mu*mesh%a)
+         rvec = rand_vec()*sqrt(6d0*D*dt)
+      end if
 
       matrices%xn = matrices%xn + rvec
       matrices%F = F
@@ -693,7 +702,7 @@ contains
       matrices%F_old = F
 
 ! Low-key increasing the time step to optimal value
-      matrices%dt = 1.001d0*dt
+      matrices%dt = 1.2d0*dt
 
    end subroutine ot_update
 
