@@ -130,6 +130,7 @@ contains
    subroutine read_arguments()
       integer :: i
       character(len=80) :: arg_name, arg
+      real(dp) :: mu_exp
 
       matrices%singleT = 0
 
@@ -183,7 +184,8 @@ contains
             read (arg, *) use_mie
          case ('--mu')
             call get_command_argument(i + 1, arg)
-            read (arg, *) matrices%mu
+            read (arg, *) mu_exp
+            matrices%mu = 1d0**(-mu_exp)
          case ('-B')
             call get_command_argument(i + 1, arg)
             read (arg, *) calc_extra_torques
