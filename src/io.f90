@@ -235,7 +235,7 @@ contains
 ! Input related variables
       character(len=150) :: buffer, label
       real(dp) :: temp_med
-      integer :: pos, tempint
+      integer :: pos, tempint, tempbrownian
       integer, parameter :: fh = 15
       integer :: ios = 0
       integer :: line = 0
@@ -289,6 +289,9 @@ contains
             case ('photodetector')
                read (buffer, *, iostat=ios) tempint
                if(tempint == 1) photodetector = .TRUE.
+            case ('brownian')
+               read (buffer, *, iostat=ios) tempbrownian
+               if(tempbrownian == 1) brownian = .TRUE.
 ! Matrices
             case ('E')
                read (buffer, *, iostat=ios) matrices%E

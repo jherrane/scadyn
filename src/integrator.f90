@@ -720,7 +720,6 @@ contains
          i = matrices%whichbar
       end if
 
-      if(seedling /= 0) brownian = .TRUE.
       Fg = (mesh%rho)*mesh%V*9.81d0
 
       F = matrices%x_CM

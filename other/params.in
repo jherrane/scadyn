@@ -52,6 +52,7 @@ tol_m 3d-3              # Tolerance to when state is declared aligned
 dt 1d0
 rot_max 1d-2
 
+brownian 0              # Use Brownian dynamics
 photodetector 0         # Measure time dependent scattered intensity at 
                         # scattering angle theta
 theta 30d0              # Scattering angle at which intensity is collected (deg)
