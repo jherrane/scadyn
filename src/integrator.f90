@@ -692,8 +692,8 @@ contains
 ! For brownian motion
       rvec = 0d0
       if(brownian) then
-         D = k_b*matrices%Tgas/(3d0*pi*matrices%mu*mesh%a)
-         rvec = rand_vec()*sqrt(6d0*D*dt)
+         D = k_b*matrices%Tgas/(6d0*pi*matrices%mu*mesh%a)
+         rvec = rand_vec()*sqrt(2d0*D*dt)
       end if
 
       matrices%xn = matrices%xn + rvec
