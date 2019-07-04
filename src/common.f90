@@ -156,7 +156,6 @@ module common
       real(dp)                :: B_len = 0d0
       real(dp), dimension(3)  :: w = [0d0, 0d0, 0d0]
       real(dp), dimension(3)  :: x_CM = [0d0, 0d0, 0d0]
-      real(dp), dimension(3)  :: F_old = [0d0, 0d0, 0d0]
       real(dp)                :: width = 550.0d-9
       integer                 :: Tmat = 0
       integer                 :: whichbar = 0
@@ -942,6 +941,20 @@ contains
       vec = sph2cart(u(3), theta, phi)
 
    end function rand_vec
+
+!****************************************************************************80
+! Random unit vector with standard normal statistics
+   function gauss_vec() result(vec)
+      real(dp) :: theta, phi, vec(3), u(4), mu, var
+
+      call random_number(u)
+
+! Use the Box-Muller transform
+      vec = sph2cart(sqrt(-2d0*log(u(1)))*cos(2d0*pi*u(2)) ,&
+                      sqrt(-2d0*log(u(1)))*sin(2d0*pi*u(2)),&
+                      sqrt(-2d0*log(u(3)))*cos(2d0*pi*u(4)))
+
+   end function gauss_vec
 
 !****************************************************************************80
 ! Dericative of the Rodrigues' rotation formula

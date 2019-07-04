@@ -582,7 +582,7 @@ contains
    subroutine ot_update()
       real(dp), dimension(3) :: F, N, F_drag, N_drag, F_G, F_m, F_mag
       integer :: i1
-      real(dp) :: Rn(3, 3), wnh(3), dt, I(3), Jw(3), Ff, F_old(3), vhalf(3)
+      real(dp) :: Rn(3, 3), wnh(3), dt, I(3), Jw(3), Ff, Fnew(3), vhalf(3)
       real(dp) :: PxW(3), hel(3), Jac(3, 3), Jwn(3), iterstop
       real(dp) :: rvec(3), D, Re_w, Re, dtn
       logical :: step_ok
@@ -623,8 +623,6 @@ contains
       F_m = 0.5d0*matrices%rho_med*mesh%V*dble(matrices%F)/mesh%mass
       F_mag = matrices%rho_med*mesh%V*crossRR(matrices%w,matrices%v_CM)*mesh%mass
 
-      ! print*, vlen(matrices%N), vlen(N_drag), vlen(matrices%w)
-      ! print*, vlen(matrices%F), vlen(F_drag), vlen(F_G), vlen(F_m), vlen(F_mag)
       N = matrices%N + N_drag
       F = (matrices%F + F_G + F_drag + F_m + F_mag) 
 
@@ -670,8 +668,17 @@ contains
 
 ! Step update taking gravity, drag, added mass and Magnus
 ! forces into account
-         matrices%vn = matrices%v_CM + F/mesh%mass*dt
-         matrices%xn = matrices%x_CM + matrices%v_CM*dt + 0.5d0*(F/mesh%mass)*dt**2 
+
+! For brownian motion, have a normally distributed random force and scale
+! rvec so that gauss_vec has variance 1/dt
+         rvec = 0d0
+         if(brownian) then
+            D = k_b*matrices%Tgas*(6d0*pi*matrices%mu*mesh%a)
+            rvec = gauss_vec()*sqrt(2d0*D)
+            Fnew = F + rvec/sqrt(dt)
+         end if
+         matrices%vn = matrices%v_CM + Fnew/mesh%mass*dt
+         matrices%xn = matrices%x_CM + matrices%v_CM*dt + 0.5d0*(Fnew/mesh%mass)*dt**2 
 
 ! Angular velocity update
          Jwn = Jw + PxW + 0.25d0*dt**2*dot_product(wnh, Jw)*wnh + 0.5d0*dt*N
@@ -688,18 +695,8 @@ contains
       end do
 
       matrices%dt = dt
-
-! For brownian motion
-      rvec = 0d0
-      if(brownian) then
-         D = k_b*matrices%Tgas/(6d0*pi*matrices%mu*mesh%a)
-         rvec = rand_vec()*sqrt(2d0*D*dt)
-      end if
-
-      matrices%xn = matrices%xn + rvec
-      matrices%F = F
+      matrices%F = Fnew
       matrices%N = N
-      matrices%F_old = F
 
 ! Low-key increasing the time step to optimal value
       matrices%dt = 1.2d0*dt
@@ -759,7 +756,6 @@ contains
       end if 
 
       matrices%x_CM = F
-      matrices%F_old = matrices%F
 
    end subroutine ot_calibrate
 
