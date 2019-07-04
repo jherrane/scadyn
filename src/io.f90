@@ -185,7 +185,7 @@ contains
          case ('--mu')
             call get_command_argument(i + 1, arg)
             read (arg, *) mu_exp
-            matrices%mu = 1d0**(-mu_exp)
+            matrices%mu = 10d0**(-mu_exp)
          case ('-B')
             call get_command_argument(i + 1, arg)
             read (arg, *) calc_extra_torques
