@@ -181,6 +181,9 @@ contains
          case ('--Mie')
             call get_command_argument(i + 1, arg)
             read (arg, *) use_mie
+         case ('--mu')
+            call get_command_argument(i + 1, arg)
+            read (arg, *) matrices%mu
          case ('-B')
             call get_command_argument(i + 1, arg)
             read (arg, *) calc_extra_torques
@@ -193,7 +196,7 @@ contains
 
          case ('-h', '--help')
             write (*, '(A)') ' Commands        Value       Description'
-            write (*, '(A)') '---------------------------------------'
+            write (*, '(A)') '-----------------------------------------'
             write (*, '(A)') ' -d --debug                  Print more detailed info'
             write (*, '(A)') ' -m --mesh       mesh.h5     Mesh geometry'
             write (*, '(A)') ' -T --Tmat       T.h5        T-matrix file'
@@ -209,6 +212,7 @@ contains
             write (*, '(A)') ' -B              1           Use external magnetic field'
             write (*, '(A)') ' -x --xi         0.0         Precession angle about B'
             write (*, '(A)') ' -r --relax      1           Use internal relaxation'
+            write (*, '(A)') '    --mu         5           Set dynamic viscosity exponent (+ -> -)'
 
 
             stop
