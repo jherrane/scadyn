@@ -544,7 +544,7 @@ contains
          matrices%wn = matmul(matrices%I_inv, Jwn)
 
          call adaptive_step(matrices%Rn,matrices%R, matrices%xn, matrices%x_CM, &
-            wnh, matrices%w, step_ok,dt,dtn)
+            matrices%wn, matrices%w, step_ok,dt,dtn)
          if(debug==1 .AND. .NOT. step_ok) then
             print*, ' Integration step size was fixed from ', dt, ' to ', dtn
          end if
