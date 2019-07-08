@@ -181,6 +181,9 @@ contains
          matrices%force = dble([fx, fy, fz]/cc)
          matrices%torque = dble([tx, ty, tz]/(cc*mesh%k))
       end if
+      if(ISNAN(fz)) then
+         matrices%force = [0d0,0d0,0d0]
+      end if
    end subroutine forcetorque
 
 !****************************************************************************80

@@ -673,6 +673,7 @@ contains
 ! rvec so that gauss_vec has variance 1/dt
          rvec = 0d0
          Fnew = F
+
          if(brownian) then
             D = k_b*matrices%Tgas*(6d0*pi*matrices%mu*mesh%a)
             rvec = gauss_vec()*sqrt(2d0*D)
