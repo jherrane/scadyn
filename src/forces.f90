@@ -115,8 +115,13 @@ contains
       b_temp = E*matrices%bs(1:nm, i)/sqrt(2d0*sqrt(mu/epsilon)*mesh%k**2)/2d0
 
       if(beam_shape /= 0 .AND. vlen(matrices%x_CM) > 1d-10) then
+         if(vlen(matrices%x_CM)*mesh%k<3250d0) then
          call translate(matrices%x_CM, Nmax, Nmax, dcmplx(mesh%k), &
             a_temp, b_temp, a_in, b_in, 0)
+         else
+            a_in = dcmplx(0d0)
+            b_in = dcmplx(0d0)
+         end if
       else
          a_in = a_temp
          b_in = b_temp
@@ -180,9 +185,6 @@ contains
       else
          matrices%force = dble([fx, fy, fz]/cc)
          matrices%torque = dble([tx, ty, tz]/(cc*mesh%k))
-      end if
-      if(ISNAN(fz)) then
-         matrices%force = [0d0,0d0,0d0]
       end if
    end subroutine forcetorque
 
