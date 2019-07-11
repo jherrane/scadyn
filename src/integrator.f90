@@ -584,10 +584,14 @@ contains
       integer :: i1
       real(dp) :: Rn(3, 3), wnh(3), dt, I(3), Jw(3), Ff, Fnew(3), vhalf(3)
       real(dp) :: PxW(3), hel(3), Jac(3, 3), Jwn(3), iterstop
-      real(dp) :: rvec(3), D, Re_w, Re, dtn
+      real(dp) :: rvec(3), D, Re_w, Re, dtn, mass
       logical :: step_ok
 
       I = matrices%Ip
+   ! The added mass is approximated just as half the volume times medium density
+   ! In reality this would be a tensor quantity
+      mass = mesh%mass + 0.5d0*matrices%rho_med*mesh%V
+
       matrices%F = 0d0
       matrices%N = 0d0
       call get_forces()
@@ -620,11 +624,10 @@ contains
       end if
 
       F_G = -(mesh%rho-matrices%rho_med)*mesh%V*9.81d0*[0d0,0d0,1d0]
-      F_m = 0.5d0*matrices%rho_med*mesh%V*dble(matrices%F)/mesh%mass
       F_mag = matrices%rho_med*mesh%V*crossRR(matrices%w,matrices%v_CM)*mesh%mass
 
       N = matrices%N + N_drag
-      F = (matrices%F + F_G + F_drag + F_m + F_mag) 
+      F = (matrices%F + F_G + F_drag + F_mag) 
 
 ! Low-key try to increase the time step
       dt = matrices%dt
@@ -679,8 +682,8 @@ contains
             rvec = gauss_vec()*sqrt(2d0*D)
             Fnew = F + rvec/sqrt(dt)
          end if
-         matrices%vn = matrices%v_CM + Fnew/mesh%mass*dt
-         matrices%xn = matrices%x_CM + matrices%v_CM*dt + 0.5d0*(Fnew/mesh%mass)*dt**2 
+         matrices%vn = matrices%v_CM + Fnew/mass*dt
+         matrices%xn = matrices%x_CM + matrices%v_CM*dt + 0.5d0*(Fnew/mass)*dt**2 
 
 ! Angular velocity update
          Jwn = Jw + PxW + 0.25d0*dt**2*dot_product(wnh, Jw)*wnh + 0.5d0*dt*N
