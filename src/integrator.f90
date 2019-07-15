@@ -740,10 +740,11 @@ contains
             matrices%E = sqrt(Fg/Fnorm)*matrices%E
          else
             write(*,'(A,ES9.3,A)') '  E-field maximum adjusted to ', matrices%E, ' V/m'
-            write(*,'(A,ES9.3,A)') '  Intensity at maximum is then ', matrices%E**2/(2d0*377d0), ' W/m^2'
+            write(*,'(A,ES9.3,A)') '  Intensity at maximum is then ', &
+            matrices%E**2/(2d0*(377d0/sqrt(matrices%ref_med))), ' W/m^2'
             if(l==0 .AND. p == 0. .AND. beam_shape == 1) then
                write(*,'(A,ES9.3,A)') '  Corresponding LG00 beam power ', &
-               matrices%E**2/(2d0*377d0)*(pi/2d0)*(2d0/matrices%NA/mesh%ki(i))**2, ' W'
+               matrices%E**2/(2d0*(377d0/sqrt(matrices%ref_med)))*(pi/2d0)*(2d0/matrices%NA/mesh%ki(i))**2, ' W'
             end if
             call get_forces()
             tested_gravity = .TRUE.
