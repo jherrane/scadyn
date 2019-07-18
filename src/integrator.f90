@@ -678,8 +678,7 @@ contains
          Fnew = F
 
          if(brownian) then
-            D = k_b*matrices%Tgas*(6d0*pi*matrices%mu*mesh%a)
-            rvec = gauss_vec()*sqrt(2d0*D)
+            rvec = gauss_vec()*sqrt(2d0*k_b*matrices%Tgas*(6d0*pi*matrices%mu*mesh%a))
             Fnew = F + rvec/sqrt(dt)
          end if
          matrices%vn = matrices%v_CM + Fnew/mass*dt
