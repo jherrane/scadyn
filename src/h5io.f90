@@ -90,38 +90,38 @@ module h5io
       if (allocated(mesh%coord)) deallocate (mesh%coord, mesh%etopol, mesh%param, mesh%params)
       allocate (mesh%coord(3, size(coord, 2)))
       mesh%coord = coord
-      print *, '   Number of nodes                =', size(coord, 2)
+      write (*, '(2(A,I0))') '  Number of nodes             =   ', size(coord, 2)
       mesh%N_node = size(coord, 2)
 
       allocate (mesh%etopol(4, size(etopol, 2)))
       mesh%etopol = etopol
-      print *, '   Number of elements             =', size(etopol, 2)
+      write (*, '(2(A,I0))') '  Number of elements          =   ', size(etopol, 2)
       mesh%N_tet = size(etopol, 2)
 
       allocate (mesh%params(size(param_r, 1), size(param_r, 2)))
       allocate (mesh%param(size(param_r, 1)))
       mesh%params = dcmplx(param_r, param_i)
-      write (*, '(2(A,F5.3))') '    Refractive index of medium     =   ', matrices%ref_med
-      if (matrices%refr > 1d-7) then
-         deallocate(mesh%params)
-         allocate(mesh%params(size(param_r,1), matrices%bars))
-         mesh%param = dcmplx(matrices%refr**2 - matrices%refi**2, &
-                             2d0*matrices%refr*matrices%refi)
-         write (*, '(2(A,F5.3))') '    Refractive index               =   '&
-         , matrices%refr, ' + i', matrices%refi
-         write (*, '(2(A,F5.3))') '    Dielectric constant            =   '&
-         , matrices%refr**2 - matrices%refi**2, &
-            ' + i', 2d0*matrices%refr*matrices%refi
-         do i = 1,matrices%bars
-            mesh%params(:,i) = mesh%param
-         end do
-      else
-         mesh%param = dcmplx(param_r(:, 1), param_i(:, 1))
-         if (maxval(param_r(:, 1)) - minval(param_r(:, 1)) > 1d-7 &
-            .OR. maxval(param_i(:, 1)) - minval(param_i(:, 1)) > 1d-7) then
+      write (*, '(2(A,F5.3))') '  Refractive index of medium  =   ', matrices%ref_med
+      if(matrices%Tmat == 0) then
+         if (matrices%refr > 1d-7) then
+            deallocate(mesh%params)
+            allocate(mesh%params(size(param_r,1), matrices%bars))
+            mesh%param = dcmplx(matrices%refr**2 - matrices%refi**2, &
+                                2d0*matrices%refr*matrices%refi)
+            write (*, '(2(A,F5.3))') '  Refractive index         =   '&
+            , matrices%refr, ' + i', matrices%refi
+            do i = 1,matrices%bars
+               mesh%params(:,i) = mesh%param
+            end do
          else
-            write (*, '(2(A,F5.3))') '    Dielectric constant  =   '&
-            , param_r(1, 1), ' + i', param_i(1, 1)
+            mesh%param = dcmplx(param_r(:, 1), param_i(:, 1))
+            if (maxval(param_r(:, 1)) - minval(param_r(:, 1)) > 1d-7 &
+               .OR. maxval(param_i(:, 1)) - minval(param_i(:, 1)) > 1d-7) then
+            else
+               write (*, '(2(A,F5.3))') '  Refractive index         =   '&
+               , real(sqrt(dcmplx(param_r(1, 1), param_i(1, 1)))), ' + i', &
+               imag(sqrt(dcmplx(param_r(1, 1), param_i(1, 1))))               
+            end if
          end if
       end if
 
@@ -258,12 +258,14 @@ module h5io
          param_r = real(mesh%param)
          param_i = imag(mesh%param)
          if (maxval(param_r) - minval(param_r) > 1d-7 .OR. maxval(param_i) - minval(param_i) > 1d-7) then
-            write (*, '(A)') '    Note: Geometry is inhomogeneous.'
+            write (*, '(A)') '  Note: Geometry is inhomogeneous.'
          else
             mesh%param = dcmplx(ref_a(1), ref_a(2))
             ref = sqrt(dcmplx(ref_a(1), ref_a(2)))
             matrices%refr = real(ref)
             matrices%refi = imag(ref)
+            write (*, '(2(A,F5.3))') '  Refractive index            =   '&
+            , matrices%refr, ' + i', matrices%refi
          end if
 
 !****************************************************************************80
