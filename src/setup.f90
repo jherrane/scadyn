@@ -68,9 +68,7 @@ contains
          allocate (mesh%param(1))
          mesh%param = dcmplx(matrices%refr**2 - matrices%refi**2, &
                              2d0*matrices%refr*matrices%refi)
-         write (*, '(2(A,F5.3))') '    Refractive index     =   ', matrices%refr, ' + i', matrices%refi
-         write (*, '(2(A,F5.3))') '    Dielectric constant  =   ', matrices%refr**2 - matrices%refi**2, &
-            ' + i', 2d0*matrices%refr*matrices%refi
+         write (*, '(2(A,F5.3))') '  Refractive index         =   ', matrices%refr, ' + i', matrices%refi
       end if
    end subroutine init_geometry
 
@@ -553,7 +551,7 @@ open (unit=15, file="other/eps_Sil", status='old', &
 ! Test if I is "almost diagonal", which causes diasym to do funny stuff
       if (dabs(mesh%I(1, 1)*mesh%I(2, 2)*mesh%I(3, 3)) > 1d6*dabs(mesh%I(1, 2)*mesh%I(1, 3)*mesh%I(2, 3))) then
          if (use_mie .NE. 1) then
-            print *, 'FALLBACK MODE IN DIAGONALIZATION OF INERTIA TENSOR'
+            if(debug==1) print *, 'FALLBACK MODE IN DIAGONALIZATION OF INERTIA TENSOR'
             matrices%Ip = 0d0
             imin = minloc([mesh%I(1, 1), mesh%I(2, 2), mesh%I(3, 3)], 1)
             imax = maxloc([mesh%I(1, 1), mesh%I(2, 2), mesh%I(3, 3)], 1)
