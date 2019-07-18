@@ -108,7 +108,7 @@ module h5io
             allocate(mesh%params(size(param_r,1), matrices%bars))
             mesh%param = dcmplx(matrices%refr**2 - matrices%refi**2, &
                                 2d0*matrices%refr*matrices%refi)
-            write (*, '(2(A,F5.3))') '  Refractive index         =   '&
+            write (*, '(2(A,F5.3))') '  Refractive index            =   '&
             , matrices%refr, ' + i', matrices%refi
             do i = 1,matrices%bars
                mesh%params(:,i) = mesh%param
@@ -118,7 +118,7 @@ module h5io
             if (maxval(param_r(:, 1)) - minval(param_r(:, 1)) > 1d-7 &
                .OR. maxval(param_i(:, 1)) - minval(param_i(:, 1)) > 1d-7) then
             else
-               write (*, '(2(A,F5.3))') '  Refractive index         =   '&
+               write (*, '(2(A,F5.3))') '  Refractive index            =   '&
                , real(sqrt(dcmplx(param_r(1, 1), param_i(1, 1)))), ' + i', &
                imag(sqrt(dcmplx(param_r(1, 1), param_i(1, 1))))               
             end if
