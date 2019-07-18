@@ -585,7 +585,7 @@ contains
       real(dp) :: Rn(3, 3), wnh(3), dt, I(3), Jw(3), Ff, Fnew(3), vhalf(3)
       real(dp) :: PxW(3), hel(3), Jac(3, 3), Jwn(3), iterstop
       real(dp) :: rvec(3), D, Re_w, Re, dtn, mass
-      logical :: step_ok
+      logical :: step_ok, first_try
 
       I = matrices%Ip
    ! The added mass is approximated just as half the volume times medium density
@@ -632,6 +632,7 @@ contains
 ! Low-key try to increase the time step
       dt = matrices%dt
       step_ok = .FALSE.
+      first_try = .TRUE.
       do while (.NOT. step_ok )
          Jac = 0.d0
          PxW = 0.d0
@@ -672,13 +673,12 @@ contains
 ! Step update taking gravity, drag, added mass and Magnus
 ! forces into account
 
+         Fnew = F
 ! For brownian motion, have a normally distributed random force and scale
 ! rvec so that gauss_vec has variance 1/dt
-         rvec = 0d0
-         Fnew = F
-
          if(brownian) then
-            rvec = gauss_vec()*sqrt(2d0*k_b*matrices%Tgas*(6d0*pi*matrices%mu*mesh%a))
+            if(first_try) rvec = gauss_vec()*sqrt(2d0*k_b*matrices%Tgas*(6d0*pi*matrices%mu*mesh%a))
+            first_try = .FALSE.
             Fnew = F + rvec/sqrt(dt)
          end if
          matrices%vn = matrices%v_CM + Fnew/mass*dt
