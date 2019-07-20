@@ -134,16 +134,17 @@ if __name__ == "__main__":
    x = lines[:,2:5]*1e6
    w = lines[:,5:8]
    v = lines[:,8:11]*1e6
-   J = 0*w
+   J = np.zeros(w.shape)
    N = lines[:,11:14]
    F = lines[:,14:17]
    R = lines[:,17:27]
       
    for i in range(0,w.shape[0]):
+      RR = np.reshape(R[i],(3,3),order='F')
       J[i,:] = np.matmul(I,w[i,:])
-      w[i,:] = np.matmul(Q,np.matmul(np.reshape(R[i,:],(3,3),order='F'),w[i,:]  ))
-      N[i,:] = np.matmul(Q,np.matmul(np.reshape(R[i,:],(3,3),order='F'),N[i,:]  ))
-      J[i,:] = np.matmul(Q,np.matmul(np.reshape(R[i,:],(3,3),order='F'),J[i,:]  ))
+      w[i,:] = np.matmul(np.matmul(Q,RR),w[i,:])
+      N[i,:] = np.matmul(np.matmul(Q,RR),N[i,:])
+      J[i,:] = np.matmul(np.matmul(Q,RR),J[i,:])
 
    with cd('figs'):
       plot_fig(t,x,markevery,r'Position of CM','t (\mathrm{'+tstr+' s})','x (\mathrm{\mu m})','x')#,ylim=np.array([1.0]))

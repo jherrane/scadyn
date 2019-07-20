@@ -538,6 +538,9 @@ contains
 
 ! Rotation matrix update
          Rn = matmul(matrices%R, cay(dt*wnh))
+         matrices%qn = mat2quat(Rn)
+         matrices%qn = normalize_quat(matrices%qn)
+         matrices%Rn = quat2mat(matrices%qn)
 
 ! Angular velocity update
          Jwn = Jw + PxW + 0.25d0*dt**2*dot_product(wnh, Jw)*wnh + 0.5d0*dt*N
@@ -553,10 +556,6 @@ contains
 
       matrices%dt = dt
 
-      matrices%qn = mat2quat(Rn)
-      matrices%qn = normalize_quat(matrices%qn)
-      matrices%Rn = quat2mat(matrices%qn)
-
       matrices%R = matrices%Rn
       if (matrices%E > 1d-7) then 
          call get_forces()
@@ -570,7 +569,7 @@ contains
       end if
 
 ! Low-key increasing the time step to optimal value
-      matrices%dt = 2d0*dt
+      matrices%dt = 1.2d0*dt
 
    end subroutine vlv_update
 
