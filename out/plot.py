@@ -29,7 +29,7 @@ class cd:
          if exception.errno != errno.EEXIST:
             raise
 
-def plot_fig(x, y, markevery, title, xlabel, ylabel, figname, *args, **kwargs):
+def plot_fig(x, y, title, xlabel, ylabel, figname, *args, **kwargs):
    ylim = kwargs.get('ylim', None)
    
    fig = plt.figure(figsize=(10,8))
@@ -41,13 +41,22 @@ def plot_fig(x, y, markevery, title, xlabel, ylabel, figname, *args, **kwargs):
    
    plt.autoscale(enable=True, axis='x', tight=True)
    plt.tight_layout()
-
+   
    y1,y2,y3 = zip(*y)
    
    label=ylabel.split("(")[0]
-   plt.plot(x,y1,label=r'$'+label+'_{1}$',lw=3.0, markevery=markevery)
-   plt.plot(x,y2,label=r'$'+label+'_{2}$',lw=3.0, markevery=markevery)
-   plt.plot(x,y3,label=r'$'+label+'_{3}$',lw=3.0, markevery=markevery)
+   if figname is 'x':
+      plt.plot(x,y1,label=r'${x}$',lw=3.0,linestyle='--')
+      plt.plot(x,y2,label=r'${y}$',lw=3.0,linestyle=':')
+      plt.plot(x,y3,label=r'${z}$',lw=3.0,linestyle='-')
+   elif figname is 'v':
+      plt.plot(x,y1,label=r'$v_{x}$',lw=3.0, linestyle='--')
+      plt.plot(x,y2,label=r'$v_{y}$',lw=3.0, linestyle=':')
+      plt.plot(x,y3,label=r'$v_{z}$',lw=3.0, linestyle='-')
+   else:
+      plt.plot(x,y1,label=r'$'+label+'_{1}$',lw=3.0, linestyle='--')
+      plt.plot(x,y2,label=r'$'+label+'_{2}$',lw=3.0, linestyle=':')
+      plt.plot(x,y3,label=r'$'+label+'_{3}$',lw=3.0, linestyle='-')
    ax = plt.gca()
    if ylim is not None:
       if ylim.size>1:
@@ -71,8 +80,6 @@ if __name__ == "__main__":
    skip = 22
    last = 0 # Draw only last n lines, 0 if all
    first = 0 # Draw only first n lines, 0 if all
-   #plt.xkcd()
-   #plt.rc('font',family='Times New Roman')
    
    argv = sys.argv[1:]
    try:
@@ -101,22 +108,9 @@ if __name__ == "__main__":
       lines = lines[last:-1,:]
    if(first!=0):
       lines = lines[0:first,:]
-      
-   magtol = 1e-3
-
-   string = log.readlines()[3]
-   Nmax = [int(s) for s in string.split() if s.isdigit()]
-   Nmax = Nmax[0]
-   markevery = round(Nmax/1000)
-   mav = int(round(Nmax/100))
-   if mav < 2: mav = 2
-   if markevery < 1: markevery = 1
-   log.seek(0)
    
    I = np.genfromtxt(islice(log,15,16))
    I = np.diag(I)
-   log.seek(0)
-   Q = np.genfromtxt(islice(log,17,20))
    log.close()
    
    t = lines[:,1]
@@ -142,13 +136,14 @@ if __name__ == "__main__":
    for i in range(0,w.shape[0]):
       RR = np.reshape(R[i],(3,3),order='F')
       J[i,:] = np.matmul(I,w[i,:])
-      w[i,:] = np.matmul(np.matmul(Q,RR),w[i,:])
-      N[i,:] = np.matmul(np.matmul(Q,RR),N[i,:])
-      J[i,:] = np.matmul(np.matmul(Q,RR),J[i,:])
+      w[i,:] = np.matmul(RR,w[i,:])
+      J[i,:] = np.matmul(RR,J[i,:])
+      N[i,:] = np.matmul(RR,N[i,:])
 
    with cd('figs'):
-      plot_fig(t,x,markevery,r'Position of CM','t (\mathrm{'+tstr+' s})','x (\mathrm{\mu m})','x')#,ylim=np.array([1.0]))
-      plot_fig(t,w,markevery,'Angular velocity','t \mathrm{('+tstr+' s)}','\omega (\mathrm{rad/s})','w')
+      plot_fig(t,x,r'Position of CM','t (\mathrm{'+tstr+' s})','x (\mathrm{\mu m})','x')
+      plot_fig(t,w,'Angular velocity','t \mathrm{('+tstr+' s)}','\omega (\mathrm{rad/s})','w')
+      plot_fig(t,J,'Angular momentum','t \mathrm{('+tstr+' s)}','J (\mathrm{Ns})','J')
       plot_fig(t,v,markevery,'Velocity','t \mathrm{('+tstr+' s)}','v (\mathrm{\mu m/s})','v')
       plot_fig(t,N,markevery,'Torque','t \mathrm{('+tstr+' s)}','N (\mathrm{Nm})','N')
       plot_fig(t,F,markevery,'Force','t \mathrm{('+tstr+' s)}','F (\mathrm{N})','F')
