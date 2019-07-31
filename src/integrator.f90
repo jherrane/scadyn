@@ -409,7 +409,7 @@ contains
          dt = 1d-12
       else
          test_w = abs((dot_product(wn,wn)-&
-            dot_product(w,w)))/abs(dot_product(w,w))<matrices%rot_max
+            dot_product(w,w)))/abs(dot_product(w,w))<10*matrices%rot_max
       end if
 
       if(test_angle .AND. test_motion .AND. test_w)  then
@@ -731,23 +731,19 @@ contains
          if(matrices%whichbar/=0) matrices%x_CM(1) = sqrt(l*beam_w0**2/2)/mesh%ki(matrices%whichbar)
          write(*,'(A,ES9.3,A)') '  LG0l-maximum at x = ', matrices%x_CM(1)
       end if
-      do while (.NOT. tested_gravity)
-         call get_forces()
-         Fnorm = vlen(matrices%F)
-         if (abs(Fg)>1.01*abs(Fnorm) )  then
-            matrices%E = sqrt(Fg/Fnorm)*matrices%E
-         else
-            write(*,'(A,ES9.3,A)') '  E-field maximum adjusted to ', matrices%E, ' V/m'
-            write(*,'(A,ES9.3,A)') '  Intensity at maximum is then ', &
-            matrices%E**2/(2d0*(377d0/matrices%ref_med)), ' W/m^2'
-            if(l==0 .AND. p == 0. .AND. beam_shape == 1) then
-               write(*,'(A,ES9.3,A)') '  Corresponding LG00 beam power ', &
-               matrices%E**2/(2d0*(377d0/matrices%ref_med))*(pi/2d0)*(2d0/matrices%NA/mesh%ki(i))**2, ' W'
-            end if
-            call get_forces()
-            tested_gravity = .TRUE.
-         end if
-      end do
+      
+      call get_forces()
+      Fnorm = vlen(matrices%F)
+      if (abs(Fg)>abs(Fnorm) )  then
+         write(*,'(A,ES9.3,A)') '  Maximal z-directed power does not counter gravity.'
+         write(*,'(A,ES9.3,A)') '  Hint: Adjust E-field to ', sqrt(Fg/Fnorm)*matrices%E, ' V/m'
+      end if
+      write(*,'(A,ES9.3,A)') '  Intensity at maximum is ', &
+      matrices%E**2/(2d0*(377d0/matrices%ref_med)), ' W/m^2'
+      if(l==0 .AND. p == 0. .AND. beam_shape == 1) then
+         write(*,'(A,ES9.3,A)') '  Corresponding LG00 beam power ', &
+         matrices%E**2/(2d0*(377d0/matrices%ref_med))*(pi/2d0)*(2d0/matrices%NA/mesh%ki(i))**2, ' W'
+      end if
 
       if(photodetector) then
          call compute_single_mueller(detect_theta, 0d0, matrices%single_mueller)
