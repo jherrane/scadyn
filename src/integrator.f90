@@ -739,10 +739,10 @@ contains
          write(*,'(A,ES9.3,A)') '  Hint: Adjust E-field to ', sqrt(Fg/Fnorm)*matrices%E, ' V/m'
       end if
       write(*,'(A,ES9.3,A)') '  Intensity at maximum is ', &
-      matrices%E**2/(2d0*(377d0/matrices%ref_med)), ' W/m^2'
+      matrices%E**2/(2d0*(377d0*matrices%ref_med)), ' W/m^2'
       if(l==0 .AND. p == 0. .AND. beam_shape == 1) then
          write(*,'(A,ES9.3,A)') '  Corresponding LG00 beam power ', &
-         matrices%E**2/(2d0*(377d0/matrices%ref_med))*(pi/2d0)*(2d0/matrices%NA/mesh%ki(i))**2, ' W'
+         matrices%E**2/(2d0*377d0)*(pi/2d0)*(2d0/matrices%NA/mesh%ki(i))**2*matrices%ref_med, ' W'
       end if
 
       if(photodetector) then

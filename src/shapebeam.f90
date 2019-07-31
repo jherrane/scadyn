@@ -76,6 +76,12 @@ contains
 ! The numerical aperture can be above 1 only when refractive index of the medium
 ! is larger than unity.
       NA = matrices%NA
+      if(NA/matrices%ref_med>1d0) then
+         print*, '   Problem: Numerical aperture too high, limiting it to', matrices%ref_med
+         NA = matrices%ref_med-1d-7
+         matrices%NA = NA
+      end if
+      
       write (*, '(2(A,F5.3))') '  NA of the optical system =   ', matrices%NA 
       nmax = matrices%Nmaxs(i)
       allocate (a_nm((nmax + 1)**2 - 1), b_nm((nmax + 1)**2 - 1))
@@ -134,12 +140,7 @@ contains
       call angular_grid(ntheta, nphi, theta, phi)
       allocate (e_field(2*tp), rw(tp), dr(tp), LL(tp), beam_envelope(tp), Ex(tp), &
                 Ey(tp), Etheta(tp), Ephi(tp))
-
-      if(NA/matrices%ref_med>1d0) then
-         print*, '   Problem: Numerical aperture too high, limiting it to', matrices%ref_med
-         NA = matrices%ref_med-1d-7
-      end if
-      matrices%NA = NA
+      
       beam_angle = dasin(NA/matrices%ref_med)
       write (*, '(2(A,F7.3))') '  Beam angle (deg)         = ', beam_angle*180d0/pi
       wscaling=1.0d0/dtan(abs(beam_angle))
