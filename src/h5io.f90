@@ -312,6 +312,47 @@ module h5io
       end do
    end subroutine read_T
 
+   !****************************************************************************80
+
+   subroutine read_a_from_T()
+      character(len=80) :: file ! File name
+
+      character(len=16), PARAMETER :: dataset9 = "T-ref-a"
+      character(len=16), PARAMETER :: dataset10 = "T-wavlens"
+
+      integer(HID_T) :: file_id
+      integer(HID_T) :: dataset9_id, dataset10_id
+      integer(HID_T) :: dataspace_id
+
+      integer(HSIZE_T), dimension(1) :: dims_out, dims
+      integer(HSIZE_T), dimension(1) :: dimswl, dimsinfo, dims1
+
+      integer :: error, i, nm, ind
+
+      real(dp), dimension(3) :: ref_a
+      real(dp), dimension(:), allocatable :: wls
+      complex(dp) :: ref
+      LOGICAL :: exists
+
+      file = matrices%tname
+
+      call h5open_f(error)
+      call h5fopen_f(file, H5F_ACC_RDWR_F, file_id, error)
+
+      call h5lexists_f(file_id, dataset9, exists, error)
+      if (exists) then
+         call h5dopen_f(file_id, dataset9, dataset9_id, error)
+         call h5dget_space_f(dataset9_id, dataspace_id, error)
+         call H5sget_simple_extent_dims_f(dataspace_id, dimsinfo, dims1, error)
+
+         call h5dread_f(dataset9_id, H5T_NATIVE_DOUBLE, ref_a, dims1, error)
+         call h5dclose_f(dataset9_id, error)
+
+         mesh%a = ref_a(3)
+      end if
+
+   end subroutine read_a_from_T
+
 !****************************************************************************80
 
    subroutine read_k()

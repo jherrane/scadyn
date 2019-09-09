@@ -195,6 +195,9 @@ contains
          case ('-r', '--relax')
             call get_command_argument(i + 1, arg)
             read (arg, *) relax
+         case('-a')
+            call get_command_argument(i + 1, arg)
+            read(arg, *) mesh%a
 
          case ('-h', '--help')
             write (*, '(A)') ' Commands        Value       Description'

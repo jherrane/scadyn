@@ -16,6 +16,7 @@ program main
    call check_paramsfile()
    call read_params()
    call read_arguments()
+   if (matrices%Tmat == 1) call read_a_from_T()
    call setup_band()
 
    call init_geometry()
