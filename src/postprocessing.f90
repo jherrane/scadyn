@@ -101,7 +101,7 @@ contains
       real(dp), dimension(:), allocatable :: theta, costheta
       real(dp), dimension(:, :), allocatable :: Q_coll
 
-      Ntheta = 60 ! Angle of rotation of a_3 about e_1 (when psi=0)
+      Ntheta = 180 ! Angle of rotation of a_3 about e_1 (when psi=0)
 
       allocate (theta(Ntheta), costheta(Ntheta), Q_coll(3, Ntheta))
       call linspace(-1d0,1d0, Ntheta, costheta)
