@@ -144,7 +144,7 @@ if __name__ == "__main__":
       plot_fig(t,x,r'Position of CM','t (\mathrm{'+tstr+' s})','x (\mathrm{\mu m})','x')
       plot_fig(t,w,'Angular velocity','t \mathrm{('+tstr+' s)}','\omega (\mathrm{rad/s})','w')
       plot_fig(t,J,'Angular momentum','t \mathrm{('+tstr+' s)}','J (\mathrm{Ns})','J')
-      plot_fig(t,v,markevery,'Velocity','t \mathrm{('+tstr+' s)}','v (\mathrm{\mu m/s})','v')
-      plot_fig(t,N,markevery,'Torque','t \mathrm{('+tstr+' s)}','N (\mathrm{Nm})','N')
-      plot_fig(t,F,markevery,'Force','t \mathrm{('+tstr+' s)}','F (\mathrm{N})','F')
+      plot_fig(t,v,'Velocity','t \mathrm{('+tstr+' s)}','v (\mathrm{\mu m/s})','v')
+      plot_fig(t,N,'Torque','t \mathrm{('+tstr+' s)}','N (\mathrm{Nm})','N')
+      plot_fig(t,F,'Force','t \mathrm{('+tstr+' s)}','F (\mathrm{N})','F')
 

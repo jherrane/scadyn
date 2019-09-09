@@ -63,6 +63,18 @@ ifeq ($(HOSTNAME),taito)
 	LIBS := $(LIBSTAITO)
 endif
 ###############################################################################
+# Puhti (test)version for everything
+FCPUHTI = mpif90
+INCSPUHTI = -I${FFTW_INSTALL_ROOT}/include/ -m64 -I$(MKLROOT)/include/ -I/${HOME}/include -J${BUILDDIR}
+LIBSPUHTI = -L${FFTW_INSTALL_ROOT}/lib -lfftw3 -lfftw3_mpi -lhdf5_fortran -lhdf5 -Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_gf_lp64.a $(MKLROOT)/lib/intel64/libmkl_core.a $(MKLROOT)/lib/intel64/libmkl_sequential.a -Wl,--end-group -lpthread -lm -ldl
+
+ifeq ($(HOSTNAME),puhti)
+	yell = "Starting Make... When in Puhti, remember to run 'module load python-env gcc fftw/3.3.8-mpi hdf5', and remember to keep fingers crossed that all libraries are available (HDF5 is the problem child, who must be compiled locally at least for now, then loaded with 'module use <hdf5 install location>/include, and modify this Makefile accordingly'), or Make will fail. Upon failure, load modules, clean and run Make again."
+	FC := $(FCPUHTI)
+	INCS := $(INCSPUHTI)
+	LIBS := $(LIBSPUHTI)
+endif
+###############################################################################
 
 # No need to touch below, unless bad makefileing or messages need tweaking...
 .PHONY: all clean
