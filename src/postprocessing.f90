@@ -123,7 +123,7 @@ contains
       else
          write (1, '(A)') 'cos(theta)  Q_{t,1} Q_{t,2} Q_{t,3}'
          do i = 1, Ntheta
-            write (1, '(4E12.3)') dcos(theta(i)), Q_coll(:, i)
+            write (1, '(4E16.7)') dcos(theta(i)), Q_coll(:, i)
          end do
       end if 
       close (1)
