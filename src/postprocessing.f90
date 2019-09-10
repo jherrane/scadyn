@@ -98,14 +98,13 @@ contains
       real(dp), intent(out), optional :: q_factor
       integer :: i, Ntheta
       real(dp), dimension(3) :: Q_t
-      real(dp), dimension(:), allocatable :: theta, costheta
+      real(dp), dimension(:), allocatable :: theta
       real(dp), dimension(:, :), allocatable :: Q_coll
 
       Ntheta = 180 ! Angle of rotation of a_3 about e_1 (when psi=0)
 
-      allocate (theta(Ntheta), costheta(Ntheta), Q_coll(3, Ntheta))
-      call linspace(-1d0,1d0, Ntheta, costheta)
-      theta = acos(costheta)
+      allocate (theta(Ntheta), Q_coll(3, Ntheta))
+      call linspace(0d0,pi, Ntheta, theta)
 
 ! Torque efficiency calculations as in Lazarian2007b
       write (*, '(A)') '  Starting the calculation of beta-averaged torque efficiency:'
