@@ -423,6 +423,21 @@ contains
    end subroutine adaptive_step
 
 !****************************************************************************80
+! Calculates adaptive time step over a maximum angle the particle
+! can rotate during a step
+   subroutine adaptive_step_vlv(wn, w, step_ok, dt, dtn)
+      real(dp), dimension(3, 3) :: Rn, R, T
+      real(dp), dimension(3) :: xn, x, wn, vn, w, v
+      real(dp) :: trace, dt, dtn, dw(3)
+      logical :: step_ok, test_angle, test_motion, test_w
+
+      dw = get_dotw(matrices%N, matrices%w, matrices%I, matrices%I_inv)
+      dtn = matrices%rot_max/max(vlen(matrices%w), vlen(dw))
+      step_ok = .TRUE.
+
+   end subroutine adaptive_step_vlv
+
+!****************************************************************************80
 
    function get_dotq(w, q) result(dq)
 
@@ -546,8 +561,7 @@ contains
          Jwn = Jw + PxW + 0.25d0*dt**2*dot_product(wnh, Jw)*wnh + 0.5d0*dt*N
          matrices%wn = matmul(matrices%I_inv, Jwn)
 
-         call adaptive_step(matrices%Rn,matrices%R, matrices%xn, matrices%x_CM, &
-            matrices%wn, matrices%w, step_ok,dt,dtn)
+         call adaptive_step_vlv(matrices%wn, matrices%w, step_ok,dt,dtn)
          if(debug==1 .AND. .NOT. step_ok) then
             print*, ' Integration step size was fixed from ', dt, ' to ', dtn
          end if
