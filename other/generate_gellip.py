@@ -1,3 +1,17 @@
+# Copyright 2019 Joonas Herranen (joonas.herranen@iki.fi)
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+# Based on description of Gaussian random ellipsoids by Muinonen, K. & Pieniluoma, T. Light scattering by Gaussian random ellipsoid particles: First results with discrete-dipole approximation Journal of Quantitative Spectroscopy & Radiative Transfer, 2011, 112, 1747-1752 (https://doi.org/10.1016/j.jqsrt.2011.02.013).
+
+# The code generates both a surface triangle mesh by deforming an ellipsoidal mesh according to the Gaussian random ellipsoid rules and from that generates and outputs a tetrahedral volume mesh. The main use of this code is to generate inputs for a volume integral equation solution of electromagnetic scattering, and for that reason the .h5 output includes the refractive indices for each tetrahedra (this code generates homogeneous shapes).
+
+# The most important dependency is PyMesh (https://pymesh.readthedocs.io/en/latest/), which can be used to manipulate and save both triangular and tetrahedral meshes. For extreme shapes, the default choices for tetrahedralization and refinement levels should probably be changed.
+
 import numpy as np, matplotlib as mpl, h5py, sys, pymesh, getopt
 from matplotlib import rc, rcParams, pyplot as plt
 from mpl_toolkits import mplot3d
@@ -101,23 +115,6 @@ def boundary_faces(T):
    return F.transpose()
 
 def draw_mesh(meshname, mesh, refinement):
-   # Generate the tetrahedral 3d mesh for the particle. Note that optimal 
-   # refinement can be hard to automatize with tetgen, so quartet is used!
-   tetramesh = pymesh.tetrahedralize(mesh,refinement,engine='quartet')     
-   print('Number of tetras: ' + str(tetramesh.num_elements))
-   
-   param_r = eps_r*np.ones(tetramesh.voxels.shape[0])
-   param_i = eps_i*np.ones(tetramesh.voxels.shape[0])
-   
-   with h5py.File(meshname+".h5","w") as f:
-      dset1 = f.create_dataset("coord", tetramesh.vertices.shape, dtype='double' )
-      dset1[...] = tetramesh.vertices
-      dset2 = f.create_dataset("etopol", tetramesh.voxels.shape, dtype='int32')
-      dset2[...] = tetramesh.voxels+1
-      dset3 = f.create_dataset("param_r", param_r.shape, dtype='double')
-      dset3[...] = param_r
-      dset4 = f.create_dataset("param_i", param_i.shape, dtype='double')
-      dset4[...] = param_i
    fig = plt.figure(figsize=(6, 6),frameon=False)
    ax = mplot3d.Axes3D(fig)
    
@@ -138,7 +135,22 @@ def draw_mesh(meshname, mesh, refinement):
    plt.setp( ax.get_zticklabels(), visible=False)
 
    plt.savefig(meshname)
-   return tetramesh
+   return
+
+def save_h5(meshname, mesh):
+   param_r = eps_r*np.ones(tetramesh.voxels.shape[0])
+   param_i = eps_i*np.ones(tetramesh.voxels.shape[0])
+   
+   with h5py.File(meshname+".h5","w") as f:
+      dset1 = f.create_dataset("coord", tetramesh.vertices.shape, dtype='double' )
+      dset1[...] = tetramesh.vertices
+      dset2 = f.create_dataset("etopol", tetramesh.voxels.shape, dtype='int32')
+      dset2[...] = tetramesh.voxels+1
+      dset3 = f.create_dataset("param_r", param_r.shape, dtype='double')
+      dset3[...] = param_r
+      dset4 = f.create_dataset("param_i", param_i.shape, dtype='double')
+      dset4[...] = param_i
+   return
 
 def args(argv):
    meshname = "mesh"
@@ -179,6 +191,12 @@ if __name__ == "__main__":
    node = deform_mesh(ellipsoid)
    gellip = pymesh.form_mesh(node,ellipsoid.elements)
    
-   tetramesh = draw_mesh(meshname, gellip, refinement)
-#   pymesh.save_mesh(meshname+".mesh",tetramesh)
+   # Generate the tetrahedral 3d mesh for the particle. Note that optimal 
+   # refinement can be hard to automatize with tetgen, so quartet is used!
+   tetramesh = pymesh.tetrahedralize(gellip,refinement,engine='quartet')     
+   print('Number of tetras: ' + str(tetramesh.num_elements))
+   
+   draw_mesh(meshname, gellip, refinement)
+   save_h5(meshname, tetramesh)
+   pymesh.save_mesh(meshname+".mesh",tetramesh)
       
