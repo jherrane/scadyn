@@ -142,7 +142,7 @@ def draw_mesh(meshname, mesh, refinement):
          facevectors[i][j] = tetramesh.vertices[face[j],:]
    ax.add_collection3d(mplot3d.art3d.Poly3DCollection(facevectors, facecolor=[0.5,0.5,0.5], lw=0.5,edgecolor=[0,0,0], alpha=0.66))
    
-   scale = tetramesh.vertices.flatten(-1)
+   scale = tetramesh.vertices.flatten()
    ax.auto_scale_xyz(scale, scale, scale)
    
    plt.setp( ax.get_xticklabels(), visible=False)

@@ -1,6 +1,6 @@
 install() {
    make
-   python other/generate_gellip.py
+   python3 other/generate_gellip.py
    ./scadyn -m mesh.h5 -T T.h5 -p other/params.in
 }
 
