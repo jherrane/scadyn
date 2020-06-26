@@ -449,16 +449,15 @@ contains
 !****************************************************************************80
 ! Setup the wavelength band and all matrices in it
    subroutine setup_band()
-       if (matrices%Tmat == 1) then
+      if (matrices%Tmat == 1) then
          call read_k()
+      else
+         call find_k()
+      end if
+      if (matrices%waves == 'bnd') then
          call calc_E_rel()
       else
-         if (matrices%waves == 'bnd') then
-            call find_k()
-            call calc_E_rel()
-         else
-            call band_no_blackbody()
-         end if
+         call band_no_blackbody()
       end if
 
    end subroutine setup_band
