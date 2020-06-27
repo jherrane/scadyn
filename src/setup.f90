@@ -365,6 +365,23 @@ contains
    end function B_lambda
 
 !****************************************************************************80
+! Calculate ISRF starlight component in the solar neighbourhood as in
+! Mathis et al. (1983), A&A, 128, 212. 
+   function B_ISRF(lambda) result(I)
+      real(dp) :: I, lambda, W1, W2, W3, T1, T2, T3
+
+      lambda = lambda
+      W1 = 7d-13
+      W2 = 1.65d-13
+      W3 = 1d-14
+      T1 = 3000
+      T2 = 4000
+      T3 = 7500
+      I = W1*B_lambda(lambda,T1) + W2*B_lambda(lambda,T2) + W3*B_lambda(lambda,T3)
+
+   end function B_ISRF
+
+!****************************************************************************80
 ! find_k calculates reasonable values for n=bars wavenumbers
 ! in the approximate wavelength range lambda1-lambda2,
 ! with the priority that one wavelength in the range is at the
@@ -436,8 +453,13 @@ contains
          N = M/(sm2*dlmbda)
          do i = 1, matrices%bars
             lambda = 2d0*pi/mesh%ki(i)
-            matrices%E_rel(i) = sqrt(2d0*N*B_lambda(lambda, matrices%temp)*dlmbda &
+            if(matrices%waves=='isrf')then
+               matrices%E_rel(i) = sqrt(2d0*N*B_ISRF(lambda)*dlmbda &
                                      /(epsilon*cc))
+            else
+               matrices%E_rel(i) = sqrt(2d0*N*B_lambda(lambda, matrices%temp)*dlmbda &
+                                     /(epsilon*cc))
+            end if
             sm = sm + matrices%E_rel(i)
          end do
          matrices%E_rel = matrices%E_rel/sm
@@ -454,7 +476,7 @@ contains
       else
          call find_k()
       end if
-      if (matrices%waves == 'bnd') then
+      if (matrices%waves == 'bnd' .OR. matrices%waves == 'isrf' ) then
          call calc_E_rel()
       else
          call band_no_blackbody()
@@ -534,7 +556,7 @@ open (unit=15, file="other/eps_Sil", status='old', &
       end do
       matrices%E_rel = 1d0
 
-      if(matrices%waves == 'isrf') then
+      if(matrices%waves == 'isrf' .OR. matrices%waves == 'sil' ) then
          call calc_E_rel()
          if (2*pi/mesh%ki(1)/1d-6 < 0.2d0) matrices%E_rel(1) = maxval(matrices%E_rel)*0.5d0 
       end if 
