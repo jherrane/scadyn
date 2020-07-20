@@ -36,7 +36,7 @@ module h5io
 
       file = mesh%meshname
       call h5open_f(error)
-      call h5fopen_f(file, H5F_ACC_RDWR_F, file_id, error)
+      call h5fopen_f(file, H5F_ACC_RDONLY_F, file_id, error)
 
 !****************************************************************************80
 
@@ -176,7 +176,7 @@ module h5io
          Taai(T_size), Tabi(T_size), Tbai(T_size), Tbbi(T_size))
 
       call h5open_f(error)
-      call h5fopen_f(file, H5F_ACC_RDWR_F, file_id, error)
+      call h5fopen_f(file, H5F_ACC_RDONLY_F, file_id, error)
 
 !****************************************************************************80
 

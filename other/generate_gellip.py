@@ -22,11 +22,6 @@ from numpy import linalg as la
 from numpy.linalg import norm
 from scipy.spatial import ConvexHull as ch
 
-sigma = 0.125  # Standard deviation
-ell   = 0.35   # Correlation length
-a     = 1.00   # Ellipsoid semiaxis a
-b     = 0.80   # Ellipsoid semiaxis b
-c     = 0.50   # Ellipsoid semiaxis c
 n     = 1000    # Surface mesh vertex count
 gid   = 1      # G-ellipsoid id
 aeff = 5.2
@@ -36,10 +31,6 @@ ref_ind = 1.686 + 0.0312j
 
 eps_r = np.real(ref_ind**2)
 eps_i = np.imag(ref_ind**2)
-
-h     = a*(c/a)**2
-sigma = sigma/h
-beta  = np.sqrt(np.log(sigma**2+1.0))
 
 # Gaussian correlation
 def corr(x,ell):
@@ -67,7 +58,7 @@ def rand_gauss(cv,n):
    rn = normal(size=n)
    return np.dot(D,rn)
 
-def deform_surf(mesh):
+def deform_surf(mesh, h, ell, beta):
    n = mesh.num_vertices
    cv = np.diag(np.ones(mesh.num_vertices))
    
@@ -119,9 +110,9 @@ def genellip():
 #   ellipsoid, info = pymesh.split_long_edges(ellipsoid, 0.1)
    return ellipsoid
 
-def deform_mesh(mesh):
+def deform_mesh(mesh, h, ell, beta):
    # Compute the deformation of surface normals
-   hn = deform_surf(mesh)
+   hn = deform_surf(mesh, h, ell, beta)
    
    mesh.add_attribute("vertex_normal")
    nn = mesh.get_vertex_attribute("vertex_normal")
@@ -203,7 +194,7 @@ def args(argv):
    gotGid = False
    refinement = 0.2
    try:
-      opts, args = getopt.getopt(argv,"i:o:f:r:")
+      opts, args = getopt.getopt(argv,"i:o:f:r:s:l:a:b:c:")
    except getopt.GetoptError:
       print('generate_gellip.py -i <G-ID> -o <meshname> -r <refinement_level>')
       sys.exit(2)
@@ -222,7 +213,17 @@ def args(argv):
             print('Argument of -r is a float, so try again!')
             sys.exit(2)
       if opt in ('-o'):
-         meshname = arg
+         meshname = meshname + str(arg)
+      if opt in ('-s'):
+         sigma = float(arg)
+      if opt in ('-l'):
+         ell = float(arg)
+      if opt in ('-a'):
+         a = float(arg)
+      if opt in ('-b'):
+         b = float(arg)
+      if opt in ('-c'):
+         c = float(arg)
    if gotGid:
       meshname = meshname + str(gid)
    return meshname, gid, refinement
@@ -311,30 +312,37 @@ def fix_mesh(mesh, detail="normal"):
     return mesh;
       
 if __name__ == "__main__":
-   meshname, gid, refinement = args(sys.argv[1:])
-   seed(gid)
-   ellipsoid = genellip()
-   print('genellip() done')
+    meshname, gid, refinement = args(sys.argv[1:])
+    inputdata = np.loadtxt('params.csv')
+    for ID, sigma, ell, a, b, c in inputdata:
+        if int(ID)<23: continue
+        meshname = "mesh" + str(int(ID))
+        h     = a*(c/a)**2
+        sigma = sigma/h
+        beta  = np.sqrt(np.log(sigma**2+1.0))
+        seed(gid)
+        ellipsoid = genellip()
+        print('genellip() done')
 
-   # Discrete triangle representation for a sample G-sphere.
-   node = deform_mesh(ellipsoid)
-   print('deform_mesh() done')
-   gellip = pymesh.form_mesh(node,ellipsoid.elements)
-   gellip = fix_mesh(gellip,detail="high")
-   print('fix_mesh() done')
-#   plot_mesh(gellip.vertices, gellip.elements)
-   
-   # Generate the tetrahedral 3d mesh for the particle. Note that optimal 
-   # refinement can be hard to automatize with tetgen, so quartet is used!
-   tetramesh = pymesh.tetrahedralize(gellip,refinement,engine='quartet')   
-   F2 = boundary_faces(tetramesh.elements)
-#   print('Number of tetras: ' + str(tetramesh.num_elements))
-   V = get_tetra_vol(tetramesh)
-   gellip_s = pymesh.form_mesh(gellip.vertices*aeff/(3.*V/4./np.pi)**(1./3.),gellip.elements)
+        # Discrete triangle representation for a sample G-sphere.
+        node = deform_mesh(ellipsoid, h, ell, beta)
+        print('deform_mesh() done')
+        gellip = pymesh.form_mesh(node,ellipsoid.elements)
+        gellip = fix_mesh(gellip,detail="normal")
+        print('fix_mesh() done')
+        #   plot_mesh(gellip.vertices, gellip.elements)
 
-   write_msh(meshname+"_s.msh", gellip_s)   
-   print('Use l_max = ', truncation_order(lmbda,aeff))
-   draw_mesh(meshname, gellip, refinement)
-   save_h5(meshname, tetramesh)
-   pymesh.save_mesh(meshname+".mesh",tetramesh)
-      
+        # Generate the tetrahedral 3d mesh for the particle. Note that optimal 
+        # refinement can be hard to automatize with tetgen, so quartet is used!
+        tetramesh = pymesh.tetrahedralize(gellip,refinement,engine='quartet')   
+        F2 = boundary_faces(tetramesh.elements)
+        #   print('Number of tetras: ' + str(tetramesh.num_elements))
+        V = get_tetra_vol(tetramesh)
+        gellip_s = pymesh.form_mesh(gellip.vertices*aeff/(3.*V/4./np.pi)**(1./3.),gellip.elements)
+
+        write_msh(meshname+"_s.msh", gellip_s)   
+        print('Use l_max = ', truncation_order(lmbda,aeff))
+        draw_mesh(meshname, gellip, refinement)
+        save_h5(meshname, tetramesh)
+        pymesh.save_mesh(meshname+".mesh",tetramesh)
+          
