@@ -112,7 +112,7 @@ contains
       do i = 1, Ntheta
          Q_t = get_Qav(theta(i), 0d0)
 ! Flip the coordinate labels to match Lazarian2007b: In this code, k is along 
-! z instead of x, 0-polarization is the y of L2007b. So, inverse that next.
+! z instead of x, 0-polarization is the y of L2007b. So, invert that next.
          Q_coll(:, i) = [Q_t(3),Q_t(1),Q_t(2)]
          call print_bar(i, Ntheta)
       end do

@@ -11,7 +11,7 @@ program main
    real(dp) :: tick, tock
    character(80) :: tstr
 
-   call splash('v0.9', tick)
+   call splash('v1.0', tick)
 
    call check_paramsfile()
    call read_params()
