@@ -61,7 +61,7 @@ The code is, apart from the parts mentioned here explicitly, rather well tested 
 
 ### Future considerations
 
-In order of tediousness:
+In order of decreasing tediousness:
 
 + Converting the code from `Fortran` to any modern language. Not really relevant, if the code remains usable to even a single person from whom things can be asked and who is willing to dedicate time helping instead of writing a solid application with proper documentation for future developers.
 + Including a surface integral equation solution for a _T_-matrix to significantly speed up calculations for scatterers of uniform composition.
