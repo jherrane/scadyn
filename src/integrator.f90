@@ -347,7 +347,7 @@ contains
                x = xi(j)
                fi = phi(k)
                p = psi(i)
-               psi_b = 2d0*atan2(sin(th)-sin(x)*sin(p), sin(x)*sin(fi))
+               psi_b = 2d0*atan2(sin(th) - cos(p)*sin(x)*cos(fi) - sin(x)*sin(p), sin(x)*sin(fi))
                Q_t = [interp1D(Q_t1,costheta,cth), &
                interp1D(Q_t2,costheta,cth), 0d0]
                
@@ -358,7 +358,7 @@ contains
                   +Q_t(2)*(cos(psi_b)*(sin(p)*cos(x)+cos(p)*sin(x)*cos(fi))+sin(psi_b)*sin(x)*sin(fi))
                G = Q_t(1)*(sin(p)*sin(fi))&
                   +Q_t(2)*(sin(psi_b)*cos(fi)-cos(psi_b)*cos(p)*sin(fi)) &
-                  +Q_t(3)*(cos(psi_b)*cos(fi)-sin(psi_b)*cos(p)*sin(fi))
+                  +Q_t(3)*(cos(psi_b)*cos(fi)+sin(psi_b)*cos(p)*sin(fi))
 
                F_coll(3, ind + 1) = F_coll(3, ind + 1) + F
                F_coll(4, ind + 1) = F_coll(4, ind + 1) + H
