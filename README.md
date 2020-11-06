@@ -25,7 +25,7 @@ Run install if you dare. All errors should indicate what dependencies I forgot a
 
 The geometry meshes are to be `tetgen`-compatible volumetric tetrahedral meshes. Geometry generation routines are available, and can be run e.g. in `tetgen` or `quartet` mode. Former tends to generate unevenly sized tetrahedra inside the geometry while the latter is much more optimal on the inside, though the surface can be poor. Optimal geometry generation thus depends on the choice of initial surface refinement level, tetrahedralization refinement level and the tetrahedralization engine.
 
-All in all, any `tetgen`-compatible software should work. The package installation may be a drag, `PyMesh` is actually `PyMesh2` in the `pip`-repository. Further, things tend to break between two projects, making included routines readily obsolete. 
+All in all, any `tetgen`-compatible software should work. The package installation may be a drag, `PyMesh` is actually `PyMesh2` in the `pip`-repository. Further, things tend to break between releases of `PyMesh`, making included routines readily obsolete. 
 
 The `.h5` files are expected to contain the `tetgen` vertices as dataset called `coord` and the edge data as `etopol` (edge topology). Further, the mesh should contain complex permittivity for each tetrahedron, as datasets `param_r` and `param_i` (keep in mind that the tetrahedra are defined by `etopol`).
 
