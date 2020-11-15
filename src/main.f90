@@ -31,7 +31,7 @@ program main
          call mie_T_matrix()
       end if
       write (*, '(A, 20F6.3)') ' Wavelengths in medium (um): ', 2d6*pi/mesh%ki
-   else 
+   else
       if(use_mie /= 1) call T_empty()
       write (*, '(A, 20F6.3)') ' Wavelengths in medium (um): ', 2d6*pi/mesh%ki
       call calc_T()
@@ -71,13 +71,13 @@ contains
 
       if (beam_shape == 1) call laguerre_gaussian_beams(p, l)
       if (beam_shape == 2) call bessel_beams()
-      
+
       if (run_test == 1) call test_methods()
       if (run_test == 2) then
          call torque_efficiency()
          !call RAT_efficiency(90, 30, Npsi_in = 50)
          ! call RAT_alignment()
-      end if 
+      end if
       if (run_test == 3) call write_fields()
       if (run_test == 4) call force_map()
 
