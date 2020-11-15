@@ -130,7 +130,7 @@ contains
    subroutine read_arguments()
       integer :: i
       character(len=80) :: arg_name, arg
-      real(dp) :: mu_exp
+      real(dp) :: mu_exp, lambda
 
       matrices%singleT = 0
 
@@ -169,6 +169,11 @@ contains
             call get_command_argument(i + 1, arg)
             read (arg, *) matrices%ref_med
          case ('-w', '--wavelen')
+            call get_command_argument(i + 1, arg)
+            read (arg, *) lambda
+            matrices%lambda1 = lambda*1.d-9
+            matrices%lambda2 = lambda*1.d-9
+         case ('-b', '--bar')
             call get_command_argument(i + 1, arg)
             read (arg, *) matrices%whichbar
          case ('-S', '--singleT')
@@ -210,7 +215,8 @@ contains
             write (*, '(A)') '    --refr       0.0         Real part of refractive index'
             write (*, '(A)') '    --refi       0.0         Imaginary part of refractive index'
             write (*, '(A)') '    --refmed     1.0         Refractive index of the medium (real)'
-            write (*, '(A)') ' -w --wavelen    0           Choose wavelength from the T-matrix'
+            write (*, '(A)') ' -w --wavelen                Set a single wavelength'
+            write (*, '(A)') ' -b --bar        0           Choose wavelength from range in T-matrix'
             write (*, '(A)') ' -S --singleT    0           Calculate only one T-matrix, of wb'
             write (*, '(A)') ' -s --seed       0           RNG seed'
             write (*, '(A)') '    --Mie        1           Use the Mie sphere'
@@ -528,14 +534,14 @@ contains
       real(dp) :: x(3), v(3), w(3), J(3), F(3), N(3), t, R(9)
       character(len=120) :: fmt
       character(len=550) :: wholeline
-      
+
       idx = index(wholeline,'|')
       read(wholeline(1:idx-1),'(I20)') line
       idx = idx + 1
 
       idx2 = index(wholeline(idx+1:len(wholeline)),'|') + idx
       read(wholeline(idx:idx2-2),*) t
-      idx2 = idx2 +1 
+      idx2 = idx2 +1
 
       idx = index(wholeline(idx2+2:len(wholeline)),'|') + idx2 +1
       read(wholeline(idx2+2:idx-1),*) x
@@ -550,11 +556,11 @@ contains
       idx = idx + 1
 
       idx2 = index(wholeline(idx+2:len(wholeline)),'|') + idx + 1
-      read(wholeline(idx+2:idx2-1), *) N 
+      read(wholeline(idx+2:idx2-1), *) N
       idx2 = idx2 + 1
 
       idx = index(wholeline(idx2+2:len(wholeline)),'|') + idx2 +1
-      read(wholeline(idx2+2:idx-1), *) F 
+      read(wholeline(idx2+2:idx-1), *) F
       idx = idx + 1
 
       read(wholeline(idx+2:idx+152),*) R
@@ -728,7 +734,7 @@ contains
       fmt = '(I0, A, ES17.8E3, A, 5(3ES17.8E3, A), 9ES17.8E3)'
       md = mod(n, 1000)
 
-! If the modulo if zero, we are at the final place of the buffer. Otherwise, 
+! If the modulo if zero, we are at the final place of the buffer. Otherwise,
 ! just save to buffer position given by the modulo.
       ind = md
       if (md == 0) ind = 1000
