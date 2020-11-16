@@ -50,36 +50,36 @@ def corr(x,ell):
 # Generate Gaussian random deviates.
 def rand_gauss(cv,n):
    D = np.zeros((n,n))
-   
+
    # Note: cv is assumed to be positive-definite
-   eigval, eigvec = la.eigh(cv) 
-   
+   eigval, eigvec = la.eigh(cv)
+
    # In ascending order and drop everything ill-conditioned
    e = eigval[::-1]
    v = np.fliplr(eigvec)
    v[:,e<0.] = 0.0
    e[e<0.] = 0.0
-   
+
    for j in range(n):
       for i in range(n):
          D[i,j] = np.sqrt(cv[i,i]*e[j])*v[i,j]
-   
+
    rn = normal(size=n)
    return np.dot(D,rn)
 
 def deform_surf(mesh):
    n = mesh.num_vertices
    cv = np.diag(np.ones(mesh.num_vertices))
-   
+
    for i in range(n):
       for j in range(n):
          d = la.norm(mesh.vertices[i,:]-mesh.vertices[j,:])
          cv[i,j] = corr(d, ell)
          cv[j,i] = cv[i,j]
-   
-   h1 = rand_gauss(cv,n)  
+
+   h1 = rand_gauss(cv,n)
    hn = h*np.exp(beta*h1-0.5*beta**2)
-        
+
    return hn
 
 def sphere_points(n=1000):
@@ -91,10 +91,10 @@ def sphere_points(n=1000):
       yi = ((i * offset) - 1) + (offset / 2);
       r = np.sqrt(1 - yi**2)
       phi = ((i + 1) % n) * increment
-      
+
       x[:,i] = [np.cos(phi) * r, yi, np.sin(phi) * r]
    return x.T
-   
+
 def surface_fix(V,F):
    n = np.zeros([3,np.shape(F)[0]])
    centroids = np.zeros([3,np.shape(F)[0]])
@@ -122,7 +122,7 @@ def genellip():
 def deform_mesh(mesh):
    # Compute the deformation of surface normals
    hn = deform_surf(mesh)
-   
+
    mesh.add_attribute("vertex_normal")
    nn = mesh.get_vertex_attribute("vertex_normal")
    print('normals calculated')
@@ -130,13 +130,13 @@ def deform_mesh(mesh):
    # Node coordinates:
    for i in range(mesh.num_vertices):
       X[i,:] = mesh.vertices[i,:] + (hn[i]-h)*nn[i,:]
-         
+
    return X
 
 def boundary_faces(T):
-   T1 = np.array([T[:,0], T[:,1],T[:,2]]) 
+   T1 = np.array([T[:,0], T[:,1],T[:,2]])
    T2 = np.array([T[:,0], T[:,1],T[:,3]])
-   T3 = np.array([T[:,0], T[:,2],T[:,3]]) 
+   T3 = np.array([T[:,0], T[:,2],T[:,3]])
    T4 = np.array([T[:,1], T[:,2],T[:,3]])
 
    T  = np.concatenate((T1,T2,T3,T4),axis=1)
@@ -144,26 +144,26 @@ def boundary_faces(T):
 
    unique_cols, inverse = np.unique(T,axis=1, return_inverse=True)
    counts = np.bincount(inverse)==1
-   F = unique_cols[:,counts] 
-   
+   F = unique_cols[:,counts]
+
    return F.transpose()
 
 def draw_mesh(meshname, mesh, refinement):
    fig = plt.figure(figsize=(6, 6),frameon=False)
    ax = mplot3d.Axes3D(fig)
-   
+
    # Collect face data as vectors for plotting
    F = boundary_faces(tetramesh.elements)
-   
+
    facevectors = np.zeros((F.shape[0],3,3))
    for i, face in enumerate(F):
       for j in range(3):
          facevectors[i][j] = tetramesh.vertices[face[j],:]
    ax.add_collection3d(mplot3d.art3d.Poly3DCollection(facevectors, facecolor=[0.5,0.5,0.5], lw=0.5,edgecolor=[0,0,0], alpha=0.66))
-   
+
    scale = tetramesh.vertices.flatten()
    ax.auto_scale_xyz(scale, scale, scale)
-   
+
    plt.setp( ax.get_xticklabels(), visible=False)
    plt.setp( ax.get_yticklabels(), visible=False)
    plt.setp( ax.get_zticklabels(), visible=False)
@@ -174,7 +174,7 @@ def draw_mesh(meshname, mesh, refinement):
 def save_h5(meshname, mesh):
    param_r = eps_r*np.ones(tetramesh.voxels.shape[0])
    param_i = eps_i*np.ones(tetramesh.voxels.shape[0])
-   
+
    with h5py.File(meshname+".h5","w") as f:
       dset1 = f.create_dataset("coord", tetramesh.vertices.shape, dtype='double' )
       dset1[...] = tetramesh.vertices
@@ -185,7 +185,7 @@ def save_h5(meshname, mesh):
       dset4 = f.create_dataset("param_i", param_i.shape, dtype='double')
       dset4[...] = param_i
    return
-   
+
 def get_tetra_vol(mesh):
    F = mesh.elements
    V = 0.
@@ -196,7 +196,7 @@ def get_tetra_vol(mesh):
       p3 = mesh.vertices[face[3],:]
       V += np.abs(np.dot(p0-p3,np.cross(p1-p3,p2-p3)))/6.
    return V
-   
+
 def args(argv):
    meshname = "mesh"
    gid   = 1      # G-ellipsoid id
@@ -242,7 +242,7 @@ def write_msh(fname, mesh):
    f.write("$EndElements")
    f.close
    return
-   
+
 def truncation_order(lmbda,aeff):
    ka = 2.*np.pi/lmbda*aeff
    print()
@@ -264,15 +264,15 @@ def mesh_vectors(V,F):
 def plot_mesh(points, tris):
    fig = plt.figure(figsize=(8,8))
    ax = mplot3d.Axes3D(fig)
-   
+
    meshvectors = mesh_vectors(points, tris)
-   ax.add_collection3d(mplot3d.art3d.Poly3DCollection(meshvectors, facecolor=[0.5,0.5,0.5], lw=0.5, edgecolor=[0,0,0], alpha=.8, antialiaseds=True))  
+   ax.add_collection3d(mplot3d.art3d.Poly3DCollection(meshvectors, facecolor=[0.5,0.5,0.5], lw=0.5, edgecolor=[0,0,0], alpha=.8, antialiaseds=True))
    scale = points.flatten('F')
-   ax.auto_scale_xyz(scale, scale, scale) 
+   ax.auto_scale_xyz(scale, scale, scale)
 
    plt.show()
    return
-   
+
 def fix_mesh(mesh, detail="normal"):
     bbox_min, bbox_max = mesh.bbox;
     diag_len = norm(bbox_max - bbox_min);
@@ -309,7 +309,7 @@ def fix_mesh(mesh, detail="normal"):
     mesh, __ = pymesh.remove_isolated_vertices(mesh);
 
     return mesh;
-      
+
 if __name__ == "__main__":
    meshname, gid, refinement = args(sys.argv[1:])
    seed(gid)
@@ -323,18 +323,18 @@ if __name__ == "__main__":
    gellip = fix_mesh(gellip,detail="high")
    print('fix_mesh() done')
 #   plot_mesh(gellip.vertices, gellip.elements)
-   
-   # Generate the tetrahedral 3d mesh for the particle. Note that optimal 
-   # refinement can be hard to automatize with tetgen, so quartet is used!
-   tetramesh = pymesh.tetrahedralize(gellip,refinement,engine='quartet')   
+
+   # Generate the tetrahedral 3d mesh for the particle. Note that optimal
+   # refinement can be hard to automatize with tetgen! Previously, quartet was
+   # used, but it has since been broken...
+   tetramesh = pymesh.tetrahedralize(gellip,refinement,engine='tetgen')
    F2 = boundary_faces(tetramesh.elements)
 #   print('Number of tetras: ' + str(tetramesh.num_elements))
    V = get_tetra_vol(tetramesh)
    gellip_s = pymesh.form_mesh(gellip.vertices*aeff/(3.*V/4./np.pi)**(1./3.),gellip.elements)
 
-   write_msh(meshname+"_s.msh", gellip_s)   
+   write_msh(meshname+"_s.msh", gellip_s)
    print('Use l_max = ', truncation_order(lmbda,aeff))
    draw_mesh(meshname, gellip, refinement)
    save_h5(meshname, tetramesh)
    pymesh.save_mesh(meshname+".mesh",tetramesh)
-      
