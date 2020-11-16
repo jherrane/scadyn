@@ -320,7 +320,7 @@ if __name__ == "__main__":
    node = deform_mesh(ellipsoid)
    print('deform_mesh() done')
    gellip = pymesh.form_mesh(node,ellipsoid.elements)
-   gellip = fix_mesh(gellip,detail="high")
+   gellip = fix_mesh(gellip,detail="low")
    print('fix_mesh() done')
 #   plot_mesh(gellip.vertices, gellip.elements)
 
