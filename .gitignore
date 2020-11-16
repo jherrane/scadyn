@@ -23,6 +23,7 @@
 *.h5
 *.in
 *.png
+*.msh
 
 scadyn
 
