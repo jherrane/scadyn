@@ -14,6 +14,24 @@ Run `install` if you dare. The installation is dependent on the LAPACK, BLAS, HD
 **Windows**
 Library locations and compiler probably need changing. Never tried, so good luck!
 
+### PyMesh
+
+The farce also known as maintaining of PyMesh (for further confusion, the actual package is `pymesh2` in package maintaining services) makes it really annoying to use on contemporary systems with `python>v3.6`. I got it working using conda.
+
+With conda installed, create an Python 3.6 environment via
+
+`conda create -n py36 python=3.6 anaconda`
+
+then activate the new environment with
+
+`conda activate py36`
+
+Finally, we need to install two necessary libraries, PyMesh and MeshIO, with
+
+`conda install -c conda-forge pymesh2 meshio`
+
+Nowhere do we have official instructions that work, so just trust me and use this! Given that we can still create an 3.6 environment, this approach should work till the end of time.
+
 ## Run
 Run install if you dare. All errors should indicate what dependencies I forgot about. The basic command is:
 ```

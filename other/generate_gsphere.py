@@ -26,7 +26,7 @@ def c_ind(n, m=None):
       nn = nn.astype(int)
       return nn, n-(nn**2+nn)/2
    nn = np.asarray(n)*(np.asarray(n)+1)/2+np.asarray(m)
-   return nn
+   return int(nn)
 
 cind = np.arange(lmax*(lmax+1)/2, dtype=int)
 l, m = c_ind(cind)
@@ -51,7 +51,7 @@ def mgaussian_lcoef(l, ell):
 def coef_std(a_l,beta,l):
    std = beta*np.sqrt(a_l)
    for i in cind:
-      j = l[i]*(l[i]+1)/2
+      j = int(l[i]*(l[i]+1)/2)
       std[i] = std[j]*np.sqrt(2.*factorial(l[i]-m[i])/factorial(l[i]+m[i]))
    return std
 
@@ -62,7 +62,7 @@ def sample_gaussian_sphere_coef(std, l):
    b_lm = np.zeros(std.size)
    for mm in range(1,lmax):
       for ll in range(max(mm,lmin),lmax):
-         i = c_ind(ll,mm)
+         i = int(c_ind(ll,mm))
          a_lm[i] = normal()*std[i]
          b_lm[i] = normal()*std[i]
    return a_lm, b_lm
@@ -89,11 +89,11 @@ def r_gsphere(a_lm, b_lm, z, phi, beta):
    SPHI = np.sin(np.arange(0,lmax+1)*phi)
    s = 0.
    for ll in range(lmin,lmax):
-      ii = c_ind(ll,0)
+      ii = int(c_ind(ll,0))
       s = s + legp[ll,0]*a_lm[ii]
    for mm in range(1,lmax):
       for ll in range(max(mm,lmin),lmax):
-         ii = c_ind(ll,mm)
+         ii = int(c_ind(ll,mm))
          s = s + legp[mm,ll]*(a_lm[ii]*CPHI[mm]+b_lm[ii]*SPHI[mm])
    return np.exp(s-0.5*beta**2)
 
@@ -116,7 +116,7 @@ def draw_mesh(meshname, mesh, refinement):
    # Generate the tetrahedral 3d mesh for the particle. Note that optimal
    # refinement can be hard to automatize with tetgen! Previously, quartet was
    # used, but it has since been broken...
-   tetramesh = pymesh.tetrahedralize(gellip,refinement,engine='tetgen')    
+   tetramesh = pymesh.tetrahedralize(mesh,refinement,engine='tetgen')    
    print('Number of tetras: ' + str(tetramesh.num_elements))
 
    param_r = eps_r*np.ones(tetramesh.voxels.shape[0])
