@@ -17,7 +17,6 @@ from matplotlib import rc, rcParams, pyplot as plt
 from mpl_toolkits import mplot3d
 from scipy.special import spherical_in, factorial, lpmn
 from numpy.random import normal, seed
-import meshio
 from numpy import linalg as la
 from numpy.linalg import norm
 from scipy.spatial import ConvexHull as ch
