@@ -1,295 +1,424 @@
-module gmres_module
+module possu
 ! Copyright (c) 2018 Johannes Markkanen and University of Helsinki
 ! All rights reserved.
 ! The MIT License is applied to this software, see LICENSE
    use common
-   use possu
-   use sparse
-   use sparse_mat
+   use, intrinsic :: iso_c_binding
+   use omp_lib
+
    implicit none
+
+!include '/usr/local/include/fftw3.f03'
+   include 'fftw3.f03'
+!include 'fftw3-mpi.f03'
+
+! Cached FFTW plans (rebuilt when grid dimensions change)
+   integer*8, save :: plan_3d_fwd = 0, plan_3d_bwd = 0
+   integer, save :: fft3_Nx = -1, fft3_Ny = -1, fft3_Nz = -1
+
+   integer*8, dimension(nthreads), save :: plan_1d_x_fwd = 0
+   integer*8, dimension(nthreads), save :: plan_1d_y_fwd = 0
+   integer*8, dimension(nthreads), save :: plan_1d_z_fwd = 0
+   integer*8, dimension(nthreads), save :: plan_1d_x_bwd = 0
+   integer*8, dimension(nthreads), save :: plan_1d_y_bwd = 0
+   integer*8, dimension(nthreads), save :: plan_1d_z_bwd = 0
+   integer, save :: fft2_Nx = -1, fft2_Ny = -1, fft2_Nz = -1
 
 contains
 
 !****************************************************************************80
 
-   subroutine compute_Ax2(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine free_fftw_plans()
 
-      double complex, dimension(:, :, :), allocatable :: SS
-      double complex, dimension(:), allocatable :: Y_aim, Y_xx, Y_yy, Y_zz, Y2_x, Y2_y, Y2_z, y_new, tmp
-      double complex, dimension(:, :), allocatable :: X_xyz
-      integer :: x, y, z, i1, mm, T1, T2, rate, i2, Nbasis
-      double precision :: k2, scale
-
-      if (mesh%order == 0) then
-         Nbasis = 1
+      if (plan_3d_fwd /= 0) then
+         call dfftw_destroy_plan(plan_3d_fwd)
+         plan_3d_fwd = 0
       end if
-      if (mesh%order == 1) then
-         Nbasis = 4
+      if (plan_3d_bwd /= 0) then
+         call dfftw_destroy_plan(plan_3d_bwd)
+         plan_3d_bwd = 0
       end if
+      fft3_Nx = -1
+      fft3_Ny = -1
+      fft3_Nz = -1
 
-      k2 = mesh%k**2
-      mm = mesh%Nx*mesh%Ny*mesh%Nz
-
-      scale = 1.0/(mm*8.0)
-
-      allocate (X_xyz(Nbasis*mesh%N_tet, 3))
-
-      x = size(matrices%Fg, 1)
-      y = size(matrices%Fg, 2)
-      z = size(matrices%Fg, 3)
-
-      allocate (SS(x, y, z))
-      allocate (tmp(mm))
-
-! Old solution vector
-
-      if (mesh%order == 0) then
-         do i1 = 1, mesh%N_tet
-            X_xyz(i1, 1) = matrices%x(3*(i1 - 1) + 1)
-            X_xyz(i1, 2) = matrices%x(3*(i1 - 1) + 2)
-            X_xyz(i1, 3) = matrices%x(3*(i1 - 1) + 3)
-         end do
-      end if
-
-      if (mesh%order == 1) then
-         do i1 = 1, mesh%N_tet
-            do i2 = 1, 4
-               X_xyz(4*(i1 - 1) + i2, 1) = matrices%x(12*(i1 - 1) + i2)
-               X_xyz(4*(i1 - 1) + i2, 2) = matrices%x(12*(i1 - 1) + 4 + i2)
-               X_xyz(4*(i1 - 1) + i2, 3) = matrices%x(12*(i1 - 1) + 8 + i2)
-            end do
-         end do
-      end if
-
-!--------------- Projections into the grid nodes ----------------------------!
-
-      call vec2arr2(SS, mesh, sparse_T_matmul(matrices%S, matrices%indS, X_xyz(:, 1), mm))
-
-      call FFT3d_2(SS)
-
-      SS = matrices%Fg*SS
-
-      call IFFT3d_2(SS)
-
-      Y_xx = sparse_eps_matmul(mesh%param, matrices%S, matrices%indS, arr2vec(mesh, SS), Nbasis)
-
-      call vec2arr2(SS, mesh, sparse_T_matmul(matrices%S, matrices%indS, X_xyz(:, 2), mm))
-      call FFT3d_2(SS)
-      SS = matrices%Fg*SS
-      call IFFT3d_2(SS)
-      Y_yy = sparse_eps_matmul(mesh%param, matrices%S, matrices%indS, arr2vec(mesh, SS), Nbasis)
-
-      call vec2arr2(SS, mesh, sparse_T_matmul(matrices%S, matrices%indS, X_xyz(:, 3), mm))
-      call FFT3d_2(SS)
-      SS = matrices%Fg*SS
-      call IFFT3d_2(SS)
-      Y_zz = sparse_eps_matmul(mesh%param, matrices%S, matrices%indS, arr2vec(mesh, SS), Nbasis)
-
-      call vec2arr2(SS, mesh, sparse_T_matmul(matrices%Sx, matrices%indS, X_xyz(:, 1), mm))
-      call FFT3d_2(SS)
-      SS = matrices%Fg*SS
-      call IFFT3d_2(SS)
-      Y2_x = sparse_eps_matmul(mesh%param, matrices%Sx, matrices%indS, arr2vec(mesh, SS), Nbasis)
-      Y2_y = sparse_eps_matmul(mesh%param, matrices%Sy, matrices%indS, arr2vec(mesh, SS), Nbasis)
-      Y2_z = sparse_eps_matmul(mesh%param, matrices%Sz, matrices%indS, arr2vec(mesh, SS), Nbasis)
-
-      call vec2arr2(SS, mesh, sparse_T_matmul(matrices%Sy, matrices%indS, X_xyz(:, 2), mm))
-      call FFT3d_2(SS)
-      SS = matrices%Fg*SS
-      call IFFT3d_2(SS)
-      Y2_x = Y2_x + sparse_eps_matmul(mesh%param, matrices%Sx, matrices%indS, arr2vec(mesh, SS), Nbasis)
-      Y2_y = Y2_y + sparse_eps_matmul(mesh%param, matrices%Sy, matrices%indS, arr2vec(mesh, SS), Nbasis)
-      Y2_z = Y2_z + sparse_eps_matmul(mesh%param, matrices%Sz, matrices%indS, arr2vec(mesh, SS), Nbasis)
-
-      call vec2arr2(SS, mesh, sparse_T_matmul(matrices%Sz, matrices%indS, X_xyz(:, 3), mm))
-      call FFT3d_2(SS)
-      SS = matrices%Fg*SS
-      call IFFT3d_2(SS)
-      Y2_x = Y2_x + sparse_eps_matmul(mesh%param, matrices%Sx, matrices%indS, arr2vec(mesh, SS), Nbasis)
-      Y2_y = Y2_y + sparse_eps_matmul(mesh%param, matrices%Sy, matrices%indS, arr2vec(mesh, SS), Nbasis)
-      Y2_z = Y2_z + sparse_eps_matmul(mesh%param, matrices%Sz, matrices%indS, arr2vec(mesh, SS), Nbasis)
-
-!-------------------------- Construct final vector--------------------------------------
-      allocate (Y_aim(3*Nbasis*mesh%N_tet))
-
-      if (mesh%order == 0) then
-         do i1 = 1, mesh%N_tet
-            Y_aim(3*(i1 - 1) + 1) = Y2_x(i1) - mesh%k**2*Y_xx(i1)
-            Y_aim(3*(i1 - 1) + 2) = Y2_y(i1) - mesh%k**2*Y_yy(i1)
-            Y_aim(3*(i1 - 1) + 3) = Y2_z(i1) - mesh%k**2*Y_zz(i1)
-         end do
-      end if
-
-      if (mesh%order == 1) then
-         do i1 = 1, mesh%N_tet
-            do i2 = 1, 4
-               Y_aim(12*(i1 - 1) + i2) = Y2_x(4*(i1 - 1) + i2) - mesh%k**2*Y_xx(4*(i1 - 1) + i2)
-               Y_aim(12*(i1 - 1) + 4 + i2) = Y2_y(4*(i1 - 1) + i2) - mesh%k**2*Y_yy(4*(i1 - 1) + i2)
-               Y_aim(12*(i1 - 1) + 8 + i2) = Y2_z(4*(i1 - 1) + i2) - mesh%k**2*Y_zz(4*(i1 - 1) + i2)
-            end do
-         end do
-      end if
-
-!--------------------- Multiply with the sparse matrix---------------------------------
-
-      if (mesh%order == 0) then
-         y_new = matmul_Acorr_const(matrices%sp_mat, matrices%sp_ind, matrices%x) + Y_aim
-      end if
-
-      if (mesh%order == 1) then
-         y_new = matmul_Acorr(matrices%sp_mat, matrices%sp_ind, matrices%x) + Y_aim
-      end if
-
-      matrices%Ax = Y_new
-
-   end subroutine compute_Ax2
+      call free_fft2_plans_only()
+   end subroutine free_fftw_plans
 
 !****************************************************************************80
 
-   subroutine gmres(matrices, mesh)
-      type(data) :: matrices
-      type(mesh_struct) :: mesh
+   subroutine ensure_fft3_plans(Nx, Ny, Nz)
+      integer, intent(in) :: Nx, Ny, Nz
+      complex(dp), dimension(:,:,:), allocatable :: dummy
 
-      double complex, dimension(:), allocatable :: r, x, w, cs, sn, g, y
-      double complex, dimension(:, :), allocatable :: v, h
+      if (fft3_Nx == Nx .and. fft3_Ny == Ny .and. fft3_Nz == Nz) return
 
-      integer :: N, max_iter, k, j, i, iter, m, ite, T1, T2, rate, dest, ierr, N_procs
-      double precision :: err_tol, b_norm, error, nu, normav, normav2
-      double complex :: temp(2), tmp, hr
+      if (plan_3d_fwd /= 0) call dfftw_destroy_plan(plan_3d_fwd)
+      if (plan_3d_bwd /= 0) call dfftw_destroy_plan(plan_3d_bwd)
+      plan_3d_fwd = 0
+      plan_3d_bwd = 0
 
-      err_tol = mesh%tol
-      max_iter = mesh%restart ! restart number
-      m = mesh%maxit ! number of iterations / restarts
+      allocate (dummy(Nx, Ny, Nz))
+      call dfftw_plan_dft_3d(plan_3d_fwd, Nx, Ny, Nz, dummy, dummy, FFTW_FORWARD, FFTW_ESTIMATE)
+      call dfftw_plan_dft_3d(plan_3d_bwd, Nx, Ny, Nz, dummy, dummy, FFTW_BACKWARD, FFTW_ESTIMATE)
+      deallocate (dummy)
 
-      N = size(matrices%rhs)
-      allocate (x(N))
+      fft3_Nx = Nx
+      fft3_Ny = Ny
+      fft3_Nz = Nz
+   end subroutine ensure_fft3_plans
 
-      matrices%x = matrices%rhs ! Initial guess
-      x = matrices%x
-      b_norm = dble(sqrt(dot_product(matrices%rhs, matrices%rhs)))
+!****************************************************************************80
 
-      allocate (y(m))
+   subroutine ensure_fft2_plans(Nx, Ny, Nz)
+      integer, intent(in) :: Nx, Ny, Nz
+      complex(dp), dimension(:), allocatable :: dummy_x, dummy_y, dummy_z
+      integer :: t
 
-      allocate (r(N), w(N))
-      allocate (v(N, m + 1))
-      allocate (h(m + 1, m))
-      allocate (cs(m + 1), sn(m + 1), g(m + 1))
+      if (fft2_Nx == Nx .and. fft2_Ny == Ny .and. fft2_Nz == Nz) return
 
-      v(:, :) = dcmplx(0.0, 0.0)
-      h(:, :) = dcmplx(0.0, 0.0)
+      call free_fft2_plans_only()
 
-      cs(:) = dcmplx(0.0, 0.0)
-      sn(:) = dcmplx(0.0, 0.0)
+      allocate (dummy_x(Nx), dummy_y(Ny), dummy_z(Nz))
+      do t = 1, nthreads
+         call dfftw_plan_dft_1d(plan_1d_x_fwd(t), Nx, dummy_x, dummy_x, FFTW_FORWARD, FFTW_ESTIMATE)
+         call dfftw_plan_dft_1d(plan_1d_y_fwd(t), Ny, dummy_y, dummy_y, FFTW_FORWARD, FFTW_ESTIMATE)
+         call dfftw_plan_dft_1d(plan_1d_z_fwd(t), Nz, dummy_z, dummy_z, FFTW_FORWARD, FFTW_ESTIMATE)
+         call dfftw_plan_dft_1d(plan_1d_x_bwd(t), Nx, dummy_x, dummy_x, FFTW_BACKWARD, FFTW_ESTIMATE)
+         call dfftw_plan_dft_1d(plan_1d_y_bwd(t), Ny, dummy_y, dummy_y, FFTW_BACKWARD, FFTW_ESTIMATE)
+         call dfftw_plan_dft_1d(plan_1d_z_bwd(t), Nz, dummy_z, dummy_z, FFTW_BACKWARD, FFTW_ESTIMATE)
+      end do
+      deallocate (dummy_x, dummy_y, dummy_z)
 
-      w(:) = dcmplx(0.0, 0.0)
-! GMRES ITERATIONS
-      ite = 0
+      fft2_Nx = Nx
+      fft2_Ny = Ny
+      fft2_Nz = Nz
+   end subroutine ensure_fft2_plans
 
-      print *, 'Start iterating'
-      do iter = 1, max_iter
+!****************************************************************************80
 
-         matrices%x = x
+   subroutine free_fft2_plans_only()
+      integer :: t
 
-         call compute_Ax2(matrices, mesh)
+      do t = 1, nthreads
+         if (plan_1d_x_fwd(t) /= 0) call dfftw_destroy_plan(plan_1d_x_fwd(t))
+         if (plan_1d_y_fwd(t) /= 0) call dfftw_destroy_plan(plan_1d_y_fwd(t))
+         if (plan_1d_z_fwd(t) /= 0) call dfftw_destroy_plan(plan_1d_z_fwd(t))
+         if (plan_1d_x_bwd(t) /= 0) call dfftw_destroy_plan(plan_1d_x_bwd(t))
+         if (plan_1d_y_bwd(t) /= 0) call dfftw_destroy_plan(plan_1d_y_bwd(t))
+         if (plan_1d_z_bwd(t) /= 0) call dfftw_destroy_plan(plan_1d_z_bwd(t))
+         plan_1d_x_fwd(t) = 0
+         plan_1d_y_fwd(t) = 0
+         plan_1d_z_fwd(t) = 0
+         plan_1d_x_bwd(t) = 0
+         plan_1d_y_bwd(t) = 0
+         plan_1d_z_bwd(t) = 0
+      end do
+      fft2_Nx = -1
+      fft2_Ny = -1
+      fft2_Nz = -1
+   end subroutine free_fft2_plans_only
 
-         r = matrices%rhs - matrices%Ax
-         v(:, 1) = r/sqrt(dot_product(r, r))
-         g(:) = dcmplx(0.0, 0.0)
-         g(1) = sqrt(dot_product(r, r))
+!****************************************************************************80
+! 3D FFT (fftw3)
+   subroutine FFT3d(A)
+      complex(dp), dimension(:, :, :) :: A
 
-         do i = 1, m
-            call system_clock(T1, rate)
-            matrices%x = v(:, i)
+      integer :: Nx, Ny, Nz
 
-            call compute_Ax2(matrices, mesh)
-            w = matrices%Ax
+      Nx = size(A, 1)
+      Ny = size(A, 2)
+      Nz = size(A, 3)
 
-            normav = dble(sqrt(dot_product(w, w)))
+      call ensure_fft3_plans(Nx, Ny, Nz)
+      call dfftw_execute_dft(plan_3d_fwd, A, A)
 
-            !_______Modified Gram-Schmidt____________________________
-            do k = 1, i
-               h(k, i) = dot_product(v(:, k), w)
-               w = w - h(k, i)*v(:, k)
-            end do
+   end subroutine FFT3d
 
-            h(i + 1, i) = sqrt(dot_product(w, w))
-            normav2 = dble(h(i + 1, i))
-            v(:, i + 1) = w
+!****************************************************************************80
+! 3D FFT on the zero-padded grid (fftw3)
+   subroutine FFT3d_2(A)
+      complex(dp), dimension(:, :, :) :: A
 
-            !_____________Reorthogonalize?________________________________
-            if (normav + 0.001*normav2 == normav) then
-               do j = 1, i
-                  hr = dot_product(v(:, j), v(:, i + 1))
-                  h(j, i) = h(j, i) + hr
-                  v(:, i + 1) = v(:, i + 1) - hr*v(:, j)
-               end do
-               h(i + 1, i) = sqrt(dot_product(v(:, i + 1), v(:, i + 1)))
-            end if
-            !______________________________________________________
+      integer :: Nx, Ny, Nz, i1, i2, tid
+      complex(dp) :: vec_x(size(A, 1))
+      complex(dp) :: vec_y(size(A, 2))
+      complex(dp) :: vec_z(size(A, 3))
 
-            if (h(i + 1, i) .ne. 0.0) then
-               v(:, i + 1) = v(:, i + 1)/h(i + 1, i)
-            end if
+      Nx = size(A, 1)
+      Ny = size(A, 2)
+      Nz = size(A, 3)
 
-            !_____ apply Givens rotations_________________________________
-            if (i > 1) then
-               do k = 1, i - 1
-                  tmp = cs(k)*h(k, i) - sn(k)*h(k + 1, i)
-                  h(k + 1, i) = sn(k)*h(k, i) + conjg(cs(k))*h(k + 1, i)
-                  h(k, i) = tmp
-               end do
-            end if
-            !________________________________________________
-            nu = dble(sqrt(dot_product(H(i:i + 1, i), H(i:i + 1, i))))
+      call ensure_fft2_plans(Nx, Ny, Nz)
 
-            if (nu .ne. 0.0) then
+      !______________________ 1d-FFT x-direction_________________________!
 
-               cs(i) = conjg(h(i, i)/nu)
-               sn(i) = -h(i + 1, i)/nu
-               H(i, i) = cs(i)*H(i, i) - sn(i)*H(i + 1, i); 
-               H(i + 1, i) = 0.0; 
-               temp(1:2) = g(i:i + 1)
-               g(i) = cs(i)*temp(1) - sn(i)*temp(2)
-               g(i + 1) = sn(i)*temp(1) + conjg(cs(i))*temp(2)
-            end if
-
-            error = abs(g(i + 1))/b_norm; 
-            if (error < err_tol) then
-               y = matmul(Cinv(H(1:i, 1:i)), g(1:i)); 
-               x = x + matmul(V(:, 1:i), y)
-               exit
-            end if
-
-            call system_clock(T2)
-            print *, 'RE (', ite + 1, ')', '=', real(error), 'time/iter =', real(T2 - T1)/real(rate)
-            ite = ite + 1
-
-            error = abs(g(i + 1))/b_norm; 
+!$OMP parallel num_threads(nthreads) default(private) &
+!$OMP firstprivate(Nz, Ny) shared(A, plan_1d_x_fwd)
+!$OMP do
+      do i1 = 1, Nz/2
+         do i2 = 1, Ny/2
+            tid = omp_get_thread_num() + 1
+            vec_x = A(:, i2, i1)
+            call dfftw_execute_dft(plan_1d_x_fwd(tid), vec_x, vec_x)
+            A(:, i2, i1) = vec_x
          end do
+      end do
+!$OMP end do
+!$OMP end parallel
 
-         if (error < err_tol) then
-            exit
-         end if
+      !______________________ 1d-FFT y-direction_________________________!
 
-         y = matmul(Cinv(H(1:m, 1:m)), g(1:m)); 
-         x = x + matmul(V(:, 1:m), y)
-         matrices%x = x
+!$OMP parallel num_threads(nthreads) default(private) &
+!$OMP firstprivate(Nz, Nx) shared(A, plan_1d_y_fwd)
+!$OMP do
 
-         call compute_Ax2(matrices, mesh)
-         r = matrices%rhs - matrices%Ax
+      do i1 = 1, Nz/2
+         do i2 = 1, Nx
+            tid = omp_get_thread_num() + 1
+            vec_y = A(i2, :, i1)
+            call dfftw_execute_dft(plan_1d_y_fwd(tid), vec_y, vec_y)
+            A(i2, :, i1) = vec_y
+         end do
+      end do
+!$OMP end do
+!$OMP end parallel
 
-         if (error < err_tol) then
-            exit
+!______________________ 1d-FFT z-direction_________________________!
+
+!$OMP parallel num_threads(nthreads) default(private) &
+!$OMP firstprivate(Ny, Nx) shared(A, plan_1d_z_fwd)
+!$OMP do
+
+      do i1 = 1, Ny
+         do i2 = 1, Nx
+            tid = omp_get_thread_num() + 1
+            vec_z = A(i2, i1, :)
+            call dfftw_execute_dft(plan_1d_z_fwd(tid), vec_z, vec_z)
+            A(i2, i1, :) = vec_z
+         end do
+      end do
+!$OMP end do
+!$OMP end parallel
+
+   end subroutine FFT3d_2
+
+!****************************************************************************80
+! unscaled 3D inverse FFT (fftw3)
+! scaling in function arr2vec (common.f90)
+   subroutine IFFT3d(A)
+      complex(dp), dimension(:, :, :) :: A
+
+      integer :: Nx, Ny, Nz
+
+      Nx = size(A, 1)
+      Ny = size(A, 2)
+      Nz = size(A, 3)
+
+      call ensure_fft3_plans(Nx, Ny, Nz)
+      call dfftw_execute_dft(plan_3d_bwd, A, A)
+
+   end subroutine IFFT3d
+
+!****************************************************************************80
+! 3D inverse FFT on the zero-padded grid (fftw3)
+   subroutine IFFT3d_2(A)
+      complex(dp), dimension(:, :, :) :: A
+
+      integer :: Nx, Ny, Nz, i1, i2, tid
+      complex(dp) :: vec_x(size(A, 1))
+      complex(dp) :: vec_y(size(A, 2))
+      complex(dp) :: vec_z(size(A, 3))
+
+      Nx = size(A, 1)
+      Ny = size(A, 2)
+      Nz = size(A, 3)
+
+      call ensure_fft2_plans(Nx, Ny, Nz)
+
+!______________________ 1d-IFFT z-direction_________________________!
+
+!$OMP parallel num_threads(nthreads) default(private) &
+!$OMP firstprivate(Ny, Nx) shared(A, plan_1d_z_bwd)
+!$OMP do
+
+      do i1 = 1, Ny
+         do i2 = 1, Nx
+            tid = omp_get_thread_num() + 1
+            vec_z = A(i2, i1, :)
+            call dfftw_execute_dft(plan_1d_z_bwd(tid), vec_z, vec_z)
+            A(i2, i1, :) = vec_z
+         end do
+      end do
+!$OMP end do
+!$OMP end parallel
+
+      !______________________ 1d-IFFT y-direction_________________________!
+
+!$OMP parallel num_threads(nthreads) default(private) &
+!$OMP firstprivate(Nz, Nx) shared(A, plan_1d_y_bwd)
+!$OMP do
+
+      do i1 = 1, Nz/2
+         do i2 = 1, Nx
+            tid = omp_get_thread_num() + 1
+            vec_y = A(i2, :, i1)
+            call dfftw_execute_dft(plan_1d_y_bwd(tid), vec_y, vec_y)
+            A(i2, :, i1) = vec_y
+         end do
+      end do
+!$OMP end do
+!$OMP end parallel
+
+      !______________________ 1d-IFFT x-direction_________________________!
+
+!$OMP parallel num_threads(nthreads) default(private) &
+!$OMP firstprivate(Nz, Ny) shared(A, plan_1d_x_bwd)
+!$OMP do
+      do i1 = 1, Nz/2
+         do i2 = 1, Ny/2
+            tid = omp_get_thread_num() + 1
+            vec_x = A(:, i2, i1)
+            call dfftw_execute_dft(plan_1d_x_bwd(tid), vec_x, vec_x)
+            A(:, i2, i1) = vec_x
+         end do
+      end do
+!$OMP end do
+!$OMP end parallel
+
+   end subroutine IFFT3d_2
+
+!****************************************************************************80
+! Inverse of a real matrix (lapack)
+   function inv(A) result(Ainv)
+      real(dp), dimension(:, :), intent(in) :: A
+      real(dp), dimension(:, :), allocatable :: Ainv
+
+      real(dp), dimension(:), allocatable :: work  ! work array for LAPACK
+      integer, dimension(:), allocatable :: ipiv   ! pivot indices
+      integer :: n, info
+
+      ! External procedures defined in LAPACK
+      external DGETRF
+      external DGETRI
+
+      ! Store A in Ainv to prevent it from being overwritten by LAPACK
+      n = size(A, 1)
+      allocate (Ainv(n, n))
+      allocate (work(n))
+      allocate (ipiv(n))
+      Ainv = A
+
+      ! DGETRF computes an LU factorization of a general M-by-N matrix A
+      ! using partial pivoting with row interchanges.
+      call DGETRF(n, n, Ainv, n, ipiv, info)
+
+      if (info /= 0) then
+         stop 'Matrix is numerically singular!'
+      end if
+
+      ! DGETRI computes the inverse of a matrix using the LU factorization
+      ! computed by DGETRF.
+      call DGETRI(n, Ainv, n, ipiv, work, n, info)
+
+      if (info /= 0) then
+         stop 'Matrix inversion failed!'
+      end if
+   end function inv
+
+!****************************************************************************80
+! Inverse of a complex matrix (lapack)
+   function Cinv(A) result(Ainv)
+      complex(dp), dimension(:, :), intent(in) :: A
+      complex(dp), dimension(:, :), allocatable :: Ainv
+
+      complex(dp), dimension(:), allocatable :: work  ! work array for LAPACK
+      integer, dimension(:), allocatable :: ipiv   ! pivot indices
+      integer :: n, info
+
+      ! External procedures defined in LAPACK
+      external ZGETRF
+      external ZGETRI
+
+      ! Store A in Ainv to prevent it from being overwritten by LAPACK
+      n = size(A, 1)
+      allocate (Ainv(n, n))
+      allocate (work(n))
+      allocate (ipiv(n))
+      Ainv = A
+
+      ! DGETRF computes an LU factorization of a general M-by-N matrix A
+      ! using partial pivoting with row interchanges.
+      call ZGETRF(n, n, Ainv, n, ipiv, info)
+
+      if (info /= 0) then
+         stop 'Matrix is numerically singular!'
+      end if
+
+      ! DGETRI computes the inverse of a matrix using the LU factorization
+      ! computed by DGETRF.
+      call ZGETRI(n, Ainv, n, ipiv, work, n, info)
+
+      if (info /= 0) then
+         stop 'Matrix inversion failed!'
+      end if
+   end function Cinv
+
+!****************************************************************************80
+!       SVD (lapack)
+   subroutine svd(A, U, S, VT, M, N)
+      complex(dp), dimension(:, :), intent(in) :: A
+
+      complex(dp) :: U(M, M), VT(N, N)
+      real(dp) :: S(N), RWORK(5*N)
+
+      complex(dp), dimension(:), allocatable :: WORK
+      INTEGER LDA, LDU, M, N, LWORK, LDVT, INFO
+      CHARACTER JOBU, JOBVT
+
+      JOBU = 'A'
+      JOBVT = 'A'
+      LDA = M
+      LDU = M
+      LDVT = N
+
+      LWORK = MAX(1, 3*MIN(M, N) + MAX(M, N), 5*MIN(M, N))
+
+      ALLOCATE (work(lwork))
+
+      CALL ZGESVD(JOBU, JOBVT, M, N, A, LDA, S, U, LDU, VT, LDVT, WORK, LWORK, RWORK, INFO)
+
+   end subroutine svd
+
+!****************************************************************************80
+! Pseudoinverse
+   function pinv(A) result(Ainv)
+      complex(dp), dimension(:, :), intent(in) :: A
+      complex(dp), dimension(:, :), allocatable :: Ainv
+
+      complex(dp), dimension(:, :), allocatable :: U, V, SU
+      real(dp), dimension(:), allocatable :: S
+      integer :: M, N, i1
+
+      M = size(A, 1)
+      N = size(A, 2)
+
+      allocate (U(M, M), V(N, N), S(N))
+      allocate (SU(N, M))
+      allocate (Ainv(N, M))
+
+      call svd(A, U, S, V, M, N)
+
+      do i1 = 1, N
+         if (s(i1) > 1e-6) then
+            SU(i1, :) = 1/s(i1)*conjg(U(:, i1))
+         else
+            SU(i1, :) = 0.0*conjg(U(:, i1))
          end if
 
       end do
 
-      matrices%x = x
+      Ainv = matmul(transpose(conjg(V)), SU)
+   end function pinv
 
-      print *, 'GMRES converged in', ite, 'iterations'
-
-   end subroutine gmres
-
-end module gmres_module
+end module possu
