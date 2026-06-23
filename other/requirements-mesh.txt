@@ -1,0 +1,9 @@
+numpy>=1.20
+scipy>=1.7
+h5py>=3.0
+matplotlib>=3.5
+trimesh>=4.0
+networkx>=2.5
+tetgen>=0.6
+pyvista>=0.43
+# Optional: pip install pymeshfix  (only with --pymeshfix; can crash on some Linux builds)
