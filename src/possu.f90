@@ -4,39 +4,143 @@ module possu
 ! The MIT License is applied to this software, see LICENSE
    use common
    use, intrinsic :: iso_c_binding
+   use omp_lib
 
    implicit none
 
 !include '/usr/local/include/fftw3.f03'
    include 'fftw3.f03'
 !include 'fftw3-mpi.f03'
+
+! Cached FFTW plans (rebuilt when grid dimensions change)
+   integer*8, save :: plan_3d_fwd = 0, plan_3d_bwd = 0
+   integer, save :: fft3_Nx = -1, fft3_Ny = -1, fft3_Nz = -1
+
+   integer*8, dimension(nthreads), save :: plan_1d_x_fwd = 0
+   integer*8, dimension(nthreads), save :: plan_1d_y_fwd = 0
+   integer*8, dimension(nthreads), save :: plan_1d_z_fwd = 0
+   integer*8, dimension(nthreads), save :: plan_1d_x_bwd = 0
+   integer*8, dimension(nthreads), save :: plan_1d_y_bwd = 0
+   integer*8, dimension(nthreads), save :: plan_1d_z_bwd = 0
+   integer, save :: fft2_Nx = -1, fft2_Ny = -1, fft2_Nz = -1
+
 contains
+
+!****************************************************************************80
+
+   subroutine free_fftw_plans()
+
+      if (plan_3d_fwd /= 0) then
+         call dfftw_destroy_plan(plan_3d_fwd)
+         plan_3d_fwd = 0
+      end if
+      if (plan_3d_bwd /= 0) then
+         call dfftw_destroy_plan(plan_3d_bwd)
+         plan_3d_bwd = 0
+      end if
+      fft3_Nx = -1
+      fft3_Ny = -1
+      fft3_Nz = -1
+
+      call free_fft2_plans_only()
+   end subroutine free_fftw_plans
+
+!****************************************************************************80
+
+   subroutine ensure_fft3_plans(Nx, Ny, Nz)
+      integer, intent(in) :: Nx, Ny, Nz
+      complex(dp), dimension(:,:,:), allocatable :: dummy
+
+      if (fft3_Nx == Nx .and. fft3_Ny == Ny .and. fft3_Nz == Nz) return
+
+      if (plan_3d_fwd /= 0) call dfftw_destroy_plan(plan_3d_fwd)
+      if (plan_3d_bwd /= 0) call dfftw_destroy_plan(plan_3d_bwd)
+      plan_3d_fwd = 0
+      plan_3d_bwd = 0
+
+      allocate (dummy(Nx, Ny, Nz))
+      call dfftw_plan_dft_3d(plan_3d_fwd, Nx, Ny, Nz, dummy, dummy, FFTW_FORWARD, FFTW_ESTIMATE)
+      call dfftw_plan_dft_3d(plan_3d_bwd, Nx, Ny, Nz, dummy, dummy, FFTW_BACKWARD, FFTW_ESTIMATE)
+      deallocate (dummy)
+
+      fft3_Nx = Nx
+      fft3_Ny = Ny
+      fft3_Nz = Nz
+   end subroutine ensure_fft3_plans
+
+!****************************************************************************80
+
+   subroutine ensure_fft2_plans(Nx, Ny, Nz)
+      integer, intent(in) :: Nx, Ny, Nz
+      complex(dp), dimension(:), allocatable :: dummy_x, dummy_y, dummy_z
+      integer :: t
+
+      if (fft2_Nx == Nx .and. fft2_Ny == Ny .and. fft2_Nz == Nz) return
+
+      call free_fft2_plans_only()
+
+      allocate (dummy_x(Nx), dummy_y(Ny), dummy_z(Nz))
+      do t = 1, nthreads
+         call dfftw_plan_dft_1d(plan_1d_x_fwd(t), Nx, dummy_x, dummy_x, FFTW_FORWARD, FFTW_ESTIMATE)
+         call dfftw_plan_dft_1d(plan_1d_y_fwd(t), Ny, dummy_y, dummy_y, FFTW_FORWARD, FFTW_ESTIMATE)
+         call dfftw_plan_dft_1d(plan_1d_z_fwd(t), Nz, dummy_z, dummy_z, FFTW_FORWARD, FFTW_ESTIMATE)
+         call dfftw_plan_dft_1d(plan_1d_x_bwd(t), Nx, dummy_x, dummy_x, FFTW_BACKWARD, FFTW_ESTIMATE)
+         call dfftw_plan_dft_1d(plan_1d_y_bwd(t), Ny, dummy_y, dummy_y, FFTW_BACKWARD, FFTW_ESTIMATE)
+         call dfftw_plan_dft_1d(plan_1d_z_bwd(t), Nz, dummy_z, dummy_z, FFTW_BACKWARD, FFTW_ESTIMATE)
+      end do
+      deallocate (dummy_x, dummy_y, dummy_z)
+
+      fft2_Nx = Nx
+      fft2_Ny = Ny
+      fft2_Nz = Nz
+   end subroutine ensure_fft2_plans
+
+!****************************************************************************80
+
+   subroutine free_fft2_plans_only()
+      integer :: t
+
+      do t = 1, nthreads
+         if (plan_1d_x_fwd(t) /= 0) call dfftw_destroy_plan(plan_1d_x_fwd(t))
+         if (plan_1d_y_fwd(t) /= 0) call dfftw_destroy_plan(plan_1d_y_fwd(t))
+         if (plan_1d_z_fwd(t) /= 0) call dfftw_destroy_plan(plan_1d_z_fwd(t))
+         if (plan_1d_x_bwd(t) /= 0) call dfftw_destroy_plan(plan_1d_x_bwd(t))
+         if (plan_1d_y_bwd(t) /= 0) call dfftw_destroy_plan(plan_1d_y_bwd(t))
+         if (plan_1d_z_bwd(t) /= 0) call dfftw_destroy_plan(plan_1d_z_bwd(t))
+         plan_1d_x_fwd(t) = 0
+         plan_1d_y_fwd(t) = 0
+         plan_1d_z_fwd(t) = 0
+         plan_1d_x_bwd(t) = 0
+         plan_1d_y_bwd(t) = 0
+         plan_1d_z_bwd(t) = 0
+      end do
+      fft2_Nx = -1
+      fft2_Ny = -1
+      fft2_Nz = -1
+   end subroutine free_fft2_plans_only
 
 !****************************************************************************80
 ! 3D FFT (fftw3)
    subroutine FFT3d(A)
       complex(dp), dimension(:, :, :) :: A
 
-      integer*8 :: plan
-      integer :: Nx, Ny, Nz, iret, t1, t2, rate
+      integer :: Nx, Ny, Nz
 
       Nx = size(A, 1)
       Ny = size(A, 2)
       Nz = size(A, 3)
 
-      call dfftw_plan_dft_3d(plan, Nx, Ny, Nz, A, A, FFTW_FORWARD, FFTW_ESTIMATE)
-      call dfftw_execute_dft(plan, A, A)
-      call dfftw_destroy_plan(plan)
+      call ensure_fft3_plans(Nx, Ny, Nz)
+      call dfftw_execute_dft(plan_3d_fwd, A, A)
 
    end subroutine FFT3d
 
 !****************************************************************************80
-! 3D FFT-mpi routine (fftw3)
+! 3D FFT on the zero-padded grid (fftw3)
    subroutine FFT3d_2(A)
       complex(dp), dimension(:, :, :) :: A
 
-      integer*8 :: plan
-      integer :: Nx, Ny, Nz, iret, t1, t2, rate, i1, i2
+      integer :: Nx, Ny, Nz, i1, i2, tid
       complex(dp) :: vec_x(size(A, 1))
       complex(dp) :: vec_y(size(A, 2))
       complex(dp) :: vec_z(size(A, 3))
@@ -45,65 +149,57 @@ contains
       Ny = size(A, 2)
       Nz = size(A, 3)
 
+      call ensure_fft2_plans(Nx, Ny, Nz)
+
       !______________________ 1d-FFT x-direction_________________________!
 
-      call dfftw_plan_dft_1d(plan, Nx, vec_x, vec_x, FFTW_FORWARD, FFTW_MEASURE)
-
 !$OMP parallel num_threads(nthreads) default(private) &
-!$OMP firstprivate(Nz, Ny, plan)  &
-!$OMP shared(A)
+!$OMP firstprivate(Nz, Ny) shared(A, plan_1d_x_fwd)
 !$OMP do
       do i1 = 1, Nz/2
          do i2 = 1, Ny/2
+            tid = omp_get_thread_num() + 1
             vec_x = A(:, i2, i1)
-            call dfftw_execute_dft(plan, vec_x, vec_x)
+            call dfftw_execute_dft(plan_1d_x_fwd(tid), vec_x, vec_x)
             A(:, i2, i1) = vec_x
          end do
       end do
 !$OMP end do
 !$OMP end parallel
 
-      call dfftw_destroy_plan(plan)
-
       !______________________ 1d-FFT y-direction_________________________!
 
-      call dfftw_plan_dft_1d(plan, Ny, vec_y, vec_y, FFTW_FORWARD, FFTW_MEASURE)
 !$OMP parallel num_threads(nthreads) default(private) &
-!$OMP firstprivate(Nz, Nx, plan)  &
-!$OMP shared(A)
+!$OMP firstprivate(Nz, Nx) shared(A, plan_1d_y_fwd)
 !$OMP do
 
       do i1 = 1, Nz/2
          do i2 = 1, Nx
+            tid = omp_get_thread_num() + 1
             vec_y = A(i2, :, i1)
-            call dfftw_execute_dft(plan, vec_y, vec_y)
+            call dfftw_execute_dft(plan_1d_y_fwd(tid), vec_y, vec_y)
             A(i2, :, i1) = vec_y
          end do
       end do
 !$OMP end do
 !$OMP end parallel
 
-      call dfftw_destroy_plan(plan)
-
 !______________________ 1d-FFT z-direction_________________________!
 
-      call dfftw_plan_dft_1d(plan, Nz, vec_z, vec_z, FFTW_FORWARD, FFTW_MEASURE)
 !$OMP parallel num_threads(nthreads) default(private) &
-!$OMP firstprivate(Ny, Nx, plan)  &
-!$OMP shared(A)
+!$OMP firstprivate(Ny, Nx) shared(A, plan_1d_z_fwd)
 !$OMP do
 
       do i1 = 1, Ny
          do i2 = 1, Nx
+            tid = omp_get_thread_num() + 1
             vec_z = A(i2, i1, :)
-            call dfftw_execute_dft(plan, vec_z, vec_z)
+            call dfftw_execute_dft(plan_1d_z_fwd(tid), vec_z, vec_z)
             A(i2, i1, :) = vec_z
          end do
       end do
 !$OMP end do
 !$OMP end parallel
-
-      call dfftw_destroy_plan(plan)
 
    end subroutine FFT3d_2
 
@@ -113,26 +209,23 @@ contains
    subroutine IFFT3d(A)
       complex(dp), dimension(:, :, :) :: A
 
-      integer*8 :: plan
-      integer :: Nx, Ny, Nz, iret
+      integer :: Nx, Ny, Nz
 
       Nx = size(A, 1)
       Ny = size(A, 2)
       Nz = size(A, 3)
 
-      call dfftw_plan_dft_3d(plan, Nx, Ny, Nz, A, A, FFTW_BACKWARD, FFTW_ESTIMATE)
-      call dfftw_execute_dft(plan, A, A)
-      call dfftw_destroy_plan(plan)
+      call ensure_fft3_plans(Nx, Ny, Nz)
+      call dfftw_execute_dft(plan_3d_bwd, A, A)
 
    end subroutine IFFT3d
 
 !****************************************************************************80
-! 3D FFT routine for the zero-padded grid (fftw3)
+! 3D inverse FFT on the zero-padded grid (fftw3)
    subroutine IFFT3d_2(A)
       complex(dp), dimension(:, :, :) :: A
 
-      integer*8 :: plan
-      integer :: Nx, Ny, Nz, iret, t1, t2, rate, i1, i2
+      integer :: Nx, Ny, Nz, i1, i2, tid
       complex(dp) :: vec_x(size(A, 1))
       complex(dp) :: vec_y(size(A, 2))
       complex(dp) :: vec_z(size(A, 3))
@@ -141,65 +234,57 @@ contains
       Ny = size(A, 2)
       Nz = size(A, 3)
 
+      call ensure_fft2_plans(Nx, Ny, Nz)
+
 !______________________ 1d-IFFT z-direction_________________________!
 
-      call dfftw_plan_dft_1d(plan, Nz, vec_z, vec_z, FFTW_BACKWARD, FFTW_MEASURE)
 !$OMP parallel num_threads(nthreads) default(private) &
-!$OMP firstprivate(Ny, Nx, plan)  &
-!$OMP shared(A)
+!$OMP firstprivate(Ny, Nx) shared(A, plan_1d_z_bwd)
 !$OMP do
 
       do i1 = 1, Ny
          do i2 = 1, Nx
+            tid = omp_get_thread_num() + 1
             vec_z = A(i2, i1, :)
-            call dfftw_execute_dft(plan, vec_z, vec_z)
+            call dfftw_execute_dft(plan_1d_z_bwd(tid), vec_z, vec_z)
             A(i2, i1, :) = vec_z
          end do
       end do
 !$OMP end do
 !$OMP end parallel
 
-      call dfftw_destroy_plan(plan)
-
       !______________________ 1d-IFFT y-direction_________________________!
 
-      call dfftw_plan_dft_1d(plan, Ny, vec_y, vec_y, FFTW_BACKWARD, FFTW_MEASURE)
 !$OMP parallel num_threads(nthreads) default(private) &
-!$OMP firstprivate(Nz, Nx, plan)  &
-!$OMP shared(A)
+!$OMP firstprivate(Nz, Nx) shared(A, plan_1d_y_bwd)
 !$OMP do
 
       do i1 = 1, Nz/2
          do i2 = 1, Nx
+            tid = omp_get_thread_num() + 1
             vec_y = A(i2, :, i1)
-            call dfftw_execute_dft(plan, vec_y, vec_y)
+            call dfftw_execute_dft(plan_1d_y_bwd(tid), vec_y, vec_y)
             A(i2, :, i1) = vec_y
          end do
       end do
 !$OMP end do
 !$OMP end parallel
 
-      call dfftw_destroy_plan(plan)
-
       !______________________ 1d-IFFT x-direction_________________________!
 
-      call dfftw_plan_dft_1d(plan, Nx, vec_x, vec_x, FFTW_BACKWARD, FFTW_MEASURE)
-
 !$OMP parallel num_threads(nthreads) default(private) &
-!$OMP firstprivate(Nz, Ny, plan)  &
-!$OMP shared(A)
+!$OMP firstprivate(Nz, Ny) shared(A, plan_1d_x_bwd)
 !$OMP do
       do i1 = 1, Nz/2
          do i2 = 1, Ny/2
+            tid = omp_get_thread_num() + 1
             vec_x = A(:, i2, i1)
-            call dfftw_execute_dft(plan, vec_x, vec_x)
+            call dfftw_execute_dft(plan_1d_x_bwd(tid), vec_x, vec_x)
             A(:, i2, i1) = vec_x
          end do
       end do
 !$OMP end do
 !$OMP end parallel
-
-      call dfftw_destroy_plan(plan)
 
    end subroutine IFFT3d_2
 
